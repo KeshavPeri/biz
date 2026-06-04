@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Block commits containing secrets. Activated via: git config core.hooksPath .githooks
+set -euo pipefail
+
+staged=$(git diff --cached --name-only)
+
+# 1) Block env/secret files by name
+if echo "$staged" | grep -E '(^|/)\.env($|\.)|(^|/)secrets/' >/dev/null; then
+  echo "COMMIT BLOCKED: you're trying to commit an env/secret file."
+  echo "  Unstage it:  git restore --staged <file>"
+  exit 1
+fi
+
+# 2) Block secret-looking VALUES in staged content (ignores blank placeholders in .env.example)
+if git diff --cached -U0 \
+  | grep -nE "(sk-[A-Za-z0-9]{20,}|eyJ[A-Za-z0-9_-]{20,}|BEGIN [A-Z ]*PRIVATE KEY|(API_KEY|SECRET|SERVICE_ROLE|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)['\"]?[[:space:]]*[:=][[:space:]]*['\"]?[A-Za-z0-9/_+-]{16,})" \
+  >/dev/null; then
+  echo "COMMIT BLOCKED: staged changes look like they contain a real secret/key."
+  echo "  Move the value into .env (gitignored) and reference it via an env variable."
+  exit 1
+fi
+
+exit 0
