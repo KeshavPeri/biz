@@ -1,8 +1,32 @@
 # Data Model — Biz MVP
 
-> **Version:** 1.0 (draft for review) — 2026-06-04
+> **Version:** 1.1 (revised after v5 cross-check) — 2026-06-04
 > **Status:** Awaiting approval at task 3.4. Do not write migrations until locked.
 > Everything downstream (RLS, API, trackers) depends on this. Review carefully.
+
+---
+
+## Revision log (v1.0 → v1.1)
+
+A line-by-line tally against the v5 feature list surfaced gaps. Changes:
+
+- **+ `brand_partnerships` table** — previous brand partnerships are kept (manual) on the media
+  kit per the exclusions doc, but had no home.
+- **+ `deal_payment_details` table** — B3-034 captures creator receiving details + brand billing
+  details before Payment activates; this had nowhere to be stored.
+- **+ `participant_add_requests` table** — group chat (B3-004) requires all-party approval to add
+  a participant mid-deal.
+- **+ `deal_participants.last_read_at`** — the chat-list unread badge needs self read-state
+  (distinct from read receipts, which are deferred).
+- **+ `deals.expires_at`** — explicit 72h Pending connection-request expiry.
+- **+ `deals.stage` gains `declined` + `cancelled`** — the two terminal off-ramps from the
+  deal-engine design.
+- **+ `contract_signatures.bypass_reason` / `physical_doc_path`** — print-and-sign bypass (mode ③).
+- **+ `creator_profiles.privacy_settings`, `creator_profiles.response_time_hours`,
+  `brands.profile_attributes`, `brands.deal_completion_rate`** — media-kit / business-profile
+  display fields that were missing.
+
+Net: 39 → 42 tables, plus the field additions above.
 
 ---
 
@@ -37,16 +61,16 @@
 
 | Domain | Tables | Purpose |
 |---|---|---|
-| Identity & Profile | 9 | Who the users are |
-| Deal Core | 6 | The deal, its participants, chat, deliverables |
+| Identity & Profile | 10 | Who the users are |
+| Deal Core | 7 | The deal, its participants, chat, deliverables |
 | Terms & Contracts | 8 | What was agreed, the contract, signatures |
 | Rights | 5 | Exclusivity, usage, whitelisting, blackout, disclosure |
-| Payments | 2 | Payment tracking (no processing) |
+| Payments | 3 | Payment tracking + captured invoicing details (no processing) |
 | Deal Outcomes | 3 | Disputes, ratings, comments |
 | Maker-Checker | 2 | Brand approval workflow |
 | Private Annotations | 1 | Per-user private labels |
 | Cross-cutting | 3 | Notifications, preferences, audit log |
-| **Total** | **39** | |
+| **Total** | **42** | |
 
 ---
 
@@ -84,6 +108,8 @@ Creator-specific fields. 1:1 with `profiles` where account_type = creator.
 | outbound_enabled | bool | initiate outreach |
 | trust_score | numeric | computed (placeholder logic for MVP) |
 | deal_completion_rate | numeric | computed |
+| response_time_hours | numeric | computed (avg first-response time); shown on media kit |
+| privacy_settings | jsonb | contact visibility, platform visibility toggles (rate-card toggle lives on `rate_cards`) |
 
 ### `brands`
 The organisation entity.
@@ -97,6 +123,8 @@ The organisation entity.
 | domain | text | verified domain |
 | verified | bool | Verified Business badge |
 | trust_rating | numeric | from completed deal ratings |
+| deal_completion_rate | numeric | computed |
+| profile_attributes | jsonb | display-only: typical campaign types, deal-format preference, preferred creator tier, collaboration style |
 | created_at | timestamptz | |
 
 ### `brand_members`
@@ -174,6 +202,20 @@ Professional affiliations / credentials (self-declared).
 | year | int | |
 | description | text | nullable |
 
+### `brand_partnerships`
+Previous brand partnerships shown as social proof on the creator's media kit. Manual entry for
+MVP (auto-import deferred). Feeds trust scoring.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid (PK) | |
+| creator_id | uuid (FK → creator_profiles) | |
+| brand_name | text | free text (brand may not be on Biz) |
+| platform | enum | nullable |
+| views_reach | int | nullable; achieved views/reach |
+| year | int | |
+| description | text | nullable |
+
 ---
 
 ## Domain 2 — Deal Core
@@ -188,10 +230,11 @@ The central entity. Created when someone taps Connect.
 | brand_id | uuid (FK → brands) | |
 | deal_name | text | editable by any participant |
 | deal_type | enum | `campaign` \| `product` \| `experience` (default campaign for MVP) |
-| stage | enum | pending, chatting, approval, creating, posted, payment, closed |
+| stage | enum | pending, chatting, approval, creating, posted, payment, closed, **declined**, **cancelled** |
 | is_disputed | bool | overlay on Payment stage (not a stage) |
 | direction | enum | `inbound` \| `outbound` (who initiated) |
 | currency | text | ₹ / $ label; no conversion |
+| expires_at | timestamptz | Pending connection-request expiry (created_at + 72h); nullable once accepted |
 | created_by | uuid (FK → profiles) | initiator |
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
@@ -206,6 +249,7 @@ Who is on a deal. **The RLS anchor.**
 | deal_id | uuid (FK → deals) | |
 | profile_id | uuid (FK → profiles) | |
 | participant_role | enum | `creator` \| `brand_admin` \| `brand_maker` \| `brand_checker` |
+| last_read_at | timestamptz | drives the unread-count badge (messages after this time are unread for this user); note: this is *self* read-state, not read receipts (those are deferred) |
 | joined_at | timestamptz | |
 
 ### `deal_stage_transitions`
@@ -219,6 +263,22 @@ Append-only log of every stage change.
 | to_stage | enum | |
 | transition_type | enum | `auto` \| `gated` |
 | triggered_by | uuid (FK → profiles) | |
+| created_at | timestamptz | |
+
+### `participant_add_requests`
+Adding a participant to a deal mid-flow requires all existing participants to approve (per
+group-chat rules). One row per proposed addition; approvals tracked in `metadata` or via
+per-approver rows.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid (PK) | |
+| deal_id | uuid (FK → deals) | |
+| proposed_profile_id | uuid (FK → profiles) | the person to add |
+| requested_by | uuid (FK → profiles) | |
+| reason | text | |
+| status | enum | `pending` \| `approved` \| `rejected` |
+| approvals | jsonb | per-participant approve/pending state |
 | created_at | timestamptz | |
 
 ### `messages`
@@ -352,7 +412,9 @@ Append-only signing record.
 | signer_id | uuid (FK → profiles) | |
 | on_behalf_of_brand_id | uuid (FK → brands) | nullable; if signing for a brand |
 | signature_mode | enum | `stored` \| `drawn` \| `print_bypass` |
-| signature_ref | text | snapshot of signature used |
+| signature_ref | text | snapshot of signature used (modes ①②) |
+| bypass_reason | text | nullable; required when mode = print_bypass |
+| physical_doc_path | text | nullable; uploaded wet-signed PDF for print_bypass |
 | signed_at | timestamptz | |
 | ip_address | text | |
 
@@ -473,6 +535,24 @@ Revision rounds per deliverable (Round X of Y).
 | amount | numeric | |
 | due_date | date | |
 | state | enum | same set as payments.state |
+
+### `deal_payment_details`
+Captured before the Payment stage activates (validates both sides' invoicing info). Stored
+per-deal for MVP since profile-level payment-methods management is deferred. No invoice is
+generated in MVP (deferred) — this exists so the creator knows where to be paid and both have
+a record.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid (PK) | |
+| deal_id | uuid (FK → deals) | 1:1 |
+| creator_legal_name | text | |
+| creator_bank_or_upi | text | where the creator receives payment (off-platform) |
+| creator_tax_id | text | nullable (e.g. PAN); optional below tax threshold |
+| brand_billing_name | text | |
+| brand_billing_address | text | |
+| brand_gst | text | nullable |
+| created_at | timestamptz | |
 
 ---
 
