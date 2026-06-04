@@ -69,6 +69,8 @@ Everything else: just do it, commit, and keep going.
 - TypeScript
 - Expo Router (navigation)
 - NativeBase (UI components) — confirm still the best current option at task 6.4
+- Zustand (global state: auth, user session, active deal context) + Supabase
+  Realtime (live data) + React useState (local screen state)
 - Supabase JS client — uses the **anon key only**
 
 **Backend**
@@ -97,6 +99,15 @@ Don't introduce a paid service without flagging it first.
 - **The server is the source of truth.** Deal-stage transitions and RBAC are enforced
   in FastAPI / RLS — never trust the client to enforce rules.
 
+  ## Environments
+
+- **Local:** frontend + backend run on your laptop; phone connects via wifi. Used
+  for all development (Phases 5–13).
+- **Production:** Vercel (frontend) + Railway (backend) + hosted Supabase. A real
+  public URL for phone testing and market research. Set up in Phase 14.
+- No staging environment for MVP — local dev is your staging. Splitting to
+  production later is a ~2–3 hr task (workplan Phase 14).
+
 ## Folder structure (monorepo)
 
 ```
@@ -123,6 +134,7 @@ These live in `/docs` and are the authority for design decisions. Most don't exi
 - `rbac` — roles and the permission matrix
 - `api-architecture` — what goes to Supabase-direct vs FastAPI
 - `ai-parser` — the 22-field contract extraction
+- `stack-decisions` — full stack choices + reasoning (locked)
 - `security` — encryption, RLS strategy, secrets handling
 - `scope` — MVP in/out boundaries
 - `design-direction` — look & feel brief (from my co-founder)
