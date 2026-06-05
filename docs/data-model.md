@@ -1,12 +1,20 @@
 # Data Model — Biz MVP
 
-> **Version:** 1.1 (revised after v5 cross-check) — 2026-06-04
+> **Version:** 1.2 (revised after v5 cross-check + RBAC design) — 2026-06-04
 > **Status:** Awaiting approval at task 3.4. Do not write migrations until locked.
 > Everything downstream (RLS, API, trackers) depends on this. Review carefully.
 
 ---
 
-## Revision log (v1.0 → v1.1)
+## Revision log
+
+**v1.1 → v1.2 (RBAC design, task 3.6):**
+- **`brand_members.brand_role` changed from `admin|maker|checker` to `admin|member`.** Maker and
+  checker are not permanent identities — they are per-deal hats assigned on
+  `deal_participants.participant_role`. So a person can be maker on one deal and checker on
+  another, and a brand can have many of each. Brand standing is just admin vs member.
+
+**v1.0 → v1.1 (v5 cross-check):**
 
 A line-by-line tally against the v5 feature list surfaced gaps. Changes:
 
@@ -135,7 +143,7 @@ Links users to a brand, with their role. This is what enables maker-checker.
 | id | uuid (PK) | |
 | brand_id | uuid (FK → brands) | |
 | profile_id | uuid (FK → profiles) | |
-| brand_role | enum | `admin` \| `maker` \| `checker` |
+| brand_role | enum | `admin` \| `member` — brand *standing* (admin manages the brand). The operative maker/checker hat is per-deal, on `deal_participants`. See rbac.md |
 | status | enum | `invited` \| `active` |
 | created_at | timestamptz | |
 
@@ -762,4 +770,3 @@ don't have to migrate later. But no full tables for deferred features.)
 
 ---
 
-*Review checklist for task 3.4 is in the next message. Next doc after approval: deal-engine.md (3.5).*

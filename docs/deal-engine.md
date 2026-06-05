@@ -406,17 +406,3 @@ and milestone schedule, are captured/confirmed through the summary and contract 
 
 ---
 
-## Data-model addendum (needs your nod)
-
-Designing the state machine surfaced one small gap in the locked data model:
-
-> **`deals.stage` enum needs two terminal values added: `declined` and `cancelled`.**
-> The current enum has only the 7 happy-path stages. These two off-ramps need to be
-> representable. This is a one-line enum change, no structural impact.
-
-Everything else maps cleanly onto the existing tables. If you approve this addendum, I'll note
-it so the migration includes it.
-
----
-
-*Next after approval: docs/rbac.md (task 3.6) — the roles and permission matrix.*
