@@ -46,7 +46,7 @@ action is high-stakes or hard to reverse:
 - `git push --force`, rewriting history, or deleting branches
 - Anything touching **production / live deployment, real user data, or live payment state**
 - Adding a **new paid service** or anything that incurs cost
-- A large **architectural change** that contradicts `docs/technical-spec` or this file
+- A large **architectural change** that contradicts `docs/technical-spec.md` or this file
 - Handling **real secrets/keys** (always use `.env`; never hardcode or commit them)
 - Anything irreversible you're less than ~80% confident about
 
@@ -55,9 +55,11 @@ Everything else: just do it, commit, and keep going.
 ## At the start of every session
 
 1. Read this file and `docs/progress.md`.
-2. Check which workplan task we're on (master task list = the Build Workplan sheet).
-3. Use **Plan Mode** for anything non-trivial: show me the plan, then build.
-4. At the end of the session (or when context gets long), write what you did and what's
+2. **`docs/technical-spec.md` is the locked, consolidated build spec — the front door to
+   all design decisions.** Read the relevant section before building a feature.
+3. Check which workplan task we're on (master task list = the Build Workplan sheet).
+4. Use **Plan Mode** for anything non-trivial: show me the plan, then build.
+5. At the end of the session (or when context gets long), write what you did and what's
    next into `docs/progress.md`, so the next session picks up cleanly.
 
 ---
@@ -92,14 +94,49 @@ Don't introduce a paid service without flagging it first.
 
 ## Architecture
 
-- **Frontend → Supabase directly** for: auth, simple CRUD, realtime subscriptions,
-  file storage. Access is protected by **RLS** at the database level.
+- **Frontend → Supabase directly** for: auth, simple owned-record CRUD, realtime
+  subscriptions, file storage. Access is protected by **RLS** at the database level.
 - **Frontend → FastAPI** for: AI parsing, PDF/contract generation, gated deal-stage
-  transitions, and anything sensitive or needing the service_role key.
+  transitions, email, and anything sensitive or needing the service_role key.
+- **Two-key model:** the **anon key** is public and safe *because RLS is the real lock*;
+  the **service_role key** bypasses RLS and lives **backend-only**, so FastAPI must enforce
+  every rule itself (RBAC + the state machine).
 - **The server is the source of truth.** Deal-stage transitions and RBAC are enforced
   in FastAPI / RLS — never trust the client to enforce rules.
 
-  ## Environments
+> Full routing detail (the test for SB-direct vs FastAPI): `docs/api-architecture.md`.
+
+## Critical design rules (and where they live)
+
+The locked design is in `/docs`. Don't re-derive or contradict it — read the doc, then build.
+These are the rules that cause real damage or rework if broken:
+
+- **Data model — `docs/data-model.md` is the source of truth.** 42 tables, 9 domains.
+  Don't invent tables/columns. `deal_participants` is the **RLS anchor** (visibility =
+  "are you a participant on this deal?"). The 22 parser fields map to specific columns —
+  use the storage map; don't free-form them.
+- **Deal engine — `docs/deal-engine.md`.** 7 stages, **forward-only**, **server-enforced**,
+  **every transition logged** to `deal_stage_transitions`. `Disputed` is an **overlay on
+  Payment, not a stage**; `Declined`/`Cancelled` are terminal off-ramps. Client requests a
+  transition; it never performs one.
+- **API split & two-key — `docs/api-architecture.md`.** Route through FastAPI if it changes
+  deal state, uses AI, generates a document, sends email, needs service_role, must be
+  audited, or enforces a rule beyond simple ownership. Otherwise Supabase-direct (anon + RLS).
+- **AI — `docs/ai-parser.md`.** All AI goes through the single **`ai_service`** module —
+  **never call Gemini directly**. The parser **never guesses** (returns
+  `found`/`not_discussed`/`ambiguous`); the human confirms before terms bind.
+- **Roles & security — `docs/rbac.md` + `docs/security.md`.** Enforce RBAC server-side;
+  **maker ≠ checker** on the same action (segregation of duties); RLS + RBAC are
+  defence-in-depth; sensitive actions write to the **immutable audit log**.
+- **Scope guardrail — `docs/scope.md`.** Only **Tier 1 (the 93 MVP features)** is in scope.
+  If a task pulls in anything from MVP-2 / MVP-3 / Future, **stop and flag in
+  `docs/progress.md`** — don't silently expand scope.
+- **Open decisions — `docs/technical-spec.md` §13.** A short list of "needs a call before
+  production" items (retention, AI-data privacy, DPDP, whitelisting access, Railway worker,
+  NativeBase, account deletion). Don't resolve these silently. Near-term: confirm Railway's
+  free tier supports a background worker before the production split (Phase 14).
+
+## Environments
 
 - **Local:** frontend + backend run on your laptop; phone connects via wifi. Used
   for all development (Phases 5–13).
@@ -124,26 +161,31 @@ Don't introduce a paid service without flagging it first.
 
 ## Source-of-truth documents
 
-These live in `/docs` and are the authority for design decisions. Most don't exist yet
-(we build them in Phase 3) — as each is created, treat it as canonical:
+These live in `/docs` and are the authority for design decisions. As of Phase 3 they are
+**written and locked** — treat them as canonical; if code and a doc disagree, the doc wins
+(and flag it). Start from `technical-spec.md`, which consolidates the rest.
 
-- `technical-spec` — the locked technical design
-- `stack-decisions` — stack choices + reasoning
-- `data-model` — database schema and relationships
-- `deal-engine` — the 7-stage deal state machine
-- `rbac` — roles and the permission matrix
-- `api-architecture` — what goes to Supabase-direct vs FastAPI
-- `ai-parser` — the 22-field contract extraction
-- `stack-decisions` — full stack choices + reasoning (locked)
-- `security` — encryption, RLS strategy, secrets handling
-- `scope` — MVP in/out boundaries
-- `design-direction` — look & feel brief (from my co-founder)
-- `rtm.md` - Requirement Traceability Matrix : every feature -> its code -> its test -> status (update after each feature)
-- `progress.md` — running log of what's done / what's next
+- `docs/technical-spec.md` — **the locked, consolidated technical design (v1). Read first.**
+- `docs/stack-decisions.md` — stack choices + reasoning (locked)
+- `docs/scope.md` — MVP in/out boundaries (the four scope tiers)
+- `docs/feature-inventory.md` — the 93 MVP features in 7 buckets (the RTM source)
+- `docs/data-model.md` — the 42-table database schema + the 22-field storage map
+- `docs/deal-engine.md` — the 7-stage deal state machine
+- `docs/rbac.md` — roles and the permission matrix
+- `docs/api-architecture.md` — Supabase-direct vs FastAPI (the two-key routing rule)
+- `docs/ai-parser.md` — the 22-field contract extraction (behind `ai_service`)
+- `docs/notifications.md` — the 3 tiers + event catalogue (in-app + email)
+- `docs/security.md` — auth, RLS strategy, encryption, secrets, audit log, privacy
+- `design-direction` — brand & design guidelines (colours, type, components) from my co-founder
+- `docs/rtm.md` — Requirement Traceability Matrix: every feature → its code → its test →
+  status (update after each feature)
+- `docs/progress.md` — running log of what's done / what's next
 
 ---
 
 ## MVP scope
+
+**93 features across 7 buckets** (full list: `docs/feature-inventory.md`; boundary: `docs/scope.md`).
 
 **IN:** Creator + Brand users · full 7-stage deal engine · AI contract parser (22 fields)
 · trackers (deal RAG status, payment **tracking only**, calendar, rights/exclusivity)
@@ -151,20 +193,21 @@ These live in `/docs` and are the authority for design decisions. Most don't exi
 · security, RBAC, audit log.
 
 **OUT (deferred):** Agency user type · real payment **processing** · tax tool ·
-full document hub · live marketplace with real social-platform APIs · app-store deployment
-· SMS OTP (email OTP only for MVP).
+full document hub · live marketplace with real social-platform APIs · brand-uploaded
+contracts · app-store deployment · SMS OTP / 2FA (email OTP only for MVP).
 
 If a request would pull something from OUT into the build, flag it — don't silently expand scope.
 
 ## Build sequence (buckets, in dependency order)
 
-1. **Identity & Trust** — auth, OTP, roles, onboarding, signatures
-2. **Discovery** — placeholder on mock data
-3. **Deal Engine** — chat, 7 stages, contracts, signing, content, posting, payment tracking
-4. **AI Contract Parser** — extract the 22 fields, feed the trackers
-5. **Tracking** — deal/payment/calendar/rights trackers, auto-populated from the parser
+1. **Identity & Trust** (Phase 7) — auth, OTP, roles, onboarding, signatures
+2. **Discovery** (Phase 8) — placeholder on mock data
+3. **Deal Engine** (Phase 9) — chat, 7 stages, contracts, signing, content, posting, payment tracking
+4. **AI Contract Parser** (Phase 10) — extract the 22 fields, feed the trackers
+5. **Tracking** (Phase 11) — deal/payment/calendar/rights trackers, auto-populated from the parser
 
-**Security & Notifications** are not a final step — build them alongside everything from day one.
+**Security & Notifications** (Phase 12) are not a final step — build them alongside everything
+from day one.
 
 ---
 
