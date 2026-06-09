@@ -16,19 +16,23 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 4 complete — RTM built. Ready to start Phase 5 (Backend & Database Foundation).
-- **Current task:** Phase 4 done (4.1 + 4.2 + 4.3 complete). Next: Phase 5.
+- **Current phase:** Phase 5 — Backend & Database Foundation (in progress).
+- **Current task:** SQL migrations written (task 5.x). Next: FastAPI project setup, Supabase
+  project init, apply migrations to dev DB, wire `.env`.
 - **Built so far:** Local environment + monorepo scaffolded. Private GitHub repo connected.
   `CLAUDE.md` written. All Phase 3 design docs locked (`technical-spec.md` v1.0 + 9 source docs).
   `docs/rtm.md` built — 93 features, 13 columns, pre-populated Explore + Design sections.
-- **Not working / known issues:** None — no app code exists yet. Phase 5 starts the backend.
-- **How to run the project:** N/A yet. Backend (FastAPI) stands up in Phase 5;
+  **`backend/migrations/` created — 12 SQL files covering all 42 tables, 27 enums, ~60 indexes,
+  and full RLS policies.** Migration files: 001–012 (see SESSION HISTORY for details).
+- **Not working / known issues:** Migrations not yet applied to Supabase — need Supabase project
+  init and `.env` setup first.
+- **How to run the project:** N/A yet. Backend (FastAPI) stands up later in Phase 5;
   frontend (Expo) in Phase 6. Update this line with exact run commands once they exist.
 
 ## NEXT UP  *(ordered)*
 
-1. **Phase 5 — Backend & Database Foundation:** FastAPI project setup, Supabase project init,
-   schema migrations for all 42 tables, RLS policies, `.env` wiring.
+1. **Phase 5 (continued):** FastAPI project setup, Supabase project init (create project, get
+   keys), apply migrations (`psql` or Supabase Dashboard SQL editor), wire `.env`.
 2. **Phase 6 — Frontend Foundation:** Expo project setup, Expo Router, NativeBase (re-evaluate
    at task 6.4 per open decision #6), Zustand store, Supabase JS client wiring.
 3. After 5 + 6: Phase 7 (Identity & Trust — first real features, Bucket 1).
@@ -46,6 +50,11 @@ do not proceed. I'll resolve these at the start of my next session.*
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
 
+- 2026-06-09 — Two RLS gaps deferred (task 5.4 review): (1) `deal_participants` INSERT policy
+  allows uninvited self-addition — mitigated by UUID non-guessability + app flow enforcing invites
+  via FastAPI; (2) `deals` UPDATE policy doesn't restrict `stage` column — mitigated by FastAPI
+  being the only path for stage transitions. Both documented in full in `docs/security.md` under
+  "Known RLS implementation gaps (address before production)".
 - 2026-06-03 — RTM will live as `docs/rtm.md` (markdown table, not xlsx) so it's
   Git-diffable and editable without scripts. Workplan stays as the separate Google Sheet.
 - 2026-06-03 — App name "Biz" is a placeholder pending final naming.
@@ -53,6 +62,23 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-06-09 — Phase 5: SQL migrations written
+- **Did:** Created `backend/migrations/` with 12 ordered SQL files covering the full data model
+  from `docs/data-model.md` v1.2 (42 tables, 9 domains). Files:
+  - `001`: Extensions (uuid-ossp, pgcrypto) + 27 custom enum types
+  - `002–010`: All 42 tables grouped by domain with FK constraints, CASCADE rules, and timestamps
+  - `011`: ~60 indexes — FK indexes, hot-path compound indexes (messages by deal+time, notifications
+    unread, deals active), partial indexes (rights expiry, open disputes, pending maker-checker)
+  - `012`: RLS — enabled on all 42 tables; 3 SECURITY DEFINER helper functions
+    (`is_deal_participant`, `is_brand_member`, `is_brand_admin`); policies for every table
+    anchored to `deal_participants` as the visibility anchor.
+  - Audit log immutability enforced by BEFORE UPDATE/DELETE trigger (raises exception).
+  - Key correctness decisions: UNIQUE(profile_id, category) on notification_preferences (not
+    UNIQUE(profile_id)); no FK on private_annotations.entity_id (polymorphic); SET NULL on
+    payment_milestones.deliverable_id; ratings CHECK constraint for ratee_profile_id XOR ratee_brand_id.
+- **Not done yet:** Supabase project not created; migrations not applied.
+- **Next:** FastAPI project setup → Supabase project init → apply migrations.
 
 ### 2026-06-09 — Phase 4: RTM built (Cowork session)
 - **Did:** Tasks 4.1 + 4.2 + 4.3 complete. Built `docs/rtm.md` — 93 features, 7 per-bucket

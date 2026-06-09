@@ -245,6 +245,47 @@ not legal advice.
 
 ---
 
+## Known RLS implementation gaps (address before production)
+
+Identified during the Phase 5.4 schema review. Neither blocks MVP development — the app architecture
+mitigates both — but both should be hardened before public launch.
+
+### Gap 1 — `deal_participants` INSERT policy allows uninvited self-addition
+
+**File:** `backend/migrations/012_rls.sql` — policy `deal_participants_insert_own`
+
+**Issue:** `WITH CHECK (profile_id = auth.uid())` lets any authenticated user who knows a deal's
+UUID add themselves as a participant. The intent ("client confirms an invitation") is not enforced
+at the database level — no check for an existing invite or permission exists.
+
+**Why it's acceptable for MVP:** Deal UUIDs are not guessable; the app only surfaces deal IDs to
+intended parties; all real participant-addition flows go through FastAPI (service_role), which
+enforces invite logic.
+
+**Fix before production:** Remove the client INSERT policy from `deal_participants` entirely. Route
+all participant additions through FastAPI (service_role). The client should never directly insert
+into `deal_participants`.
+
+---
+
+### Gap 2 — `deals` UPDATE policy does not restrict the `stage` column
+
+**File:** `backend/migrations/012_rls.sql` — policy `deals_update_participant`
+
+**Issue:** The policy allows any deal participant to UPDATE any column on `deals`, including `stage`.
+A user with the anon key could bypass FastAPI and directly set `deals.stage` to any valid enum
+value, bypassing the deal engine's forward-only, gated transition logic.
+
+**Why it's acceptable for MVP:** Stage transitions in the app always go through FastAPI (service_role).
+The architecture explicitly relies on FastAPI as the enforcer ("the server is the source of truth").
+This is an accepted trade-off, not a design mistake.
+
+**Fix before production (optional hardening):** Add a Postgres trigger on `deals` that prevents
+direct `stage` updates except via a trusted database function. RLS does not natively support
+column-level UPDATE restrictions, so a trigger is the right mechanism.
+
+---
+
 ## Deferred (MVP-2)
 
 Two-factor authentication (login + key actions) · SMS OTP · device management + multi-owner session
