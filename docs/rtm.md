@@ -1,0 +1,208 @@
+# Biz — Requirements Traceability Matrix (RTM)
+
+| | |
+|---|---|
+| **Version** | 1.0 — 2026-06-09 |
+| **Source** | `docs/feature-inventory.md` + `docs/technical-spec.md` |
+| **Total features** | 93 |
+| **Format** | 7 per-bucket sub-tables |
+
+> **How to read this file**
+> - **Explore + Design** columns are pre-populated from the spec (done now).
+> - **Build** columns (`Code File(s)`, `Build Status`, `Build Notes`) are filled by Claude Code as each feature is implemented during Phases 7–12.
+> - **Test** columns are filled when tests are written per feature.
+> - Update this file after every feature is built + tested (CLAUDE.md golden rule 6).
+
+---
+
+## Column guide
+
+| Section | Column | Filled when |
+|---|---|---|
+| **Explore** | Feature ID, Feature, Bucket, Phase, Priority, Scope | Pre-populated |
+| **Design** | Design Summary, Build Elements | Pre-populated |
+| **Build** | Code File(s) | During build (Phases 7–12) |
+| **Build** | Build Status | During build; default = `Not started` |
+| **Build** | Build Notes | During build (optional caveats/blockers) |
+| **Test** | Test ID(s) | When tests are written |
+| **Test** | Test Status | When tests are written; default = `Not written` |
+
+**Build Status vocabulary:** `Not started` · `In progress` · `Built` · `Blocked` · `Deferred`
+
+**Test Status vocabulary:** `Not written` · `Written` · `Passing` · `Failing`
+
+---
+
+## Summary
+
+| Bucket | Phase | Features | Built |
+|---|---|---|---|
+| Bucket 1 — Identity & Trust | Phase 7 | 18 | 0 / 18 |
+| Bucket 2 — Discovery (Placeholder) | Phase 8 | 13 | 0 / 13 |
+| Bucket 3 — Deal Engine | Phase 9 | 32 | 0 / 32 |
+| Bucket 4 — AI Contract Parser | Phase 10 | 5 | 0 / 5 |
+| Bucket 5 — Tracking | Phase 11 | 15 | 0 / 15 |
+| Cross-cutting: Security | Phase 12 (throughout) | 6 | 0 / 6 |
+| Cross-cutting: Notifications | Phase 12 (throughout) | 4 | 0 / 4 |
+| **Total** | | **93** | **0 / 93** |
+
+---
+
+## Bucket 1 — Identity & Trust
+
+**Phase:** Phase 7 · **Features in this bucket:** 18
+
+| ID | Feature | Bucket | Phase | Priority | Scope | Design Summary | Build Elements | Code File(s) | Build Status | Build Notes | Test ID(s) | Test Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| B1-001 | Creator sign-up | Identity & Trust | Phase 7 | High | MVP | Expo auth screen → Supabase Auth sign-up → email OTP verification → Creator role set on `profiles` | `profiles` table; Supabase Auth (email + password); email OTP (Resend); Expo sign-up screen; role-assignment logic | — | Not started | No SMS OTP for MVP | — | Not written |
+| B1-002 | Brand sign-up | Identity & Trust | Phase 7 | High | MVP | Expo auth screen → Supabase Auth sign-up → domain-verified email + OTP → `brands` row created + Brand role set | `profiles` + `brands` tables; Supabase Auth; domain verification logic; Expo sign-up screen | — | Not started | No SMS OTP for MVP | — | Not written |
+| B1-003 | Login + session management | Identity & Trust | Phase 7 | High | MVP | Supabase Auth login → JWT + refresh token → Expo Router auth guard routes to app or login screen based on session | Supabase Auth login; JWT/refresh token; Expo Router auth guard; Zustand auth store; persistent session handling | — | Not started | — | — | Not written |
+| B1-004 | Role selection | Identity & Trust | Phase 7 | High | MVP | Post-signup screen → user picks Creator or Brand → `profiles.account_type` set → routes to separate onboarding flows | `profiles.account_type` field; Expo role-selection screen; routing logic to creator vs brand onboarding | — | Not started | Agency excluded for MVP | — | Not written |
+| B1-006 | Core profile — Creator | Identity & Trust | Phase 7 | High | MVP | Creator onboarding form → display name, city, niche+emoji, bio, content languages → upserted to `creator_profiles` | `creator_profiles` table; Expo onboarding form screen; Supabase-direct upsert; profile completeness % calculation | — | Not started | — | — | Not written |
+| B1-007 | Link social platforms | Identity & Trust | Phase 7 | High | MVP | Creator manually enters platform handles + mock follower/engagement stats → stored on `social_handles` (no OAuth or live API) | `social_handles` table; Expo handle-entry UI; Supabase-direct insert; mock data fields | — | Not started | Mock only — no real OAuth or API calls | — | Not written |
+| B1-010 | Minimum follower verification | Identity & Trust | Phase 7 | High | MVP | Manual follower-count entry → check against 7K threshold → sets `social_handles.verification_status` = pending | Threshold check logic (client-side); `social_handles.verification_status` field; pending-flag UI | — | Not started | Mock only — manual entry, no live API | — | Not written |
+| B1-011 | Inbound/outbound preference | Identity & Trust | Phase 7 | Medium | MVP | Creator toggles accept-inbound / initiate-outreach / both → stored on `creator_profiles.deal_preference` | `creator_profiles.deal_preference` field; Expo toggle UI; Supabase-direct update | — | Not started | — | — | Not written |
+| B1-012 | Professional affiliations | Identity & Trust | Phase 7 | Medium | MVP | Creator adds show appearances, awards, press, podcast entries → stored on `affiliations` → displayed on public profile | `affiliations` table; Expo add/edit affiliations UI; Supabase-direct insert/update; public profile display | — | Not started | Self-declared; no verification for MVP | — | Not written |
+| B1-014 | Core profile — Brand | Identity & Trust | Phase 7 | High | MVP | Brand onboarding form → company name, industry, GST, domain-verified email → `brands` row created + Verified Business badge | `brands` table; Expo brand onboarding form; domain verification logic; Verified badge component | — | Not started | — | — | Not written |
+| B1-015 | Link employees + set roles | Identity & Trust | Phase 7 | Medium | MVP | Brand Admin invites team by email → assigns Admin/Maker/Checker per-deal operative roles → stored on `brand_members` | `brand_members` table; FastAPI invite/assign endpoint; Resend invite email; Expo member management UI; role validation | — | Not started | — | — | Not written |
+| B1-017 | Maker-checker configuration | Identity & Trust | Phase 7 | High | MVP | Brand Admin configures which actions (contract/content/payment) require Checker sign-off → stored on `maker_checker_config` | `maker_checker_config` table; FastAPI config endpoint; Expo settings UI; config validation (solo-brand toggle hidden) | — | Not started | Basic config only — no complex multi-level chains | — | Not written |
+| B1-018 | Stored signature — Creator | Identity & Trust | Phase 7 | High | MVP | Creator draws or types signature → FastAPI stores on `signatures` → each use timestamped + IP-logged in `contract_signatures` | `signatures` table; FastAPI store-signature endpoint (IP capture); Expo signature pad (draw/type modes); secure Supabase Storage | — | Not started | — | — | Not written |
+| B1-019 | Stored signature — Brand | Identity & Trust | Phase 7 | High | MVP | Authorised signatory draws or types signature → stored on `signatures` linked to `brands` → same timestamped + IP-logging as Creator | `signatures` table (brand linkage); FastAPI store-signature endpoint; Expo signature pad; brand-member signatory validation | — | Not started | — | — | Not written |
+| B1-020 | Stored signature management | Identity & Trust | Phase 7 | High | MVP | View/update/reset stored signature → OTP re-verification challenge required before any change → change audit-logged | FastAPI update-signature endpoint (OTP re-verify + audit log); Expo signature management screen; OTP challenge flow | — | Not started | — | — | Not written |
+| B1-021 | Account details | Identity & Trust | Phase 7 | High | MVP | Settings screen → edit name, email, phone, password → email change triggers Supabase Auth OTP re-verification | `profiles` update; Supabase Auth email-change flow; OTP re-verification; Expo account settings screen | — | Not started | — | — | Not written |
+| B1-023 | Notification preferences | Identity & Trust | Phase 7 | Medium | MVP | Per-category toggles + quiet hours → stored on `notification_preferences` → notification engine reads at dispatch; Critical always delivered | `notification_preferences` table; Expo preferences screen; Supabase-direct update; quiet-hours logic in notification engine | — | Not started | Critical alerts cannot be suppressed | — | Not written |
+| B1-027 | Profile completeness nudge | Identity & Trust | Phase 7 | Medium | MVP | Compute completeness % (cached on `profiles`) → if below threshold, scheduled worker fires in-app + email reminders at 24h + 72h | Completeness % calculation + `profiles` cache field; scheduled worker job (Railway cron); notification + Resend email triggers | — | Not started | — | — | Not written |
+
+---
+
+## Bucket 2 — Discovery (Placeholder / Mock)
+
+**Phase:** Phase 8 · **Features in this bucket:** 13
+
+| ID | Feature | Bucket | Phase | Priority | Scope | Design Summary | Build Elements | Code File(s) | Build Status | Build Notes | Test ID(s) | Test Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| B2-001 | Browse + filter creators (Brand) | Discovery | Phase 8 | High | MVP | Brand browses creator marketplace → filter by niche/platform/location → creator cards populated from `creator_profiles` + `social_handles` (mock data) | Expo browse/filter screen (brand view); filter UI components; Supabase-direct query (RLS); mock seed data scripts | — | Not started | Mock seed data only | — | Not written |
+| B2-002 | Full creator profile / media kit (Brand) | Discovery | Phase 8 | High | MVP | Brand taps creator card → full profile: photo carousel, bio, mock stats, partnerships, trust score; rate card visible (brand-only RLS) | Expo creator profile screen; photo carousel component; mock data rendering; rate-card RLS (`is_enabled = true`) | — | Not started | Mock data | — | Not written |
+| B2-004 | Basic connect — seed deal flow | Discovery | Phase 8 | High | MVP | Creator or Brand taps Connect → FastAPI creates `deals` row (Pending) + `deal_participants` + runs exclusivity check + seeds chat thread | FastAPI POST /deals/connect; `deals` + `deal_participants` tables; exclusivity check logic; Expo Connect button + confirmation modal | — | Not started | No proposal form, cap enforcement, or AI draft | — | Not written |
+| B2-005 | Browse + filter businesses (Creator) | Discovery | Phase 8 | High | MVP | Creator browses business marketplace → filter by industry/deal type → brand cards from `brands` (mock data) | Expo browse/filter screen (creator view); Supabase-direct query (RLS); mock brand seed data | — | Not started | Mock seed data only | — | Not written |
+| B2-006 | Full business profile card (Creator) | Discovery | Phase 8 | Medium | MVP | Creator taps brand card → full profile: name, verified badge, industry, campaign history, trust rating (mock) | Expo brand profile screen (creator-facing); mock data rendering; verified badge component | — | Not started | Mock data | — | Not written |
+| B2-030 | Creator public profile / media kit | Discovery | Phase 8 | High | MVP | Public profile: photo carousel (5 max), platform stats, partnerships, affiliations, trust score → public read RLS | Expo public profile screen; photo carousel; `creator_profiles` + `affiliations` + `brand_partnerships` read; public RLS | — | Not started | — | — | Not written |
+| B2-031 | Profile photo carousel | Discovery | Phase 8 | High | MVP | Up to 5 photos stored in Supabase Storage → swipeable carousel → primary photo used as avatar across the app | Supabase Storage (profile-photos bucket); Expo swipeable carousel component; photo upload + reorder UI; primary-photo selection logic | — | Not started | — | — | Not written |
+| B2-032 | Platform stats per handle | Discovery | Phase 8 | High | MVP | Per-handle follower count, engagement rate, weekly reach displayed → values are manually entered mock data (no live API) | `social_handles` mock-stats fields; Expo stats display component; no external API calls | — | Not started | Mock values only — no live API pull | — | Not written |
+| B2-034 | Rate card — brands only | Discovery | Phase 8 | High | MVP | Creator sets per-platform/per-format pricing + add-ons → `rate_cards` / `rate_card_items` → visible to brands only via RLS (`is_enabled = true`) | `rate_cards` + `rate_card_items` tables; brand-only RLS; Expo rate-card builder UI; add-on line items | — | Not started | — | — | Not written |
+| B2-035 | Media kit preview | Discovery | Phase 8 | Medium | MVP | Creator views own profile exactly as a brand sees it — preview mode activates brand-visible-only fields (rate card, stats) | Expo 'preview as brand' mode on profile screen; same components with brand-eye visibility; toggle to switch view | — | Not started | — | — | Not written |
+| B2-036 | Edit profile | Discovery | Phase 8 | High | MVP | Any user edits any profile field at any time → Supabase-direct update on owned records → completeness % recalculated | Expo edit profile screens (creator + brand variants); Supabase-direct owned-record update; field validation; completeness % refresh | — | Not started | — | — | Not written |
+| B2-037 | Privacy settings | Discovery | Phase 8 | Medium | MVP | User controls contact visibility, rate-card toggle (`is_enabled`), platform handle visibility → Supabase-direct update; RLS enforces settings | Privacy fields on `profiles` + `creator_profiles` + `rate_cards`; Expo privacy settings screen; Supabase-direct update; RLS policies respect flags | — | Not started | — | — | Not written |
+| B2-038 | Brand business profile | Discovery | Phase 8 | High | MVP | Brand profile viewable by creators: name, verified badge, industry, deal format, trust rating → public read RLS on `brands` | `brands` public fields; Expo brand profile screen (creator-facing); public read RLS; verified badge component | — | Not started | — | — | Not written |
+
+---
+
+## Bucket 3 — Deal Engine
+
+**Phase:** Phase 9 · **Features in this bucket:** 32
+
+| ID | Feature | Bucket | Phase | Priority | Scope | Design Summary | Build Elements | Code File(s) | Build Status | Build Notes | Test ID(s) | Test Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| B3-001 | Chat list with preview cards | Deal Engine | Phase 9 | High | MVP | Deal list screen → each card: participant photos (stacked), deal name, stage pill, last message, unread badge, next-action prompt, I/O tag, rights chip | Expo deal-list screen; deal card component; Supabase-direct deals + messages query; Realtime unread badge; next-action computation logic | — | Not started | Next-action prompt is a key differentiator | — | Not written |
+| B3-002 | Chat thread + messaging | Deal Engine | Phase 9 | High | MVP | Full message history per deal → message bubbles → input bar → send → Supabase-direct insert into `messages` | `messages` table; Expo chat thread screen; message bubble component; input bar; Supabase-direct message insert (RLS: participant only) | — | Not started | — | — | Not written |
+| B3-003 | Real-time message delivery | Deal Engine | Phase 9 | High | MVP | Supabase Realtime subscription on `messages` per deal channel → new messages appear instantly on all participants' screens | Supabase Realtime channel (per-deal subscription); Zustand live-messages state; Expo auto-scroll on new message | — | Not started | — | — | Not written |
+| B3-004 | Group chat + participant management | Deal Engine | Phase 9 | High | MVP | Multiple participants per deal → adding mid-deal creates `participant_add_requests` → all existing participants must approve | `deal_participants` + `participant_add_requests` tables; FastAPI add-participant endpoint; approval flow; Expo participant management UI | — | Not started | — | — | Not written |
+| B3-005 | Editable chat/deal name | Deal Engine | Phase 9 | Medium | MVP | Any participant renames deal → `deals.deal_name` updated via Supabase-direct → change logged to audit log (via FastAPI hook) | `deals.deal_name` field; Expo inline rename UI; Supabase-direct update; audit log write via FastAPI for name changes | — | Not started | — | — | Not written |
+| B3-006 | Custom internal labels | Deal Engine | Phase 9 | Medium | MVP | Per-user private labels on any chat → stored on `private_annotations` (owner-only RLS) → never shared → filterable on chat list | `private_annotations` table (owner-only RLS); Expo label picker; chat list filter by label; Supabase-direct insert/update | — | Not started | Private — never visible to other participants | — | Not written |
+| B3-007 | Media and file sharing | Deal Engine | Phase 9 | High | MVP | Upload images/videos/PDFs in chat → stored in Supabase Storage (deal-files bucket) → `message_attachments` row created | Supabase Storage (deal-files bucket, RLS-scoped); `message_attachments` table; Expo file picker + upload; attachment preview in chat | — | Not started | — | — | Not written |
+| B3-013 | Deal stage progress bar | Deal Engine | Phase 9 | High | MVP | 7-stage horizontal stepper persistent on every deal thread → current stage highlighted → Disputed = red overlay on Payment pill | Expo stage stepper component; `deals.stage` + `deals.is_disputed` reads; disputed red-overlay logic; Realtime stage updates | — | Not started | Disputed is overlay on Payment, not a separate stage | — | Not written |
+| B3-014 | Sticky action bar (stage + role aware) | Deal Engine | Phase 9 | High | MVP | Action bar above message input → CTA buttons defined per stage × role combination → read-only if no action required from this user | Expo sticky action bar component; stage × role CTA matrix; role + stage reads (Zustand + `deal_participants`); read-only mode | — | Not started | — | — | Not written |
+| B3-015 | Stage transition engine (backend) | Deal Engine | Phase 9 | High | MVP | FastAPI validates + executes all stage transitions: checks role, current stage, guard conditions → updates `deals.stage` → logs `deal_stage_transitions` → fires notifications | FastAPI stage transition endpoints (one per transition); guard condition checks; `deal_stage_transitions` insert; notification dispatch; audit log write | — | Not started | Client never trusted for transitions; server is source of truth | — | Not written |
+| B3-016 | Connection request — accept/decline | Deal Engine | Phase 9 | High | MVP | Recipient accepts (→ Chatting) or declines (→ Declined) → 72h auto-expiry via scheduled worker → notifications on all outcomes | FastAPI accept/decline endpoints; `deals.expires_at` + expiry scheduled job; Expo accept/decline UI; notification on expiry/decline | — | Not started | Expires 72h from creation | — | Not written |
+| B3-017 | Inbound/outbound deal tagging | Deal Engine | Phase 9 | High | MVP | Deal direction (inbound/outbound) auto-set at creation based on initiator → stored on `deals.direction` → shown on deal card + monthly summary | `deals.direction` field (set in connect endpoint); Expo I/O tag component; monthly summary aggregation query | — | Not started | — | — | Not written |
+| B3-018 | Minimum deal fields checklist | Deal Engine | Phase 9 | High | MVP | FastAPI validates 12 minimum fields have been discussed before summary can be triggered → missing fields returned and surfaced inline in chat UI | FastAPI checklist validation (check `ai_summaries` / `deal_terms` against 12 required fields); Expo inline missing-fields indicator; manual override (both-party, logged) | — | Not started | 12 minimum fields defined in tech-spec §10.4 | — | Not written |
+| B3-019 | Both-party terms summary trigger | Deal Engine | Phase 9 | High | MVP | Either party requests summary → other party must confirm → FastAPI calls ai_service to extract 22 fields from chat history → stores on `ai_summaries` | FastAPI POST /deals/{id}/request-summary + /confirm-summary endpoints; two-step confirmation logic; ai_service call; `ai_summaries` table | — | Not started | Both must confirm before AI runs | — | Not written |
+| B3-020 | All-party sign-off gate | Deal Engine | Phase 9 | High | MVP | AI summary rendered for all participants (incl. internal Checker) → all must approve via `term_approvals` → all approved → advance to Approval stage | `term_approvals` table; FastAPI approve-summary endpoint; all-approvals check; Realtime approval status push; Approval stage transition | — | Not started | — | — | Not written |
+| B3-021 | Approver status checklist | Deal Engine | Phase 9 | High | MVP | Real-time checklist of all approvers' statuses (pending / approved / changes requested) → visible to all deal participants during Approval + Creating | `term_approvals` + `maker_checker_requests` reads; Expo approver checklist component; Realtime subscription; status display | — | Not started | — | — | Not written |
+| B3-023 | Contract generation (PDF) | Deal Engine | Phase 9 | High | MVP | FastAPI generates contract PDF from approved AI summary via WeasyPrint → stored in Supabase Storage (contracts bucket) → `contracts` row created | FastAPI PDF generation endpoint; WeasyPrint HTML/CSS contract template; `contracts` table; Supabase Storage (contracts bucket); signed URL for download | — | Not started | Platform-generated only — brand-uploaded contracts deferred | — | Not written |
+| B3-025 | Digital signature — three modes | Deal Engine | Phase 9 | High | MVP | ① stored one-tap ② draw new ③ print-and-sign bypass → FastAPI logs to `contract_signatures` with timestamp, IP, mode, and bypass details | FastAPI sign-contract endpoint (3 mode paths); `contract_signatures` table (bypass fields: reason + doc path); Expo 3-mode signature flow UI; IP capture | — | Not started | All modes timestamped + IP-logged | — | Not written |
+| B3-026 | Contract vs chat alignment check | Deal Engine | Phase 9 | High | MVP | Parser re-extracts 22 fields from contract PDF → deterministic normalised compare against chat-approved fields → conflicts surfaced; must resolve before signing enabled | FastAPI conflict detection endpoint; `extracted_terms` table; normalisation utility (canonical value mapping); `conflicts_detected` flag; Expo conflict resolution UI | — | Not started | Deterministic code compare — not a second AI judgement | — | Not written |
+| B3-028 | Maker-checker in-deal approval | Deal Engine | Phase 9 | High | MVP | Configured gated actions go through Maker → Checker flow → FastAPI enforces segregation of duties (maker ≠ checker) → full audit log | `maker_checker_requests` table; FastAPI request/approve/reject/override endpoints; segregation-of-duties check; audit log write; Expo approval UI | — | Not started | Basic config only — complex multi-level chains deferred | — | Not written |
+| B3-029 | Creative brief sharing (Brand) | Deal Engine | Phase 9 | High | MVP | Brand creates campaign brief per deal → stored on `briefs` → version-controlled → creator must acknowledge post-signing updates | `briefs` table (versioned); FastAPI brief create/update endpoint; creator ack tracking; Expo brief view + ack UI | — | Not started | — | — | Not written |
+| B3-030 | Content submission + revision flow | Deal Engine | Phase 9 | High | MVP | Creator submits draft → brand approves or requests revision (Round X of Y vs contracted max) → `revisions.revision_current` incremented | `revisions` table; FastAPI submit/approve/revise endpoints; revision counter vs `deal_terms.revision_rounds_max`; Expo content submission + review UI | — | Not started | Exhausting revision rounds flags platform ops — not auto-terminate | — | Not written |
+| B3-031 | Creator internal content labels | Deal Engine | Phase 9 | Medium | MVP | Creator applies private labels (Idea / In Progress / Filmed / Approved / Scheduled) per deliverable → `private_annotations` (deliverable-scoped) → creator-only | `private_annotations` (deliverable-scoped, owner-only RLS); Expo per-deliverable label picker; creator-only view enforcement | — | Not started | Creator-only — never visible to brand | — | Not written |
+| B3-032 | Multi-deliverable tracking | Deal Engine | Phase 9 | High | MVP | Multiple `deliverables` rows per deal → each tracks platform, content format, deadline, revision status, proof link, approval status | `deliverables` table (multi-row per deal); Expo deliverables list + detail view; per-deliverable status tracking; deal-stage waits for last deliverable | — | Not started | — | — | Not written |
+| B3-033 | Posted — live URL hard gate | Deal Engine | Phase 9 | High | MVP | Creator pastes live URL → FastAPI fetches URL preview to verify → brand confirms → auto-advance to Payment (no other action unlocks this gate) | FastAPI POST /deals/{id}/submit-url (URL fetch + preview); `deliverables.live_post_url`; brand confirm endpoint; auto-advance to Payment transition | — | Not started | Hard gate — must have verified URL per deliverable | — | Not written |
+| B3-034 | Invoice and payment info capture | Deal Engine | Phase 9 | High | MVP | Before Payment stage activates → FastAPI validates creator invoice details + brand billing details are captured → inline form for missing fields | `deal_payment_details` table; FastAPI validation endpoint (Payment stage gate check); Expo inline capture form; field completeness check | — | Not started | Info capture only — invoice generation deferred | — | Not written |
+| B3-035 | Payment tracking + states + milestones | Deal Engine | Phase 9 | High | MVP | Manual payment state tracking (paid_full / paid_partial / not_paid / overdue / bad_debt / disputed / refunded) + milestone structure (trigger + amount + due date) — tracking only | `payments` + `payment_milestones` tables; FastAPI payment-state update endpoint; Expo payment status UI; milestone view | — | Not started | Tracking only — no real payment processing or auto-release | — | Not written |
+| B3-037 | Automated payment reminders | Deal Engine | Phase 9 | High | MVP | Scheduled worker fires reminders at 3d before due / on due / 3d overdue / 7d overdue → bad-debt flag at 30d → in-app + email | Scheduled worker (Railway cron); FastAPI reminder dispatch; Resend email templates (4 reminders + bad-debt); `notifications` inserts | — | Not started | — | — | Not written |
+| B3-039 | Dispute feature (Payment stage) | Deal Engine | Phase 9 | High | MVP | Either party raises dispute → `deals.is_disputed = true` → red overlay on Payment pill → `disputes` row created → platform ops notified | `disputes` table; FastAPI raise/resolve dispute endpoints; `deals.is_disputed` flag; Expo dispute UI + red overlay; ops notification (Critical tier) | — | Not started | Overlay on Payment, not a separate stage | — | Not written |
+| B3-040 | Deal close + ratings | Deal Engine | Phase 9 | High | MVP | Both parties confirm close (mutual gate) → `ratings` rows created → deal thread → read-only → post-deal comments + private notes allowed | `ratings` + `deal_comments` tables; FastAPI confirm-close + rate endpoints; mutual gate check; `deals.stage` = closed; Expo close + rating UI | — | Not started | — | — | Not written |
+| B3-041 | Exclusivity conflict warning | Deal Engine | Phase 9 | High | MVP | At Connect, new deal category cross-referenced against creator's active `exclusivity_clauses` → warn only (never block) → override logged to audit trail | FastAPI exclusivity check (in connect endpoint); `exclusivity_clauses` read; Expo warning modal with override confirm; audit log write for override | — | Not started | Warn only — does not block | — | Not written |
+| B3-042 | Brand rights chip | Deal Engine | Phase 9 | High | MVP | Persistent chip in chat header + deal card from signing → shows rights type, start, expiry → greys on expiry → perpetual = no expiry shown | `usage_rights` + `exclusivity_clauses` reads; Expo rights chip component; expiry colour/grey logic; chip visible from Approval through Closed | — | Not started | Persistent across all stages post-signing | — | Not written |
+
+---
+
+## Bucket 4 — AI Contract Parser
+
+**Phase:** Phase 10 · **Features in this bucket:** 5
+
+| ID | Feature | Bucket | Phase | Priority | Scope | Design Summary | Build Elements | Code File(s) | Build Status | Build Notes | Test ID(s) | Test Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| B4-001 | AI service abstraction layer | AI Contract Parser | Phase 10 | High | MVP | Single `ai_service` backend module wraps all Gemini calls → no screen/endpoint calls Gemini directly → provider swap = change one file | `backend/services/ai_service.py`; Gemini client wrapper; prompt + output schema definitions; provider interface (swap-ready) | — | Not started | Non-negotiable architectural rule | — | Not written |
+| B4-002 | 22-field extraction from chat | AI Contract Parser | Phase 10 | High | MVP | ai_service sends deal chat history to Gemini → returns strict JSON (22 fields, each `found / not_discussed / ambiguous`) → validation layer enforces schema | ai_service extraction method (chat input); prompt template; 22-field Pydantic schema + validation; re-prompt-once on failure; `ai_summaries` insert; realistic fictional test data | — | Not started | Never hardcode AI responses — use fictional data | — | Not written |
+| B4-003 | 22-field extraction from contract | AI Contract Parser | Phase 10 | High | MVP | ai_service parses platform-generated contract PDF (text extracted) → extracts same 22 fields → stored on `extracted_terms` | PDF text extraction utility (from WeasyPrint output); ai_service extraction method (contract input); `extracted_terms` table | — | Not started | Brand-uploaded contracts deferred | — | Not written |
+| B4-004 | Both-party confirmation of extracted terms | AI Contract Parser | Phase 10 | High | MVP | Extracted fields rendered field-by-field to both parties → each approves or raises issue → all approved before stage advances; `term_approvals` tracked | `term_approvals` table; Expo terms confirmation screen (field-by-field); FastAPI approve-term endpoint; all-approved gate logic | — | Not started | — | — | Not written |
+| B4-005 | Contract vs chat conflict detection | AI Contract Parser | Phase 10 | High | MVP | Normalised compare of chat-extracted vs contract-extracted 22 fields → any mismatch surfaced to both parties → must resolve (or both override) before signing | FastAPI conflict detection endpoint; normalisation utility (canonical value mapping); `extracted_terms.conflicts_detected`; Expo conflict resolution UI | — | Not started | Deterministic code compare — not a second AI call | — | Not written |
+
+---
+
+## Bucket 5 — Tracking
+
+**Phase:** Phase 11 · **Features in this bucket:** 15
+
+| ID | Feature | Bucket | Phase | Priority | Scope | Design Summary | Build Elements | Code File(s) | Build Status | Build Notes | Test ID(s) | Test Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| B5-001 | Track home — summary dashboard | Tracking | Phase 11 | High | MVP | Tracker home screen → active deals count, action-needed (Red RAG), payments due this week, next deadline, overdue deliverables, I/O ratio — all derived via DB queries | Expo tracker dashboard screen; Supabase-direct aggregation queries (or DB views); RAG computation logic; deadline + overdue queries | — | Not started | — | — | Not written |
+| B5-002 | Deal list with RAG status | Tracking | Phase 11 | High | MVP | All active deals with Green / Amber / Red status (derived from stage age + pending actions) → filter by status/stage/type/date/I/O → red-first default sort | Expo deal list screen (tracker view); RAG computation (derived); filter + sort UI; Supabase-direct filtered query | — | Not started | RAG status is derived — not stored | — | Not written |
+| B5-003 | Deliverable detail view | Tracking | Phase 11 | High | MVP | Per-deliverable detail screen: content type, platform, location, posting date, usage rights, revision count, proof link, approval status | Expo deliverable detail screen; `deliverables` + `usage_rights` reads; rights status computation (derived from end_date vs today) | — | Not started | — | — | Not written |
+| B5-004 | Brand rights tracking | Tracking | Phase 11 | High | MVP | Rights period tracked per deal → persistent chip on deal → scheduled worker fires 14-day and on-expiry alerts to both parties | `usage_rights` + `exclusivity_clauses` reads; rights expiry computation; scheduled worker (14d + on-expiry alerts); Expo rights tracking screen | — | Not started | — | — | Not written |
+| B5-005 | Monthly deal summary | Tracking | Phase 11 | Medium | MVP | Per-month view grouped by business: contracted value, received, outstanding, deliverables count, I/O ratio → derived aggregation over `deals` + `payments` | Expo monthly summary screen; Supabase-direct aggregation query (grouped by month + brand); I/O ratio computation | — | Not started | — | — | Not written |
+| B5-006 | Payment dashboard | Tracking | Phase 11 | High | MVP | Unified payment view across all deals → payment states + filters (deal/business/date/state) → bad debt prominently flagged | Expo payment dashboard screen; `payments` + `payment_milestones` reads; state filter + sort UI; bad-debt highlight | — | Not started | — | — | Not written |
+| B5-008 | Creator — track received payments | Tracking | Phase 11 | High | MVP | Creator's full payment history: received / pending / overdue / bad debt → each entry links to source deal | Expo creator payment history screen; `payments` read (creator's deals only, RLS); deep-link routing to deal thread | — | Not started | — | — | Not written |
+| B5-010 | Unified campaign calendar | Tracking | Phase 11 | High | MVP | All deal-linked dates in one view: deliverables, posting, payment, blackout windows (amber), rights expiry → day / week / month toggle | Expo calendar screen (3-view toggle); multi-source date query (`deliverables` + `payments` + `blackout_windows` + rights expiry); amber shading for blackout | — | Not started | — | — | Not written |
+| B5-011 | Posting schedule with creator labels | Tracking | Phase 11 | Medium | MVP | Creator's personal posting schedule with private content labels per deliverable → not visible to brand | Expo creator posting schedule screen; `private_annotations` (deliverable-scoped) read; calendar integration; creator-only visibility | — | Not started | — | — | Not written |
+| B5-012 | Blackout window visibility | Tracking | Phase 11 | High | MVP | Blackout periods shown as amber shading on calendar → auto-populated from AI parser output in `blackout_windows` | `blackout_windows` read; calendar amber-shading logic (date-range rendering in calendar component) | — | Not started | — | — | Not written |
+| B5-013 | Exclusivity tracker | Tracking | Phase 11 | High | MVP | All active exclusivity clauses: brand, category, start/end, status (derived) → feeds conflict checker → scheduled 14d + 7d expiry alerts | `exclusivity_clauses` read; Expo exclusivity tracker screen; status computation (derived from end_date); scheduled worker for expiry alerts | — | Not started | — | — | Not written |
+| B5-014 | Usage rights tracker | Tracking | Phase 11 | High | MVP | Usage rights per deal: channels, start/end or perpetuity flag, status → perpetual = no expiry alert generated | `usage_rights` read; Expo usage rights tracker screen; perpetuity logic (`is_perpetual = true` suppresses expiry alert) | — | Not started | — | — | Not written |
+| B5-015 | Whitelisting + boosting tracker | Tracking | Phase 11 | Medium | MVP | Active whitelisting arrangements: platform, ad account, start/end, budget (if disclosed), status (derived) | `whitelisting_arrangements` read; Expo whitelisting tracker screen; status computation | — | Not started | Tracking only — no actual ad-account access facilitated | — | Not written |
+| B5-016 | Blackout window tracker | Tracking | Phase 11 | High | MVP | All active blackout windows listed → feeds calendar amber shading + conflict checker | `blackout_windows` read; Expo blackout tracker screen; calendar shading integration; conflict-checker input | — | Not started | — | — | Not written |
+| B5-017 | Sponsored content disclosure tracker | Tracking | Phase 11 | Medium | MVP | Disclosure requirements per deal → platform-specific rules surfaced → scheduled worker fires pre-posting-deadline reminder | `disclosure_requirements` read; Expo disclosure tracker screen; platform rules display; scheduled worker (pre-deadline reminder) | — | Not started | — | — | Not written |
+
+---
+
+## Cross-cutting — Security
+
+**Phase:** Phase 12 (throughout) · **Features in this bucket:** 6
+
+| ID | Feature | Bucket | Phase | Priority | Scope | Design Summary | Build Elements | Code File(s) | Build Status | Build Notes | Test ID(s) | Test Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| CC-S001 | Row Level Security (RLS) | Security | Phase 12 (throughout) | High | MVP | RLS policies on all 42 tables → deal visibility anchored to `deal_participants` → profiles public read → private annotations owner-only → audit log insert-only | SQL RLS policies (per-domain, all 42 tables); `deal_participants` anchor policy; ownership policies; `audit_log` insert-only policy; rate-card brand-only RLS | — | Not started | Build alongside every phase from day one | — | Not written |
+| CC-S002 | RBAC enforcement (backend) | Security | Phase 12 (throughout) | High | MVP | Every FastAPI endpoint checks caller's role for the deal/brand against the permission matrix before executing any gated action; segregation of duties enforced | FastAPI RBAC middleware / dependency; per-endpoint role checks; segregation-of-duties check (maker ≠ checker); role lookup from `deal_participants` | — | Not started | Build alongside every phase from day one | — | Not written |
+| CC-S003 | Immutable audit log | Security | Phase 12 (throughout) | High | MVP | Append-only `audit_log` table → logs contract signings, payment changes, stage transitions, role changes, overrides → server-side writes only; not readable by normal users | `audit_log` table (insert-only RLS); FastAPI audit-log write utility (called from every sensitive endpoint); schema: actor / action / entity / IP / timestamp | — | Not started | Build alongside every phase from day one | — | Not written |
+| CC-S004 | Encryption | Security | Phase 12 (throughout) | High | MVP | Supabase Postgres + Storage at-rest encryption (default on) + TLS/HTTPS for all traffic → no additional app-level encryption for MVP | Supabase at-rest encryption (verify on); HTTPS enforcement on Vercel + Railway; TLS verify on all external calls (Gemini, Resend) | — | Not started | App-level field encryption is possible MVP-2 hardening | — | Not written |
+| CC-S005 | Secrets management | Security | Phase 12 (throughout) | High | MVP | All keys in `.env` locally + Railway/Vercel platform vars in production → pre-commit hook blocks secret commits → service_role key never in frontend | `.env` + `.env.example`; `.claude/settings.json` pre-commit hook (git secrets scan); Railway/Vercel env var config guide | — | Not started | service_role + Gemini + Resend keys: backend only | — | Not written |
+| CC-S006 | Error handling + graceful degradation | Security | Phase 12 (throughout) | High | MVP | User-friendly error messages at every failure point → no raw technical errors shown to users → per-screen Expo error boundaries | FastAPI custom exception handlers (user-friendly error responses); Expo error boundary components; error message templates per error type | — | Not started | Build alongside every phase from day one | — | Not written |
+
+---
+
+## Cross-cutting — Notifications
+
+**Phase:** Phase 12 (throughout) · **Features in this bucket:** 4
+
+| ID | Feature | Bucket | Phase | Priority | Scope | Design Summary | Build Elements | Code File(s) | Build Status | Build Notes | Test ID(s) | Test Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| CC-N001 | Smart notification engine | Notifications | Phase 12 (throughout) | High | MVP | 3-tier priority (Critical / Important / Informational) → always write in-app row → email rules per tier → quiet hours respected for non-Critical | FastAPI notification dispatch utility; `notifications` insert; Resend email send; tier logic (Critical ignores quiet hours); `notification_preferences` read | — | Not started | Critical overrides all preferences | — | Not written |
+| CC-N002 | In-app notification centre | Notifications | Phase 12 (throughout) | Medium | MVP | Bell icon → all past notifications → read/unread → deep-link to source → grouped by deal → 90-day auto-clear | `notifications` read (recipient-only RLS); Expo notification centre screen; bell badge (Realtime unread count); deep-link routing; 90-day cleanup scheduled worker | — | Not started | 90-day auto-clear via scheduled worker | — | Not written |
+| CC-N003 | Email notifications (Resend) | Notifications | Phase 12 (throughout) | High | MVP | Transactional emails via Resend for key events: OTP, stage advance, signature request, payment reminders, dispute raised | Resend client in FastAPI; email templates (OTP / stage / signature / payment / dispute); event-driven send from FastAPI endpoints | — | Not started | Free tier: 3k emails/month | — | Not written |
+| CC-N004 | Stage-gate blocked alerts | Notifications | Phase 12 (throughout) | High | MVP | When a deal can't advance (missing sign-off / no posted URL / maker-checker pending) → targeted Critical-tier alert → in-app + email to relevant party | FastAPI gate-check logic (on failed transition); Critical notification insert; Resend email (gate-blocked template); Expo in-app alert display | — | Not started | — | — | Not written |
+
+---
+
+*End of RTM — 93 features total.*
+

@@ -178,7 +178,12 @@ These live in `/docs` and are the authority for design decisions. As of Phase 3 
 - `docs/security.md` — auth, RLS strategy, encryption, secrets, audit log, privacy
 - `design-direction` — brand & design guidelines (colours, type, components) from my co-founder
 - `docs/rtm.md` — Requirement Traceability Matrix: every feature → its code → its test →
-  status (update after each feature)
+  status (update after each feature). 13 columns across 4 sections — **Explore** (Feature ID,
+  Feature, Bucket, Phase, Priority, Scope) and **Design** (Design Summary, Build Elements) are
+  pre-populated. When implementing a feature, fill **Build** columns: Code File(s), Build Status
+  (`Not started → In progress → Built → Blocked → Deferred`), Build Notes. When tests are
+  written, fill **Test** columns: Test ID(s), Test Status (`Not written → Written → Passing →
+  Failing`).
 - `docs/progress.md` — running log of what's done / what's next
 
 ---
