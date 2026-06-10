@@ -17,22 +17,33 @@ up exactly where the last one left off, with zero context lost.
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
 - **Current phase:** Phase 5 — Backend & Database Foundation (in progress).
-- **Current task:** SQL migrations written (task 5.x). Next: FastAPI project setup, Supabase
-  project init, apply migrations to dev DB, wire `.env`.
+- **Current task:** Task 5.8 done — RLS tested with dummy users, 4/4 checks passed. Next:
+  FastAPI project setup (5.9+).
 - **Built so far:** Local environment + monorepo scaffolded. Private GitHub repo connected.
   `CLAUDE.md` written. All Phase 3 design docs locked (`technical-spec.md` v1.0 + 9 source docs).
   `docs/rtm.md` built — 93 features, 13 columns, pre-populated Explore + Design sections.
-  **`backend/migrations/` created — 12 SQL files covering all 42 tables, 27 enums, ~60 indexes,
-  and full RLS policies.** Migration files: 001–012 (see SESSION HISTORY for details).
-- **Not working / known issues:** Migrations not yet applied to Supabase — need Supabase project
-  init and `.env` setup first.
-- **How to run the project:** N/A yet. Backend (FastAPI) stands up later in Phase 5;
-  frontend (Expo) in Phase 6. Update this line with exact run commands once they exist.
+  **`backend/migrations/` — 13 SQL files** covering all 42 tables, 27 enums, ~60 indexes,
+  full RLS policies, and role grants (001–013, see SESSION HISTORY). Migrations 001–013
+  applied to the live dev Supabase project. **`backend/requirements.txt`** (supabase,
+  python-dotenv) + a venv at `backend/.venv/` (gitignored). **`backend/tests/test_rls.py`**
+  — RLS smoke test (creates 3 throwaway users, verifies deal_participants-based visibility,
+  cleans up after itself). **`backend/migrations/apply_migration.py`** — applies a migration
+  file to the dev project via the Supabase Management API (workaround for broken
+  `DATABASE_URL`, see below).
+- **Not working / known issues:** `DATABASE_URL` in `.env` does not connect — Supavisor
+  pooler returns "tenant/user ... not found" even though the project ref matches
+  `SUPABASE_URL`. Likely a stale/incorrect password or pooler string. Not currently
+  blocking (FastAPI will use the supabase-py client + service_role key, not raw psycopg;
+  `apply_migration.py` is the workaround for running SQL migrations). Worth regenerating
+  the connection string from the Supabase Dashboard (Settings → Database) when convenient.
+- **How to run the project:** N/A yet for the app. To run the RLS test:
+  `backend/.venv/bin/python backend/tests/test_rls.py`. Backend (FastAPI) stands up later
+  in Phase 5; frontend (Expo) in Phase 6.
 
 ## NEXT UP  *(ordered)*
 
-1. **Phase 5 (continued):** FastAPI project setup, Supabase project init (create project, get
-   keys), apply migrations (`psql` or Supabase Dashboard SQL editor), wire `.env`.
+1. **Phase 5 (continued):** FastAPI project setup, wire `.env` into the app, build out
+   `backend/requirements.txt` for the real app dependencies (FastAPI, uvicorn, etc.).
 2. **Phase 6 — Frontend Foundation:** Expo project setup, Expo Router, NativeBase (re-evaluate
    at task 6.4 per open decision #6), Zustand store, Supabase JS client wiring.
 3. After 5 + 6: Phase 7 (Identity & Trust — first real features, Bucket 1).
@@ -50,6 +61,13 @@ do not proceed. I'll resolve these at the start of my next session.*
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
 
+- 2026-06-10 — Discovered the Supabase project had **no table grants at all** on `public`
+  for `anon`/`authenticated`/`service_role` (Supabase normally auto-configures this; it
+  didn't take here). Even `service_role` got `permission denied for table brands` (42501).
+  Fixed with a new migration `013_grants.sql` (standard Supabase GRANT + ALTER DEFAULT
+  PRIVILEGES statements) — RLS (012) remains the real lock for anon/authenticated, this
+  migration just makes the tables reachable at all. Applied via the Management API since
+  `DATABASE_URL`/psql access doesn't work (see CURRENT STATE).
 - 2026-06-09 — Two RLS gaps deferred (task 5.4 review): (1) `deal_participants` INSERT policy
   allows uninvited self-addition — mitigated by UUID non-guessability + app flow enforcing invites
   via FastAPI; (2) `deals` UPDATE policy doesn't restrict `stage` column — mitigated by FastAPI
@@ -62,6 +80,24 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-06-10 — Phase 5: RLS tested with dummy users (task 5.8)
+- **Did:** Wrote `backend/tests/test_rls.py` — creates 3 throwaway Supabase Auth users
+  (Priya/creator, Rahul/brand admin at "Zomato Brand Account", Sneha/unrelated) via
+  service_role, wires up a deal + deal_participants + a message, then signs in as the anon
+  client to verify: the participant (Priya) can see the deal and message (1 row each), and
+  the unrelated user (Sneha) sees neither (0 rows, no error). Cleans up all test data + auth
+  users afterward. Also created `backend/requirements.txt` (supabase, python-dotenv) and a
+  `backend/.venv/`.
+- **Hit a blocker:** first run failed with `permission denied for table brands` (42501) for
+  the **service_role** key — the project's `public` schema had no grants to
+  anon/authenticated/service_role at all. Wrote `backend/migrations/013_grants.sql`
+  (standard Supabase GRANT + ALTER DEFAULT PRIVILEGES) and applied it via the Supabase
+  Management API (`backend/migrations/apply_migration.py`), since `DATABASE_URL` doesn't
+  connect (see ASSUMPTIONS LOG / CURRENT STATE).
+- **Result:** re-ran `test_rls.py` — **4/4 PASS**. RLS policies from migration 012 are
+  confirmed working as designed.
+- **Next:** FastAPI project setup (5.9+).
 
 ### 2026-06-09 — Phase 5: SQL migrations written
 - **Did:** Created `backend/migrations/` with 12 ordered SQL files covering the full data model
