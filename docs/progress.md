@@ -44,8 +44,12 @@ up exactly where the last one left off, with zero context lost.
     libs (`brew install pango`). Not blocking now (nothing imports it yet); must be resolved
     before Phase 9 contract/invoice PDF generation.
 - **How to run the project:** Backend: `cd backend && .venv/bin/uvicorn main:app --reload --port 8000`,
-  then `curl localhost:8000/health`. RLS test: `backend/.venv/bin/python backend/tests/test_rls.py`.
-  Frontend (Expo) stands up in Phase 6.
+  then `curl localhost:8000/health` and `curl localhost:8000/docs` (Swagger UI). **Must be run
+  from inside `backend/`** — `main.py` and friends use absolute imports (`from api import
+  health`, `from core.config import settings`) that only resolve with `backend/` as the
+  import root. Running `uvicorn backend.main:app` from the repo root fails with
+  `ModuleNotFoundError: No module named 'api'`. RLS test:
+  `backend/.venv/bin/python backend/tests/test_rls.py`. Frontend (Expo) stands up in Phase 6.
 
 ## NEXT UP  *(ordered)*
 
@@ -87,6 +91,15 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-06-10 — Phase 5: dev server run command confirmed (task 5.11)
+- **Did:** Verified `cd backend && .venv/bin/uvicorn main:app --reload --port 8000` boots
+  cleanly; `GET /health` → 200 `{"status":"ok","env":"development"}`, `GET /docs` → 200
+  Swagger UI HTML.
+- **Found:** `uvicorn backend.main:app` from the repo root does **not** work —
+  `ModuleNotFoundError: No module named 'api'`, because `backend/main.py` etc. use absolute
+  imports that assume `backend/` is the import root. Documented as the supported run command
+  above (Option 1 — run from inside `backend/`); not changing the import style for now.
 
 ### 2026-06-10 — Phase 5: FastAPI skeleton (task 5.9)
 - **Did:** Built the FastAPI app shell on top of the venv/requirements from 5.8:
