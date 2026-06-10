@@ -16,8 +16,8 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 5 — Backend & Database Foundation (in progress).
-- **Current task:** Task 5.9 done — FastAPI skeleton boots, `/health` returns 200. Next: 5.10+.
+- **Current phase:** Phase 5 — Backend & Database Foundation — **complete**.
+- **Current task:** None — Phase 5 done. Next: Phase 6 (Expo frontend foundation).
 - **Built so far:** Local environment + monorepo scaffolded. Private GitHub repo connected.
   `CLAUDE.md` written. All Phase 3 design docs locked (`technical-spec.md` v1.0 + 9 source docs).
   `docs/rtm.md` built — 93 features, 13 columns, pre-populated Explore + Design sections.
@@ -53,11 +53,11 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **Phase 5 (continued, 5.10+):** Build out the real API endpoints/routers as features need
-   them; flesh out `ai_service` in Phase 10.
-2. **Phase 6 — Frontend Foundation:** Expo project setup, Expo Router, NativeBase (re-evaluate
+1. **Phase 6 — Frontend Foundation:** Expo project setup, Expo Router, NativeBase (re-evaluate
    at task 6.4 per open decision #6), Zustand store, Supabase JS client wiring.
-3. After 5 + 6: Phase 7 (Identity & Trust — first real features, Bucket 1).
+2. **Phase 5 (carry-forward):** real API endpoints/routers get built as features need them
+   (Phase 7+); flesh out `ai_service` in Phase 10.
+3. After 6: Phase 7 (Identity & Trust — first real features, Bucket 1).
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
 
@@ -91,6 +91,14 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-06-10 — Phase 5 complete
+- **Did:** Closed out Phase 5 (Backend & Database Foundation): 42-table schema + RLS + grants
+  applied to the dev Supabase project (001–013), RLS verified with dummy users (4/4 PASS),
+  FastAPI skeleton up (`main.py`, `core/`, `services/ai_service.py`, `api/health.py`),
+  `/health` and `/docs` confirmed working, Supabase connection test passing. `.env` confirmed
+  not tracked by git.
+- **Next:** Phase 6 — Expo frontend foundation.
 
 ### 2026-06-10 — Phase 5: dev server run command confirmed (task 5.11)
 - **Did:** Verified `cd backend && .venv/bin/uvicorn main:app --reload --port 8000` boots
