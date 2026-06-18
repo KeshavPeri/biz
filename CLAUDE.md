@@ -70,7 +70,11 @@ Everything else: just do it, commit, and keep going.
 - Expo (React Native + React Native Web) — one codebase for web now, iOS/Android later
 - TypeScript
 - Expo Router (navigation)
-- NativeBase (UI components) — confirm still the best current option at task 6.4
+- gluestack-ui v3 + NativeWind (UI components + styling) — **chosen at task 6.4**, replacing
+  NativeBase (now deprecated; gluestack is its maintained successor). Copy-in/own-your-components
+  model styled with Tailwind/NativeWind tokens → maximum design control, not a generic look.
+  Confirmed working on Expo SDK 54. The co-founder's theme (6.7) is a NativeWind/Tailwind token
+  config derived from `docs/design-direction.md`.
 - Zustand (global state: auth, user session, active deal context) + Supabase
   Realtime (live data) + React useState (local screen state)
 - Supabase JS client — uses the **anon key only**
@@ -133,7 +137,8 @@ These are the rules that cause real damage or rework if broken:
   `docs/progress.md`** — don't silently expand scope.
 - **Open decisions — `docs/technical-spec.md` §13.** A short list of "needs a call before
   production" items (retention, AI-data privacy, DPDP, whitelisting access, Railway worker,
-  NativeBase, account deletion). Don't resolve these silently. Near-term: confirm Railway's
+  account deletion). *(UI library resolved at 6.4: gluestack-ui v3 + NativeWind.)* Don't resolve
+  these silently. Near-term: confirm Railway's
   free tier supports a background worker before the production split (Phase 14).
 
 ## Environments
@@ -176,7 +181,10 @@ These live in `/docs` and are the authority for design decisions. As of Phase 3 
 - `docs/ai-parser.md` — the 22-field contract extraction (behind `ai_service`)
 - `docs/notifications.md` — the 3 tiers + event catalogue (in-app + email)
 - `docs/security.md` — auth, RLS strategy, encryption, secrets, audit log, privacy
-- `design-direction` — brand & design guidelines (colours, type, components) from my co-founder
+- `docs/design-direction.md` — **the visual source of truth: brand personality, references,
+  colours, typography, do's/don'ts** (from my co-founder). Read before building any UI-visible
+  feature. The SVG icon library lives at `frontend/assets/icons/` — use those icons; do not
+  invent or import other icon sets without flagging.
 - `docs/rtm.md` — Requirement Traceability Matrix: every feature → its code → its test →
   status (update after each feature). 13 columns across 4 sections — **Explore** (Feature ID,
   Feature, Bucket, Phase, Priority, Scope) and **Design** (Design Summary, Build Elements) are

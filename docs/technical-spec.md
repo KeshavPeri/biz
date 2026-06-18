@@ -151,7 +151,7 @@ privileges. Both talk to the same Postgres database; they differ only in *who en
 ```mermaid
 flowchart TB
     subgraph Client["📱 Frontend — Expo (React Native Web + Native)"]
-        UI["TypeScript app · Expo Router · NativeBase<br/>Zustand state · Supabase JS client (anon key)"]
+        UI["TypeScript app · Expo Router · gluestack-ui + NativeWind<br/>Zustand state · Supabase JS client (anon key)"]
     end
 
     subgraph Backend["⚙️ Backend — Python / FastAPI (service_role key)"]
@@ -201,7 +201,7 @@ both deploying from a private GitHub **monorepo** on push.
 | Frontend framework | **Expo (React Native + RN Web)** | One codebase → web now, native later, no rewrite. |
 | Frontend language | **TypeScript, strict mode** | Catches type errors before runtime; Claude Code writes safer code. |
 | Navigation | **Expo Router** | File-based routing; one mental model across web + native. |
-| UI library | **NativeBase** | Cross-platform components (web + iOS + Android). *Re-evaluate at task 6.4.* |
+| UI library | **gluestack-ui v3 + NativeWind** | Cross-platform components (web + iOS + Android) + Tailwind-style styling. *Chosen at task 6.4 (2026-06), replacing the deprecated NativeBase; supports Expo SDK 54; theming via NativeWind tokens from `design-direction.md`.* |
 | Frontend state | **Zustand + Supabase Realtime + `useState`** | Tiny global store, live data via subscriptions, local state for forms. |
 | Backend | **Python + FastAPI** | Fast to write, great for AI integrations, self-documenting auto-docs. |
 | Database | **Supabase (PostgreSQL + RLS)** | Managed Postgres with Auth, Realtime, Storage, and DB-level access control in one. |
@@ -1166,7 +1166,7 @@ each other; these are deliberately deferred decisions, not unresolved conflicts.
 | 3 | **DPDP Act 2023 compliance** | Consent, data-principal rights, and breach notification before an India public launch — legal review. | security.md |
 | 4 | **Whitelisting ad-account access** | How a creator grants a brand access to their ad account (platform-facilitated vs manual) has real security implications. For MVP, whitelisting is *tracked only* — no actual access is facilitated. | security.md |
 | 5 | **Railway scheduled worker (free tier)** | Time-driven notifications (reminders, expiry alerts, digests) need a cron-style background worker; confirm the free tier supports one at deploy. | notifications.md, api-architecture.md |
-| 6 | **NativeBase UI library** | Locked for MVP but flagged to **re-evaluate at task 6.4** — if a clearly better cross-platform option exists by then, flag before switching. | stack-decisions.md |
+| 6 | **UI library (RESOLVED 6.4)** | Re-evaluated at task 6.4 as planned: NativeBase is deprecated, so switched to its maintained successor **gluestack-ui v3 + NativeWind** (Expo SDK 54-compatible, design-token theming). No longer an open decision. | stack-decisions.md |
 | 7 | **Account-deletion vs retention** | How deal history is handled on account deletion interacts with retention obligations; basic for MVP, needs the same legal review as #1/#3. | security.md |
 
 ---

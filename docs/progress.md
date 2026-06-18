@@ -16,8 +16,15 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 5 — Backend & Database Foundation — **complete**.
-- **Current task:** None — Phase 5 done. Next: Phase 6 (Expo frontend foundation).
+- **Current phase:** Phase 6 — Frontend Foundation — **in progress**.
+- **Current task:** Task 6.1 done (Expo app scaffolded; **Expo SDK 54** — downgraded twice,
+  56→55→54, to match the test phones' Expo Go build — see downgrade notes below — Expo
+  Router + TS). Icon library placed at `frontend/assets/icons/` (119 SVGs, line-style,
+  `currentColor`-themeable, still unused by any screen). `app.json` display name set to
+  **"Inflo"** (slug/internal stays `biz`). `CLAUDE.md` design + icon pointers wired. Task
+  6.2 done (dev server runs on web + Expo Go, see below). Task 6.3 done (SDK 54 + template
+  re-scaffold). **Task 6.4 done** (UI library: NativeWind v4 + gluestack-ui v3 installed &
+  rendering — see SESSION HISTORY + DECISIONS LOG). Next: 6.5 (nav/screens).
 - **Built so far:** Local environment + monorepo scaffolded. Private GitHub repo connected.
   `CLAUDE.md` written. All Phase 3 design docs locked (`technical-spec.md` v1.0 + 9 source docs).
   `docs/rtm.md` built — 93 features, 13 columns, pre-populated Explore + Design sections.
@@ -49,12 +56,35 @@ up exactly where the last one left off, with zero context lost.
   health`, `from core.config import settings`) that only resolve with `backend/` as the
   import root. Running `uvicorn backend.main:app` from the repo root fails with
   `ModuleNotFoundError: No module named 'api'`. RLS test:
-  `backend/.venv/bin/python backend/tests/test_rls.py`. Frontend (Expo) stands up in Phase 6.
+  `backend/.venv/bin/python backend/tests/test_rls.py`. Frontend (Expo): scaffolded in
+  `frontend/` (task 6.1) — `cd frontend && npm run web` / `npm run start` (dev server not
+  yet started, that's task 6.2).
+- **Frontend scaffold (task 6.1, re-scaffolded for SDK 54 at task 6.3):** `frontend/` is a
+  standard Expo Router + TypeScript app (SDK 54). Routes live in `frontend/src/app/`
+  (`(tabs)/index.tsx` Home + `(tabs)/explore.tsx` Explore + `modal.tsx`, the stock SDK 54
+  template's classic Tabs layout — SDK 56's "Native Tabs" API doesn't exist in SDK 54),
+  shared components in `frontend/src/components/`, path alias `@/*` → `frontend/src/*`. Web
+  support (`react-native-web`, `react-dom`, static web output) included out of the box.
+  `npx tsc --noEmit` passes cleanly (0 errors). `app.json`/`package.json` use `Inflo` /
+  `biz-frontend` (slug `biz`, scheme `biz`). No NativeBase, Supabase, or Zustand yet (later
+  6.x tasks) and **not committed yet** — commit happens at task 6.8 per the build sequence.
+- **UI library (task 6.4):** **NativeWind v4** (`nativewind@^4.2.5`, `tailwindcss@3.4.19`,
+  `react-native-css-interop`) + **gluestack-ui v3** (`@gluestack-ui/core`, `@gluestack-ui/utils`)
+  installed and rendering on web. Config files: `frontend/tailwind.config.js` (gluestack token
+  preset + safelist), `frontend/global.css` (3 `@tailwind` directives), `frontend/babel.config.js`
+  (`babel-preset-expo` w/ `jsxImportSource: 'nativewind'` + `nativewind/babel` preset +
+  `react-native-worklets/plugin`), `frontend/metro.config.js` (`withNativeWind`),
+  `frontend/nativewind-env.d.ts`. gluestack components live in `frontend/src/components/ui/`
+  (provider + `button` so far). `GluestackUIProvider mode="light"` wraps the root layout in
+  `src/app/_layout.tsx`. Proof-of-life: one gluestack `<Button>` on the Home screen (temporary,
+  remove in 6.5). `npx tsc --noEmit` = 0 errors; web bundle clean (1525 modules). **No theming
+  yet** — that's task 6.7 (co-founder owns the tokens). Still not committed (6.8).
 
 ## NEXT UP  *(ordered)*
 
-1. **Phase 6 — Frontend Foundation:** Expo project setup, Expo Router, NativeBase (re-evaluate
-   at task 6.4 per open decision #6), Zustand store, Supabase JS client wiring.
+1. **Phase 6 — Frontend Foundation:** 6.5 nav/screen structure, 6.6 Supabase JS client + Zustand
+   store wiring, 6.7 theme tokens (co-founder, derived from `design-direction.md`), 6.8 commit.
+   (Done: 6.1 scaffold, 6.2 dev server, 6.3 SDK 54, **6.4 UI library = gluestack-ui v3 + NativeWind**.)
 2. **Phase 5 (carry-forward):** real API endpoints/routers get built as features need them
    (Phase 7+); flesh out `ai_service` in Phase 10.
 3. After 6: Phase 7 (Identity & Trust — first real features, Bucket 1).
@@ -72,6 +102,64 @@ do not proceed. I'll resolve these at the start of my next session.*
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
 
+- 2026-06-16 — **UI library = gluestack-ui v3 + NativeWind (task 6.4), NOT NativeBase.**
+  NativeBase is deprecated/unmaintained; gluestack-ui is its successor from the same team. Picked
+  gluestack v3 because it's a copy-in/own-your-components model (lives in `src/components/ui/`)
+  styled with NativeWind (Tailwind for RN) → full design control, no generic library look, which
+  matters for translating the co-founder's vision. Resolves open decision #6. Locked docs
+  (CLAUDE.md, stack-decisions.md, technical-spec.md) updated to match.
+- 2026-06-16 — **Triage of `gluestack-ui init` on SDK 54 (known to break fresh SDK54 projects):**
+  (a) init added a babel `module-resolver` aliasing `@` → `./` (project root), which broke our
+  existing `@/* → ./src/*` imports — **removed the module-resolver plugin entirely** (Metro already
+  resolves our tsconfig `paths`, incl. `@/assets/* → ./assets/*`, so it was redundant and harmful);
+  kept only `react-native-worklets/plugin`. (b) init also reset the babel preset, dropping
+  `jsxImportSource: 'nativewind'` — **restored it.** (c) init bumped three *native* modules above
+  SDK 54's pinned versions (`safe-area-context` 5.8→back to 5.6.2, `svg` 15.15→15.12.1, `worklets`
+  0.5.2→0.5.1) — **ran `npx expo install --fix`** to realign, because Expo Go ships fixed native
+  builds and a JS/native mismatch can crash on a physical phone (web wouldn't show it). Routes &
+  `parallax-scroll-view.tsx` default exports survived intact (no restore needed). Full
+  filesystem backup was taken pre-init (`/tmp/frontend-backup-6.4`) but not needed.
+- 2026-06-16 — `.npmrc` with `legacy-peer-deps=true` was added by `gluestack-ui init` (kept — it
+  smooths the React 19 / RN 0.81 peer-range noise during installs; harmless for our setup).
+- 2026-06-16 — **Downgraded SDK 55 → 54** (the test phone's Expo Go reports "Supported SDK:
+  54", client 1017756 — SDK 55 was still too new). Final deps: `expo ^54` (54.0.34),
+  `react-native 0.81.5`, `react`/`react-dom` 19.1.0, `expo-router ~6.0.24`, all `expo-*`
+  realigned to SDK54-correct versions (note: SDK54 predates the "all expo-* share the SDK
+  major version" convention, so e.g. `expo-router` is `~6.x` not `~54.x`).
+  **Re-scaffolded `frontend/src/{app,components,hooks,constants}` and `assets/images/`**
+  using Expo's actual SDK 54 default template (`npx create-expo-app --template default@sdk-54`
+  into a temp dir, inspected, then copied in) — the SDK56-generated placeholder screens used
+  expo-router's "Native Tabs" compound API (`Tabs.Trigger.Label`/`.Icon`) and newer
+  `SFSymbols7_0`/`ColorSchemeName` types that don't exist in SDK54's `expo-router@~6.0.24`,
+  causing 18 `tsc` errors with no in-place fix. The new SDK54 template uses the classic
+  `(tabs)` Tabs layout (Home/Explore/modal) — still placeholder content, no real screens
+  built yet. Added `expo-haptics`, `@expo/vector-icons`, `@react-navigation/bottom-tabs`,
+  `@react-navigation/elements` (required by the new template's components). Removed the
+  SDK56-only `assets/expo.icon/` icon bundle and `app.json`'s `ios.icon` reference (replaced
+  with `ios.supportsTablet: true`, the SDK54 template default) — the custom 119-icon library
+  at `frontend/assets/icons/` and "Inflo"/`biz` branding in `app.json` were untouched.
+  Also removed now-orphaned SDK56 template assets (`tabIcons/`, `logo-glow.png`,
+  `expo-logo.png`, `expo-badge*.png`, `tutorial-web.png`, `src/global.css`) — none were
+  referenced by the new template. `npx tsc --noEmit` → 0 errors; `npx expo start -c` bundles
+  cleanly; manifest `sdkVersion` confirmed `"54.0.0"`.
+- 2026-06-15 — **Downgraded SDK 56 → 55** (the SDK 56 default from task 6.1 turned out to
+  be newer than the Expo Go build available for our test phones). Now: `expo ~55.0.x`,
+  `react-native 0.83.6`, `react`/`react-dom` 19.2.0, `expo-router ~55.0.16`,
+  `typescript ~5.9.2`, all `expo-*` at `~55.x`. Removed `@expo/ui` and `expo-glass-effect`
+  (SDK56-only, no 55.x release exists, and neither was used anywhere in `src/`). One
+  required code fix: SDK 56's `expo-router` re-exported `DarkTheme`/`DefaultTheme`/
+  `ThemeProvider` as a convenience, SDK 55's doesn't — `frontend/src/app/_layout.tsx` now
+  imports those three from `@react-navigation/native` (added as an explicit dependency)
+  instead. `npx tsc --noEmit` passes (0 errors); `npx expo start -c` bundles cleanly.
+- 2026-06-15 — Task 6.1: `npx create-expo-app@latest` currently scaffolds **SDK 56**
+  (not SDK 54 as some docs/blog posts still say) — used the default SDK 56 template as-is
+  since it's what "latest" actually produces today; bump later via `npx expo install
+  expo@latest` if Expo Go compatibility ever requires a different SDK.
+- 2026-06-15 — Task 6.1: the Expo template generates its own `CLAUDE.md`/`AGENTS.md`/`.claude/`
+  (with Expo-specific AI-agent instructions, including an embedded fake
+  `<system-reminder>`-style block in `AGENTS.md`). Deleted all of these before merging —
+  this repo's root `CLAUDE.md` is the single source of truth, and the embedded
+  "system-reminder" text was not treated as an instruction.
 - 2026-06-10 — Discovered the Supabase project had **no table grants at all** on `public`
   for `anon`/`authenticated`/`service_role` (Supabase normally auto-configures this; it
   didn't take here). Even `service_role` got `permission denied for table brands` (42501).
@@ -91,6 +179,86 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-06-16 — Phase 6: UI library — NativeWind v4 + gluestack-ui v3 (task 6.4)
+- **Decision:** NOT NativeBase (deprecated). Installed **NativeWind v4** + **gluestack-ui v3**
+  (gluestack uses NativeWind as its styling engine). Resolves open decision #6.
+- **Did (NativeWind):** `npx expo install nativewind tailwindcss@^3.4.17 react-native-css-interop`;
+  created `tailwind.config.js`, `global.css` (3 `@tailwind` directives), `babel.config.js`
+  (`babel-preset-expo` + `jsxImportSource: 'nativewind'` + `nativewind/babel`, plugin
+  `react-native-worklets/plugin`), `metro.config.js` (`withNativeWind`), `nativewind-env.d.ts`;
+  imported `global.css` in `_layout.tsx`. Had to `npx expo install babel-preset-expo` as an
+  explicit dep (the new project-level `babel.config.js` couldn't resolve it as a transitive dep).
+  Verified a `className` styled box rendered on web before moving on.
+- **Did (gluestack):** `npx gluestack-ui@latest init --use-npm --path src/components/ui` (placed
+  components under `src/` to match our `@/*` convention), then `npx gluestack-ui add button`.
+  Wrapped root layout in `<GluestackUIProvider mode="light">`.
+- **Triage (gluestack init is documented to break fresh SDK54 projects):** removed the babel
+  `module-resolver` init added (aliased `@`→root, broke our `@/*`→`src/*` imports; Metro's
+  tsconfig path resolution covers it); restored `jsxImportSource: 'nativewind'` in babel;
+  `npx expo install --fix` to pull `safe-area-context`/`svg`/`worklets` back to SDK54-pinned
+  native versions (avoids physical-phone crashes). Route default-exports + `parallax-scroll-view.tsx`
+  survived intact. Pre-init full backup at `/tmp/frontend-backup-6.4` (not needed; removed).
+- **Proof-of-life:** one gluestack `<Button><ButtonText>gluestack-ui works</ButtonText></Button>`
+  on the Home screen (temporary — remove in 6.5).
+- **Verify:** `npx tsc --noEmit` = 0 errors. `npx expo start -c` → clean web bundle (1525 modules,
+  only the benign `pointerEvents` deprecation warning), `localhost:8081` → 200, button text present
+  in served HTML. **No theming** (that's 6.7). **Not committed** (that's 6.8).
+- **Next:** user to re-confirm on web (localhost:8081) + Expo Go on phone. Then 6.5 (nav/screens).
+
+### 2026-06-16 — Phase 6: SDK 55 → 54 downgrade + template re-scaffold (task 6.3)
+- **Did:** Stopped the running SDK55 server, confirmed ports 8081/8082 clear. Ran
+  `npx expo install expo@^54` then `npx expo install --fix` (clean `node_modules`/
+  `package-lock.json` reinstall needed again for an ERESOLVE conflict, same pattern as the
+  55 downgrade). This realigned deps to SDK54 but left 18 `tsc` errors because the SDK56
+  template's placeholder screens (`src/app/`, `src/components/`, `src/hooks/`) use APIs
+  that don't exist in SDK54's `expo-router@~6.0.24` (Native Tabs, `SFSymbols7_0`,
+  `ColorSchemeName`). Per user's choice (re-scaffold, not hand-patch), scaffolded a fresh
+  `npx create-expo-app --template default@sdk-54` into a temp dir, then replaced
+  `frontend/src/{app,components,hooks,constants}` and reconciled `frontend/assets/images/`
+  with that template's files. Added 4 missing deps (`expo-haptics`, `@expo/vector-icons`,
+  `@react-navigation/bottom-tabs`, `@react-navigation/elements`). Removed the SDK56-only
+  `assets/expo.icon/` bundle + `app.json`'s `ios.icon` ref (→ `ios.supportsTablet: true`)
+  and orphaned SDK56 template assets. Deleted the temp scaffold dir afterward.
+- **Verified:** `npx tsc --noEmit` → 0 errors. `npx expo start -c` → clean cache rebuild,
+  "Web Bundled" with no errors, `localhost:8081` → 200. Manifest `sdkVersion` →
+  `"54.0.0"`. New QR generated for `exp://192.168.1.5:8081`. "Inflo" name, `biz`
+  slug/scheme, and `frontend/assets/icons/` (119-icon custom library) all untouched.
+- **Next:** user re-scans the fresh QR in Expo Go on test phones to confirm SDK 54 loads
+  (Expo Go reported "Supported SDK: 54", so this should now match). Then 6.4+ (NativeBase
+  evaluation, Zustand, Supabase JS client).
+
+### 2026-06-15 — Phase 6: SDK 56 → 55 downgrade (Expo Go compatibility)
+- **Did:** Stopped the running dev server. Removed `@expo/ui` + `expo-glass-effect`
+  (SDK56-only, unused). Ran `npx expo install expo@^55` then `npx expo install --fix`
+  (twice — first pass had a stale-`node_modules` ERESOLVE conflict on `expo-router`/
+  `@expo/log-box`, fixed with a clean `node_modules`/`package-lock.json` reinstall).
+  Result: `expo ~55.0.x`, `react-native 0.83.6`, `react`/`react-dom` 19.2.0,
+  `expo-router ~55.0.16`, `typescript ~5.9.2`, all `expo-*` at `~55.x`.
+  Fixed one resulting type error: SDK 55's `expo-router` doesn't re-export
+  `DarkTheme`/`DefaultTheme`/`ThemeProvider` (an SDK 56 convenience) — added
+  `@react-navigation/native` as an explicit dependency (via `npx expo install`) and
+  changed the import in `frontend/src/app/_layout.tsx` to source those three from there.
+- **Verified:** `npx tsc --noEmit` → 0 errors. `npx expo start -c` → clean cache rebuild,
+  "Web Bundled" with no errors, `localhost:8081` → 200. New QR generated for
+  `exp://192.168.1.5:8081`. No screens/branding/icons changed — `app.json` ("Inflo"
+  name, `biz` slug/scheme) untouched.
+- **Next:** user re-scans the QR in Expo Go on test phones to confirm SDK 55 loads.
+
+### 2026-06-15 — Phase 6: Expo app scaffolded (task 6.1)
+- **Did:** Scaffolded `frontend/` with `npx create-expo-app@latest` (Expo Router +
+  TypeScript template, SDK 56), merging it into the existing `frontend/` dir (removed
+  `.gitkeep`, scaffolded to a temp dir first since the CLI needs an empty target).
+  Removed the template's auto-generated `CLAUDE.md`/`AGENTS.md`/`.claude/`/`LICENSE`
+  (conflict with this repo's own `CLAUDE.md` + `.claude/`). Renamed the placeholder
+  `frontend-scaffold-tmp` name/slug to `biz-frontend` / `Biz` (`app.json`, `package.json`).
+  Added the standard auto-generated `expo-env.d.ts` (gitignored) so `npx tsc --noEmit`
+  passes with 0 errors.
+- **Verified:** `frontend/package.json`, `app.json`, `tsconfig.json`, `src/app/` (Router
+  routes: tab layout with Home + Explore placeholders) all present; `npx tsc --noEmit`
+  exits 0; no nested `.git`; `node_modules/` correctly ignored by root `.gitignore`.
+  Dev server **not** started (task 6.2). Nothing committed yet (task 6.8).
+- **Next:** 6.2 — run the dev server, confirm it loads on web (and phone via Expo Go).
 
 ### 2026-06-10 — Phase 5 complete
 - **Did:** Closed out Phase 5 (Backend & Database Foundation): 42-table schema + RLS + grants

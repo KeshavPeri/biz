@@ -14,7 +14,7 @@
 | **Expo (React Native + React Native Web)** | One codebase runs as a web app now (for MVP) and compiles to iOS/Android later without a rewrite. Critical for a solo builder. |
 | **TypeScript** | Catches type errors before they become runtime bugs. Claude Code writes safer, more predictable code with it. No meaningful overhead. |
 | **Expo Router** | File-based navigation — the same mental model as web routing. Works across web and native. |
-| **NativeBase** | Cross-platform UI component library (web + iOS + Android). Re-evaluate at task 6.4 — if a better option exists by then, flag before switching. |
+| **gluestack-ui v3 + NativeWind** | Cross-platform UI components (web + iOS + Android) + Tailwind-style styling engine. **Chosen at task 6.4 (2026-06), replacing the originally-planned NativeBase**, which is now deprecated — gluestack is its maintained successor from the same lineage. Uses a copy-in/own-your-components model styled via NativeWind (Tailwind for RN), giving full design control (no generic "component-library default" look) — important because the design must translate the co-founder's vision precisely. Officially supports Expo SDK 54. Theming = a NativeWind/Tailwind token config derived from `design-direction.md` (the task 6.7 theme workflow). Tamagui was considered (more powerful/faster) but rejected for its steep learning curve given a non-coder team. |
 | **Supabase JS client (anon key only)** | Frontend talks to Supabase directly for auth, simple reads, realtime subscriptions, and file storage — all protected at the DB level by RLS. The anon key is safe to expose in frontend code because RLS is the real lock. |
 
 ### Backend
@@ -108,7 +108,7 @@ This is a config setting — it requires no ongoing decisions from you.
 | Frontend framework | Expo (React Native Web + Native) | ✅ Yes |
 | Frontend language | TypeScript, strict mode | ✅ Yes |
 | Frontend navigation | Expo Router | ✅ Yes |
-| Frontend UI library | NativeBase (re-evaluate at task 6.4) | ✅ Yes |
+| Frontend UI library | gluestack-ui v3 + NativeWind (chosen 6.4, replaced NativeBase) | ✅ Yes |
 | Frontend state | Zustand + Supabase Realtime + useState | ✅ Yes |
 | Backend language/framework | Python + FastAPI | ✅ Yes |
 | Database | Supabase (PostgreSQL + RLS) | ✅ Yes |

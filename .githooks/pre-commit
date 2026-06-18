@@ -12,7 +12,10 @@ if echo "$staged" | grep -E '(^|/)\.env($|\.)|(^|/)secrets/' >/dev/null; then
 fi
 
 # 2) Block secret-looking VALUES in staged content (ignores blank placeholders in .env.example)
+#    Drop lockfile "integrity" checksum lines first: their base64 hashes can coincidentally
+#    contain "eyJ" and trip the JWT pattern (false positive on every package-lock.json change).
 if git diff --cached -U0 \
+  | grep -vE '"integrity":[[:space:]]*"(sha512|sha384|sha256|sha1)-' \
   | grep -nE "(sk-[A-Za-z0-9]{20,}|eyJ[A-Za-z0-9_-]{20,}|BEGIN [A-Z ]*PRIVATE KEY|(API_KEY|SECRET|SERVICE_ROLE|ACCESS_TOKEN|PASSWORD|PRIVATE_KEY)['\"]?[[:space:]]*[:=][[:space:]]*['\"]?[A-Za-z0-9/_+-]{16,})" \
   >/dev/null; then
   echo "COMMIT BLOCKED: staged changes look like they contain a real secret/key."
