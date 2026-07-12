@@ -46,6 +46,17 @@
 | Cross-cutting: Notifications | Phase 12 (throughout) | 4 | 0 / 4 |
 | **Total** | | **93** | **0 / 93** |
 
+> **Phase 6 — Frontend Foundation (infrastructure, not a tracked feature): BUILT ✅ (2026-07-13).**
+> The 93 rows above are the MVP *features* (Phases 7–12); Phase 6 is the shared scaffold they all
+> build on, so it has no per-feature Build cells here. Delivered: Expo SDK 54 + Expo Router + TS app
+> (`frontend/`); gluestack-ui v3 + NativeWind v4 UI/styling; design tokens wired into the theme
+> (`frontend/tailwind.config.js`, from `docs/design-tokens.md`); Geist font; the pillow-glass
+> material (`frontend/src/components/ui/glass-surface.tsx`); the themed **5-tab bottom-nav shell**
+> (`frontend/src/components/bottom-nav.tsx` + `(tabs)/` placeholders) with the pre-approved SVG icon
+> set (via `react-native-svg-transformer`); and the **Supabase JS client** (anon key only,
+> `frontend/src/lib/supabase.ts`), live-verified against the dev project. First feature-level Build
+> cells get filled starting Phase 7 (Bucket 1).
+
 ---
 
 ## Bucket 1 — Identity & Trust

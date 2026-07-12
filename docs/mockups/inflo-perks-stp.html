@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inflo — Perks (STP) Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-app:#FBFAF6; --surface-card:#FFFFFF; --surface-recess:#EFEAE2;
+  --border-hairline:#EAE8E2; --border-card:#EFEDE8;
+  --ink:#1C1B18; --text-2:#5E574E; --text-3:#847F78;
+  --avatar-bg:#E8E5DF; --avatar-ring:rgba(28,27,24,.09);
+  --good-dot:#7DB02E; --good-label:#4F7A1E; --good-tint:#ECF2D6;
+  --crit:#C0392B; --teal:#0095A8;
+  --r-card:14px; --r-panel:12px; --r-btn:16px; --r-pill:999px;
+  --elev-1:0 1px 2px rgba(28,27,24,.05), 0 5px 14px rgba(28,27,24,.07);
+  --elev-2:0 2px 6px rgba(28,27,24,.06), 0 14px 34px rgba(28,27,24,.11);
+  --lift-in:0 1px 2px rgba(28,27,24,.05), 0 8px 18px rgba(28,27,24,.09);
+  --recess-inset:inset 0 1px 2px rgba(28,27,24,.05);
+  --glass-grad:linear-gradient(165deg,#FFFFFF,#EAE7DF);
+  --glass-border:1px solid rgba(28,27,24,.07);
+  --glass-inset:inset 0 1px 0 rgba(255,255,255,.9);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Geist',-apple-system,sans-serif;color:var(--ink);background:#F2EFE8;
+  display:flex;align-items:center;justify-content:center;gap:40px;padding:28px;overflow:hidden}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input,textarea{font-family:inherit}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* rail */
+.rail{width:260px;display:flex;flex-direction:column;gap:18px}
+.rail .wordmark{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.rail .wordmark span{color:var(--text-3);font-weight:400}
+.rail p{font-size:13px;color:var(--text-2);line-height:1.55}
+.rail-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.stage-readout{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);padding:16px}
+.stage-readout .big{font-size:17px;font-weight:600;margin:2px 0 4px}
+.stage-readout .hint{font-size:12px;color:var(--text-2);line-height:1.5}
+.timebtn{padding:13px;border-radius:var(--r-btn);background:var(--ink);color:#fff;font-size:14px;font-weight:600;
+  box-shadow:var(--elev-2);transition:transform .13s;display:flex;align-items:center;justify-content:center;gap:8px}
+.timebtn:active{transform:scale(.97)}
+.timebtn:disabled{background:#ECEAE3;color:#B6B0A6;box-shadow:none}
+.reset-btn{padding:11px;border-radius:var(--r-btn);border:1px solid var(--border-hairline);
+  font-size:13px;font-weight:500;color:var(--text-2);background:var(--surface-card);transition:all .15s}
+.reset-btn:hover{color:var(--ink);border-color:#D8D4CB}
+.kbd-hint{font-size:11px;color:var(--text-3);line-height:1.5}
+
+/* phone */
+.phone{width:392px;height:846px;max-height:calc(100vh - 40px);background:var(--bg-app);border-radius:44px;
+  box-shadow:0 2px 6px rgba(28,27,24,.08),0 34px 80px rgba(28,27,24,.22),0 0 0 10px #1C1B18,0 0 0 12px #33312C;
+  overflow:hidden;position:relative;display:flex;flex-direction:column}
+.statusbar{height:48px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 4px;font-size:13px;font-weight:600}
+.scroll{flex:1;overflow-y:auto;scrollbar-width:none;padding:0 16px 112px}
+.scroll::-webkit-scrollbar{display:none}
+
+.dhead{padding:12px 0 4px;display:flex;align-items:center;justify-content:space-between}
+.dhead h1{font-size:24px;font-weight:700;letter-spacing:-.015em}
+.dhead .dsub{font-size:12.5px;color:var(--text-2);margin-top:3px;line-height:1.4}
+.tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:14px -16px 4px;padding:0 16px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;padding:8px 15px;border-radius:var(--r-pill);font-size:12.5px;font-weight:500;color:var(--text-2);border:1px solid var(--border-hairline);background:#fff;transition:all .15s}
+.tab.on{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600}
+
+.shead{display:flex;align-items:baseline;justify-content:space-between;margin:20px 0 11px}
+.shead h2{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.shead .ssub{font-size:11.5px;color:var(--text-3);font-weight:500}
+
+/* pipeline cards (my active) */
+.pipe{width:100%;text-align:left;background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);
+  box-shadow:var(--elev-1);padding:13px 14px;margin-bottom:11px;animation:popin .25s ease-out;transition:transform .13s}
+.pipe:active{transform:scale(.985)}
+.pipe .ptop{display:flex;align-items:center;gap:11px}
+.blogo{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:13px;color:#fff;flex:none}
+.pipe .pm{flex:1;min-width:0}
+.pipe .pt{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pipe .ps{font-size:11.5px;color:var(--text-3);margin-top:1px}
+.statechip{flex:none;font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:var(--r-pill)}
+.st-wait{background:var(--surface-recess);color:var(--text-2)}
+.st-live{background:var(--good-tint);color:var(--good-label)}
+.st-act{background:#E8EFF0;color:#12707E}
+.st-done{background:var(--surface-recess);color:var(--text-3)}
+/* mini tracker inside pipe */
+.mtrack{display:flex;align-items:center;margin-top:11px;padding-top:11px;border-top:1px solid #F4F2ED}
+.mstep{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;position:relative}
+.mstep .sd{width:9px;height:9px;border-radius:50%;background:#DDD9D0;z-index:2;transition:all .3s}
+.mstep.done .sd{background:var(--ink)}
+.mstep.cur .sd{background:var(--ink);box-shadow:0 0 0 4px rgba(28,27,24,.12)}
+.mstep .sl{font-size:9px;font-weight:500;color:var(--text-3);white-space:nowrap}
+.mstep.done .sl,.mstep.cur .sl{color:var(--ink);font-weight:600}
+.mstep::after{content:'';position:absolute;top:4px;left:calc(50% + 7px);right:calc(-50% + 7px);height:1.5px;background:#DDD9D0}
+.mstep:last-child::after{display:none}
+.mstep.done::after{background:var(--ink)}
+.pipe .paction{margin-top:11px;display:flex;gap:8px;align-items:center}
+.pipe .pnote{flex:1;font-size:11.5px;color:var(--text-2);line-height:1.4}
+.pipe .pnote b{color:var(--ink);font-weight:600}
+.minibtn{flex:none;padding:8px 14px;border-radius:13px;font-size:12px;font-weight:600;background:var(--ink);color:#fff;transition:transform .13s;min-height:34px}
+.minibtn:active{transform:scale(.95)}
+.minibtn.glass{background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset);color:var(--ink)}
+.empty{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-panel);
+  padding:16px;text-align:center;font-size:12.5px;color:var(--text-2);line-height:1.5}
+
+/* offer cards */
+.opp{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);
+  padding:14px;margin-bottom:12px}
+.opp.claimed{opacity:.55}
+.opp .otop{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+.opp .om{flex:1;min-width:0}
+.opp .ot{font-size:14.5px;font-weight:600;line-height:1.25}
+.opp .ob{font-size:11.5px;color:var(--text-3);margin-top:1px;display:flex;align-items:center;gap:5px}
+.vtick{display:inline-flex;color:var(--good-label)}
+.dtag{flex:none;font-size:10px;font-weight:600;letter-spacing:.03em;padding:3.5px 9px;border-radius:var(--r-pill)}
+.dt-pr{background:#E8EFF0;color:#12707E}
+.dt-exp{background:#F3EFE2;color:#8A7A45}
+.dt-event{background:#EFE7EA;color:#8A5568}
+.terms{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-panel);
+  padding:9px 12px;font-size:11.5px;color:var(--text-2);line-height:1.5;margin-bottom:11px}
+.terms b{color:var(--ink);font-weight:600}
+.opp .obot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.opp .oval{font-size:12px;color:var(--text-3)}
+.opp .oval b{color:var(--ink);font-weight:700;font-size:13px}
+.abtn{flex:none;padding:10px 18px;border-radius:var(--r-btn);font-size:13px;font-weight:600;
+  background:var(--ink);color:#fff;transition:transform .13s;min-height:40px}
+.abtn:active{transform:scale(.96)}
+.abtn.done{background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset);color:var(--ink)}
+
+/* sheets */
+.scrim2{position:absolute;inset:0;background:rgba(28,27,24,.32);opacity:0;pointer-events:none;transition:opacity .22s;z-index:40}
+.scrim2.show{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg-app);border-radius:24px 24px 0 0;
+  box-shadow:var(--elev-2);transform:translateY(105%);transition:transform .28s ease-out;z-index:50;
+  padding:10px 20px 30px;max-height:88%;overflow-y:auto;scrollbar-width:none}
+.sheet::-webkit-scrollbar{display:none}
+.sheet.show{transform:none}
+.grab{width:38px;height:4px;border-radius:2px;background:#D8D4CB;margin:4px auto 16px}
+.sheet h3{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-bottom:4px}
+.sheet .ssub2{font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.5}
+.flabel{font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:7px;display:flex;justify-content:space-between}
+.flabel .opt{font-weight:400;color:var(--text-3)}
+.finput{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-btn);padding:0 16px;display:flex;align-items:center;min-height:50px;margin-bottom:14px}
+.finput input{flex:1;border:none;background:none;outline:none;font-size:14.5px;color:var(--ink);padding:13px 0}
+.btn{width:100%;padding:14px;border-radius:var(--r-btn);font-size:15px;font-weight:600;text-align:center;transition:transform .13s;min-height:48px;
+  display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--ink);color:#fff}
+.btn-glass{background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset);color:var(--ink)}
+.btn:disabled{background:#ECEAE3;color:#B6B0A6;border:none;box-shadow:none}
+
+/* calendar picker */
+.cal{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);padding:14px;margin-bottom:14px}
+.cal .chead{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}
+.cal .cmonth{font-size:14px;font-weight:600}
+.cal .cnav{color:var(--text-3);display:flex;gap:14px}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.calgrid .dow{font-size:10px;font-weight:600;color:var(--text-3);text-align:center;padding:4px 0;letter-spacing:.03em}
+.day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;border-radius:11px;color:var(--text-3);position:relative}
+.day.avail{color:var(--ink);background:var(--surface-recess);box-shadow:var(--recess-inset);cursor:pointer;transition:all .15s}
+.day.avail::after{content:'';position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:var(--good-dot)}
+.day.sel{background:var(--ink);color:#fff;box-shadow:none;font-weight:600}
+.day.sel::after{background:rgba(255,255,255,.6)}
+.slots{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.slot{padding:9px 14px;border-radius:var(--r-pill);font-size:12.5px;font-weight:500;background:#fff;
+  border:1px solid var(--border-hairline);color:var(--text-2);transition:all .15s}
+.slot.on{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600}
+.slot:disabled{opacity:.4;text-decoration:line-through}
+
+/* QR pass */
+.qrwrap{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-panel);padding:8px;margin-bottom:14px}
+.qrlift{background:#fff;border-radius:10px;box-shadow:var(--lift-in);padding:18px;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden}
+.qr{display:grid;grid-template-columns:repeat(13,9px);grid-auto-rows:9px;margin-bottom:12px;transition:opacity .3s}
+.qr i{background:#1C1B18}
+.qr i.o{background:transparent}
+.qrlift.used .qr{opacity:.16}
+.qrname{font-size:14px;font-weight:600}
+.qrsub{font-size:11.5px;color:var(--text-3);margin-top:2px;text-align:center;line-height:1.45}
+.usedstamp{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:4px}
+.qrlift.used .usedstamp{display:flex}
+.usedstamp .uk{font-size:15px;font-weight:700;color:var(--good-label);display:flex;align-items:center;gap:6px}
+.usedstamp .ut{font-size:11px;color:var(--text-2)}
+.detrack{margin:2px 0 16px}
+.sysline{font-size:11.5px;color:var(--text-2);padding:7px 0;border-bottom:1px solid #F4F2ED;display:flex;gap:8px;align-items:baseline}
+.sysline:last-child{border-bottom:none}
+.sysline .st{flex:none;font-size:10.5px;color:var(--text-3);width:52px}
+
+.toast{position:absolute;left:50%;bottom:112px;transform:translate(-50%,16px);background:var(--ink);color:#fff;
+  font-size:13px;font-weight:500;padding:11px 18px;border-radius:var(--r-pill);box-shadow:var(--elev-2);
+  opacity:0;pointer-events:none;transition:all .25s ease-out;z-index:60;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:900px){
+  body{padding:0;gap:0;overflow:auto;flex-direction:column;justify-content:flex-start}
+  .rail{width:100%;max-width:392px;padding:16px 16px 8px;gap:12px}
+  .rail p,.kbd-hint,.stage-readout{display:none}
+  .phone{width:100%;max-width:440px;height:100vh;max-height:none;border-radius:0;box-shadow:none;flex:1}
+}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <div>
+    <div class="wordmark">inflo <span>/ perks · STP</span></div>
+    <p style="margin-top:8px">The no-chat pipeline, end to end: free PR ships to you, experiences book like OpenTable, events check you in by QR. Nothing here ever opens a thread.</p>
+  </div>
+  <div class="stage-readout">
+    <div class="rail-label">World clock</div>
+    <div class="big" id="railStage">Today · 30 Jul</div>
+    <div class="hint" id="railHint">Claim, book and RSVP first — then advance time to watch every pipeline move on its own.</div>
+  </div>
+  <button class="timebtn" id="timeBtn" onclick="advanceTime()">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+    Advance time
+  </button>
+  <button class="reset-btn" onclick="location.reload()">Reset demo</button>
+  <div class="kbd-hint">"Add to calendar" downloads a real .ics — it opens in Apple/Google Calendar. QR passes flip to a "checked in" state when time passes on the day of the booking.</div>
+</div>
+
+<div class="phone">
+  <div class="statusbar"><span>1:12</span><span style="letter-spacing:2px">▮▮▮</span></div>
+  <div class="scroll" id="scroll">
+    <div class="dhead"><div><h1>Perks</h1>
+      <div class="dsub">PR, experiences and events — no chat, no contract, tracked start to finish.</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab on" onclick="filt(this,'all')">All</button>
+      <button class="tab" onclick="filt(this,'pr')">🎁 PR drops</button>
+      <button class="tab" onclick="filt(this,'exp')">💆 Experiences</button>
+      <button class="tab" onclick="filt(this,'event')">📍 Events</button>
+    </div>
+
+    <div class="shead"><h2>Your pipeline</h2><span class="ssub tnum" id="pipeCount">0 active</span></div>
+    <div id="pipeList"><div class="empty">Nothing in flight yet — claim a kit, book an experience or RSVP below. Everything you take lands here with live status.</div></div>
+
+    <div class="shead"><h2>Open to you</h2><span class="ssub">matched · Mumbai</span></div>
+    <div id="offerList"></div>
+    <div style="height:8px"></div>
+  </div>
+
+  <div class="scrim2" id="scrim" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet"></div>
+  <div class="toast" id="toastEl"></div>
+</div>
+
+<script>
+/* ================= WORLD ================= */
+let worldDay=0; // 0 = today (30 Jul)
+const DAYLABELS=['Today · 30 Jul','31 Jul','1 Aug','2 Aug','3 Aug','5 Aug','8 Aug','14 Aug · event day','15 Aug'];
+const $=id=>document.getElementById(id);
+function toast(t){const e=$('toastEl');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2600)}
+
+/* ================= OFFERS ================= */
+const OFFERS=[
+ {id:'plum',cat:'pr',brand:'Plum Goodness',ini:'PG',col:'linear-gradient(140deg,#A9BE8E,#5E7A55)',
+  title:'Night repair serum — PR drop',sub:'you\u2019re pre-selected · 40 kits',
+  terms:'<b>Nothing owed.</b> Full-size kit worth ₹2,400 ships to you. Posting is optional — a tag if you love it.',
+  val:'Worth <b>₹2,400</b>',cta:'Claim kit'},
+ {id:'mama',cat:'pr',brand:'Mamaearth',ini:'MB',col:'linear-gradient(140deg,#B96A83,#8E5B7E)',
+  title:'Vit-C minis discovery box',sub:'open to verified skincare creators',
+  terms:'<b>Nothing owed.</b> 5 minis worth ₹1,100. First 200 claims.',
+  val:'Worth <b>₹1,100</b>',cta:'Claim kit'},
+ {id:'cult',cat:'exp',brand:'Cult.fit',ini:'CF',col:'linear-gradient(140deg,#4A4740,#2C2A25)',
+  title:'ELITE pass — 2 weeks, any centre',sub:'Bandra · Lower Parel · Andheri',
+  terms:'In exchange: <b>1 Story with location tag</b> within 7 days of first visit. Auto-reminded, no chat.',
+  val:'Worth <b>₹3,980</b>',cta:'Book slot',book:{place:'Cult.fit Bandra West',what:'ELITE trial · first session'}},
+ {id:'kiara',cat:'exp',brand:'Kiara Salon',ini:'KS',col:'linear-gradient(140deg,#C98FA0,#7E4E5E)',
+  title:'Signature glow facial · 60 min',sub:'Linking Road · 4.8 ★ on Inflo',
+  terms:'In exchange: <b>1 Story tagging @kiara.salon</b>. Skip the story and the perk simply counts as used — no penalty, but it affects your perks score.',
+  val:'Worth <b>₹4,500</b>',cta:'Book slot',book:{place:'Kiara Salon, Linking Rd',what:'Signature glow facial'}},
+ {id:'social',cat:'exp',brand:'SOCIAL',ini:'SO',col:'linear-gradient(140deg,#CBB080,#8E7A4E)',
+  title:'New menu tasting for two',sub:'Khar Social · dinner slots',
+  terms:'Posting <b>optional</b>. Tasting menu for 2, drinks included.',
+  val:'Worth <b>₹3,200</b>',cta:'Book table',book:{place:'Khar Social',what:'Tasting menu · table for 2'}},
+ {id:'nykaa',cat:'event',brand:'Nykaa',ini:'NY',col:'linear-gradient(140deg,#B96A83,#8E5B7E)',
+  title:'Glow Lab — festive preview evening',sub:'14 Aug · 7 PM · Lower Parel · invite only',
+  terms:'QR check-in at the door — attendance logs itself. Coverage <b>optional</b>; goodie bag worth ₹5K.',
+  val:'RSVP by <b>8 Aug</b>',cta:'RSVP'},
+ {id:'boat',cat:'event',brand:'boAt',ini:'bo',col:'linear-gradient(140deg,#3A3833,#1C1B18)',
+  title:'Nirvana series launch party',sub:'22 Aug · 8 PM · BKC · +1 allowed',
+  terms:'QR entry. First-listen demo units for attending creators.',
+  val:'60 creator passes',cta:'RSVP'}
+];
+
+/* ================= PIPELINE ================= */
+/* entry: {id, off, kind, states[], idx, when(dayIndex), slot, log[]} */
+let PIPE=[];
+const PR_STATES=['Claimed','Dispatched','Delivered','Posted*'];
+const EXP_STATES=['Booked','Checked in','Story posted','Done'];
+const EXP_STATES_OPT=['Booked','Checked in','Done'];
+const EV_STATES=['Going','Checked in','Recap'];
+
+function chipFor(e){
+  const s=e.states[e.idx];
+  if(s==='Delivered'||s==='Checked in')return['st-live',s];
+  if(s==='Dispatched')return['st-act','Dispatched · BlueDart'];
+  if(e.idx>=e.states.length-1)return['st-done',s.replace('*','')];
+  if(e.needsAction())return['st-act',s];
+  return['st-wait',s];
+}
+function mkEntry(off,kind,states,when,slot){
+  return{id:off.id,off,kind,states,idx:0,when,slot,log:[stamp(states[0])],
+    needsAction(){ 
+      if(kind==='pr')return this.states[this.idx]==='Delivered'; // optional post
+      if(kind==='exp')return this.states[this.idx]==='Checked in'&&this.states.includes('Story posted');
+      return false;
+    }};
+}
+function stamp(t){return{d:DAYLABELS[worldDay].replace('Today · ','').replace(' · event day',''),t}}
+
+/* ================= RENDER ================= */
+function renderPipe(){
+  const l=$('pipeList');
+  $('pipeCount').textContent=PIPE.filter(e=>e.idx<e.states.length-1).length+' active';
+  if(!PIPE.length){l.innerHTML=`<div class="empty">Nothing in flight yet — claim a kit, book an experience or RSVP below. Everything you take lands here with live status.</div>`;return}
+  l.innerHTML=PIPE.map((e,i)=>{
+    const[cc,cl]=chipFor(e);
+    const steps=e.states.map((s,j)=>`<span class="mstep ${j<e.idx?'done':j===e.idx?'cur':''}"><span class="sd"></span><span class="sl">${s}</span></span>`).join('');
+    let note='',btn='';
+    const cs=e.states[e.idx];
+    if(e.kind==='pr'){
+      if(cs==='Claimed')note='Brand preparing dispatch — usually 1–2 days.';
+      if(cs==='Dispatched')note='<b>BlueDart · BLR20487831</b> — out for delivery to Chapel Rd.';
+      if(cs==='Delivered'){note='Loved it? A tag is optional but tracked.';btn=`<button class="minibtn glass" onclick="event.stopPropagation();markPosted(${i})">Mark posted</button>`}
+      if(cs==='Posted*')note='Post linked · brand notified · perk complete.';
+    }
+    if(e.kind==='exp'){
+      if(cs==='Booked'){note=`<b>${e.slot}</b> · ${e.off.book.place}`;btn=`<button class="minibtn glass" onclick="event.stopPropagation();openDetail(${i})">QR pass</button>`}
+      if(cs==='Checked in'){
+        if(e.states.includes('Story posted')){note='Visited ✓ — <b>1 Story due within 7 days</b> per terms.';btn=`<button class="minibtn" onclick="event.stopPropagation();markPosted(${i})">Mark story posted</button>`}
+        else note='Visited ✓ — nothing owed. Enjoy!';
+      }
+      if(cs==='Story posted')note='Story verified · salon notified · all square.';
+      if(cs==='Done')note='Complete · counts toward your perks score.';
+    }
+    if(e.kind==='event'){
+      if(cs==='Going'){note=`<b>${e.slot}</b> · doors 7 PM`;btn=`<button class="minibtn glass" onclick="event.stopPropagation();openDetail(${i})">QR pass</button>`}
+      if(cs==='Checked in')note='Attendance logged at the venue · goodie bag claimed.';
+      if(cs==='Recap')note='Event recap shared by the brand · perk complete.';
+    }
+    return`<button class="pipe" onclick="openDetail(${i})">
+      <span class="ptop"><span class="blogo" style="background:${e.off.col}">${e.off.ini}</span>
+        <span class="pm"><span class="pt">${e.off.title}</span><br><span class="ps">${e.off.brand}</span></span>
+        <span class="statechip ${cc}">${cl}</span></span>
+      <span class="mtrack">${steps}</span>
+      <span class="paction"><span class="pnote">${note}</span>${btn}</span>
+    </button>`;
+  }).join('');
+}
+let curFilter='all';
+function filt(btn,f){curFilter=f;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderOffers()}
+function renderOffers(){
+  $('offerList').innerHTML=OFFERS.filter(o=>curFilter==='all'||o.cat===curFilter).map(o=>{
+    const taken=PIPE.some(e=>e.id===o.id);
+    const tag=o.cat==='pr'?['dt-pr','PR · gifting']:o.cat==='exp'?['dt-exp','💆 Experience']:['dt-event','📍 Event'];
+    return`<div class="opp ${taken?'claimed':''}">
+      <div class="otop"><span class="blogo" style="background:${o.col}">${o.ini}</span>
+        <span class="om"><span class="ot">${o.title}</span>
+          <span class="ob">${o.brand} <span class="vtick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span> · ${o.sub}</span></span>
+        <span class="dtag ${tag[0]}">${tag[1]}</span></div>
+      <div class="terms">${o.terms}</div>
+      <div class="obot"><span class="oval">${o.val}</span>
+        <button class="abtn ${taken?'done':''}" ${taken?'disabled':''} onclick="startFlow('${o.id}')">${taken?'In your pipeline ✓':o.cta}</button></div>
+    </div>`;
+  }).join('');
+}
+
+/* ================= FLOWS ================= */
+function startFlow(id){
+  const o=OFFERS.find(x=>x.id===id);
+  if(o.cat==='pr')openSheet(claimSheet(o));
+  if(o.cat==='exp')openSheet(bookSheet(o));
+  if(o.cat==='event')openSheet(rsvpSheet(o));
+}
+function claimSheet(o){return`
+  <h3>Claim — ${o.brand}</h3>
+  <div class="ssub2">No contract, no chat. The brand ships, Inflo tracks, and posting stays your call.</div>
+  <div class="flabel">Deliver to</div>
+  <div class="finput"><input value="#01-03, 7 Chapel Rd, Bandra W, Mumbai 400050"></div>
+  <div class="flabel">Variant</div>
+  <div class="finput"><input value="${o.id==='plum'?'Night repair · full size · 30ml':'Vit-C minis · standard box'}"></div>
+  <button class="btn btn-primary" onclick="doClaim('${o.id}')">Confirm & claim</button>`}
+function doClaim(id){
+  const o=OFFERS.find(x=>x.id===id);
+  PIPE.unshift(mkEntry(o,'pr',PR_STATES,null,null));
+  closeSheet();renderAll();
+  toast('Claimed — dispatch usually starts in 1–2 days. Try “Advance time”.');
+}
+
+/* booking with calendar */
+let selDay=null,selSlot=null,bookingId=null;
+const AVAIL={cult:[2,3,5,6],kiara:[1,2,5,8],social:[2,6,8,9]}; // dates in Aug
+const SLOTS={cult:['7:00 AM','9:00 AM','6:30 PM','8:00 PM'],kiara:['11:00 AM','2:30 PM','5:00 PM'],social:['7:30 PM','8:30 PM','9:30 PM']};
+function bookSheet(o){
+  bookingId=o.id;selDay=null;selSlot=null;
+  return`
+  <h3>Book — ${o.title}</h3>
+  <div class="ssub2">${o.off?.book?.place||o.book.place}. Pick a slot — the venue confirms instantly and it goes on your calendar.</div>
+  <div class="cal">
+    <div class="chead"><span class="cmonth">August 2026</span>
+      <span class="cnav"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m14 6-6 6 6 6"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m10 6 6 6-6 6"/></svg></span></div>
+    <div class="calgrid">
+      ${['M','T','W','T','F','S','S'].map(d=>`<span class="dow">${d}</span>`).join('')}
+      ${calDays(o.id)}
+    </div>
+  </div>
+  <div class="flabel">Time</div>
+  <div class="slots" id="slotRow">${SLOTS[o.id].map((s,i)=>`<button class="slot" ${i===1&&o.id==='kiara'?'disabled':''} onclick="pickSlot(this,'${s}')">${s}</button>`).join('')}</div>
+  <button class="btn btn-primary" id="bookBtn" disabled onclick="doBook()">Confirm booking</button>`}
+function calDays(id){
+  // Aug 2026: Aug 1 = Saturday → offset 5 blanks (Mon-start)
+  let h='';for(let i=0;i<5;i++)h+='<span class="day"></span>';
+  for(let d=1;d<=14;d++){
+    const av=AVAIL[id].includes(d);
+    h+=`<span class="day ${av?'avail':''}" ${av?`onclick="pickDay(this,${d})"`:''}>${d}</span>`;
+  }
+  return h;
+}
+function pickDay(el,d){selDay=d;document.querySelectorAll('.day.sel').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');checkBook()}
+function pickSlot(el,s){selSlot=s;document.querySelectorAll('.slot.on').forEach(x=>x.classList.remove('on'));el.classList.add('on');checkBook()}
+function checkBook(){$('bookBtn').disabled=!(selDay&&selSlot)}
+function doBook(){
+  const o=OFFERS.find(x=>x.id===bookingId);
+  const states=o.id==='social'?EXP_STATES_OPT:EXP_STATES;
+  const e=mkEntry(o,'exp',states,selDay,`${selDay} Aug · ${selSlot}`);
+  PIPE.unshift(e);
+  closeSheet();renderAll();
+  setTimeout(()=>openDetail(0),350);
+  toast('Booked — venue confirmed instantly');
+}
+function rsvpSheet(o){return`
+  <h3>RSVP — ${o.brand}</h3>
+  <div class="ssub2">${o.title}. Your pass is personal; scanning it at the door logs attendance automatically.</div>
+  <div class="flabel">Bringing a +1?</div>
+  <div class="slots"><button class="slot on" onclick="document.querySelectorAll('#sheet .slot').forEach(b=>b.classList.remove('on'));this.classList.add('on');plusOne=0">Just me</button>
+  <button class="slot" onclick="document.querySelectorAll('#sheet .slot').forEach(b=>b.classList.remove('on'));this.classList.add('on');plusOne=1">+1</button></div>
+  <button class="btn btn-primary" onclick="doRsvp('${o.id}')">Confirm RSVP</button>`}
+let plusOne=0;
+function doRsvp(id){
+  const o=OFFERS.find(x=>x.id===id);
+  const when=id==='nykaa'?'14 Aug · 7 PM':'22 Aug · 8 PM';
+  const e=mkEntry(o,'event',EV_STATES,id==='nykaa'?7:8,when);
+  e.plus=plusOne;
+  PIPE.unshift(e);
+  closeSheet();renderAll();
+  setTimeout(()=>openDetail(0),350);
+  toast('You\u2019re on the list — pass saved');
+}
+function markPosted(i){
+  const e=PIPE[i];
+  e.idx=e.states.indexOf(e.kind==='pr'?'Posted*':'Story posted');
+  e.log.push(stamp(e.kind==='pr'?'Post linked · brand notified':'Story verified · @'+e.off.brand.toLowerCase().split(' ')[0]+' tagged'));
+  if(e.kind==='exp')setTimeout(()=>{e.idx=e.states.length-1;renderAll()},900);
+  renderAll();toast(e.kind==='pr'?'Tag noted — brands see creators who post':'Story verified — all square');
+}
+
+/* ================= DETAIL (QR + calendar + log) ================= */
+function openDetail(i){
+  const e=PIPE[i];
+  const used=e.kind!=='pr'&&e.states[e.idx]!=='Booked'&&e.states[e.idx]!=='Going';
+  const steps=e.states.map((s,j)=>`<span class="mstep ${j<e.idx?'done':j===e.idx?'cur':''}"><span class="sd"></span><span class="sl">${s}</span></span>`).join('');
+  let qr='';
+  if(e.kind!=='pr'){
+    qr=`<div class="qrwrap"><div class="qrlift ${used?'used':''}">
+      <div class="qr">${qrCells(e.id)}</div>
+      <div class="usedstamp"><span class="uk"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Checked in</span><span class="ut">${e.slot} · logged automatically</span></div>
+      <div class="qrname">Devasri Nair${e.plus?' · +1':''}</div>
+      <div class="qrsub">${e.off.title}<br>${e.slot}${e.off.book?' · '+e.off.book.place:' · Lower Parel'}</div>
+    </div></div>
+    <button class="btn btn-glass" style="margin-bottom:10px" onclick="addToCal(${i})">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M12 14v4M10 16h4"/></svg>
+      Add to calendar</button>`;
+  }else{
+    qr=`<div class="terms" style="margin-bottom:14px">Shipping to <b>#01-03, 7 Chapel Rd, Bandra W</b>. ${e.states[e.idx]==='Dispatched'?'Tracking <b>BLR20487831</b> · BlueDart.':''}</div>`;
+  }
+  openSheet(`
+    <h3>${e.off.title}</h3>
+    <div class="ssub2">${e.off.brand} · ${e.kind==='pr'?'PR drop':e.kind==='exp'?'Experience':'Event'} · no chat thread — this page is the whole deal.</div>
+    <div class="mtrack detrack" style="border:none;padding-top:0">${steps}</div>
+    ${qr}
+    <div class="flabel">Activity</div>
+    <div class="detrack">${e.log.map(l=>`<div class="sysline"><span class="st tnum">${l.d}</span><span>${l.t}</span></div>`).join('')}</div>
+  `);
+}
+function qrCells(seedStr){
+  let h='';const seed=[...seedStr].map(c=>c.charCodeAt(0));
+  for(let r=0;r<13;r++)for(let c=0;c<13;c++){
+    const corner=(r<4&&c<4)||(r<4&&c>8)||(r>8&&c<4);
+    const on=corner?((r%4===0||r%4===3||c%4===0||c%4===3)||(r%4>0&&r%4<3&&c%4>0&&c%4<3)):((seed[(r+c)%seed.length]+r*c)%3!==0);
+    h+=`<i class="${on?'':'o'}"></i>`;
+  }return h;
+}
+function addToCal(i){
+  const e=PIPE[i];
+  const day=String(e.when&&e.when<=14?(e.kind==='event'?(e.id==='nykaa'?14:22):e.when):14).padStart(2,'0');
+  const hh=e.slot&&e.slot.includes('AM')?'0'+parseInt(e.slot.split('·').pop()):String((parseInt((e.slot||'7 PM').split('·').pop())||7)+12);
+  const dt=`202608${day}T${String(hh).padStart(2,'0')}0000`;
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Inflo//Perks//EN','BEGIN:VEVENT',
+    `UID:${e.id}@inflo.app`,`DTSTART;TZID=Asia/Kolkata:${dt}`,
+    `SUMMARY:${e.off.title} — ${e.off.brand}`,
+    `LOCATION:${e.off.book?e.off.book.place:'Lower Parel, Mumbai'}`,
+    'DESCRIPTION:Booked via Inflo Perks. Your QR pass is in the app.',
+    'BEGIN:VALARM','TRIGGER:-PT2H','ACTION:DISPLAY','DESCRIPTION:Inflo — leave in time','END:VALARM',
+    'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const a=document.createElement('a');
+  a.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(ics);
+  a.download=`inflo-${e.id}.ics`;document.body.appendChild(a);a.click();a.remove();
+  toast('.ics downloaded — opens in Apple / Google Calendar');
+}
+
+/* ================= TIME MACHINE ================= */
+function advanceTime(){
+  if(worldDay>=DAYLABELS.length-1){toast('End of the demo window — reset to replay');return}
+  worldDay++;
+  $('railStage').textContent=DAYLABELS[worldDay];
+  let events=[];
+  PIPE.forEach(e=>{
+    const s=e.states[e.idx];
+    if(e.kind==='pr'){
+      if(s==='Claimed'){e.idx=1;e.log.push(stamp('Dispatched · BlueDart BLR20487831'));events.push(e.off.brand+' kit dispatched')}
+      else if(s==='Dispatched'){e.idx=2;e.log.push(stamp('Delivered to Chapel Rd · photo proof stored'));events.push(e.off.brand+' kit delivered 📦')}
+    }
+    if(e.kind==='exp'&&s==='Booked'&&worldDay>=dayIndexOf(e.when)){
+      e.idx=1;e.log.push(stamp('QR scanned at '+e.off.book.place+' · check-in logged'));events.push('Checked in at '+e.off.brand+' ✓');
+      if(!e.states.includes('Story posted')){setTimeout(()=>{e.idx=e.states.length-1;renderAll()},600)}
+    }
+    if(e.kind==='event'&&s==='Going'&&worldDay>=e.when){
+      e.idx=1;e.log.push(stamp('QR scanned at the door · attendance auto-logged'));events.push(e.off.brand+' — checked in at the venue 🎉');
+    }
+    if(e.kind==='event'&&s==='Checked in'&&worldDay>e.when){
+      e.idx=2;e.log.push(stamp('Brand shared the event recap'));
+    }
+  });
+  renderAll();
+  $('railHint').textContent=events.length?events.join(' · '):'A quiet day — pipelines waiting on you or on dates ahead.';
+  toast(events.length?events[0]+(events.length>1?` +${events.length-1} more`:''):'Time moved · nothing due today');
+}
+function dayIndexOf(d){ // map booked Aug date to world day index
+  if(d<=1)return 2; if(d===2)return 3; if(d===3)return 4; if(d<=5)return 5; if(d<=8)return 6; return 7;
+}
+
+/* ================= SHEET PLUMBING ================= */
+function openSheet(html){$('sheet').innerHTML='<div class="grab"></div>'+html;$('sheet').classList.add('show');$('scrim').classList.add('show')}
+function closeSheet(){$('sheet').classList.remove('show');$('scrim').classList.remove('show')}
+function renderAll(){renderPipe();renderOffers()}
+renderAll();
+</script>
+</body>
+</html>

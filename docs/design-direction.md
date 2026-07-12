@@ -3,6 +3,8 @@
 > **Status:** Locked across all ten modules. This is the canonical reference for how Inflo looks, feels, and behaves. It is written to be *buildable* — a designer or engineer who has never seen the product should be able to produce on-brand screens from this document alone. Exact spacing/type-scale **tokens** are derived from this in the design-tokens step (workplan 6.7); this document sets the rules those tokens must obey.
 >
 > **Name:** "Inflo" is the **provisional working name**, pending trademark/domain/handle clearance (tracked separately). Everything here is deliberately **name-agnostic** — nothing depends on the final name.
+>
+> **Revision (2026-07, task 6.7 tokens workshop with Devasri):** six deliberate changes were made during tokenisation and folded back into this doc so it stays canonical. Each is marked **⚑ 6.7** inline. Summary: (1) button radius ~10–11 → **16**; (2) secondary button → **flush, no shadow**; (3) app base `#F6F4EF` → **`#FBFAF6`**; (4) avatars → **greige `#E8E5DF` + line/glow**; (5) cards gain a **whisper hairline `#EFEDE8`**; (6) **two signature shifts** — the aqua-water hero gradient is **retired in favour of photography**, and the data-blue chart ramp is **retired in favour of a warm-neutral + single teal family (`#0095A8`)**. Full values live in `design-tokens.md`.
 
 ---
 
@@ -61,12 +63,12 @@ Borrow **one mechanic** from each — not their identity. Everything is restyled
   - **L1** — soft lift (primary cards)
   - **L2** — floating (modals, floating chat, approval nudge, active states)
   - Elevation *costs density* — a lifted card fits fewer items. Inter-element spacing is a deliberate lever.
-- **Corners:** 14px anchor, proportional and contextual — cards **14**, buttons **~10–11**, chips/avatars **pill**. Icon internal corners track the *button* radius, not the card radius.
+- **Corners:** 14px anchor, proportional and contextual — cards **14**, buttons **16** *(⚑ 6.7 — up from ~10–11; ink-on-white read too sharp at 10–11; corner-smoothing/squircle tested and rejected, plain circular)*, chips/avatars **pill**. Icon internal corners track the *button* radius, not the card radius.
 - **Imagery for content, icons for wayfinding.**
 - **Shared design language (tokens), distinct purpose-built components.** Chat and Discover share DNA (rounding, colour, elevation, spacing, type) but are *separate components*, not one reused component. Principle: **structure constant, content variable.** Cross-screen consistency is prioritised.
 - **Premium signatures:**
   - **Pillow gradient / liquid glass** — the elevation *material*, scoped to **nav + active states**. Works in light and dark.
-  - **Aqua-water gradient** — reserved for **hero/media** moments only. Textured with soft caustics (radial highlights), never diagonal stripes.
+  - **Hero/media** — *(⚑ 6.7 — the synthetic aqua-water gradient hero signature is **retired**.)* Hero/media moments are carried by **photography** with a neutral scrim for text legibility (`linear-gradient(to top, rgba(28,27,24,.72), transparent 66%)`); an optional faint **aqua-tint scrim** (`rgba(11,95,92,.82)→transparent`) keeps a whisper of brand. No synthetic gradient hero.
 
 ---
 
@@ -85,7 +87,7 @@ A **neutral-dominant, nature-derived analogous "landscape" palette.**
 | Token | Hex | Use |
 |---|---|---|
 | White | `#FFFFFF` | Card surfaces |
-| Off-white | `#F6F4EF` | **App base** background |
+| Off-white | `#FBFAF6` | **App base** background *(⚑ 6.7 — lightened from `#F6F4EF`, which read too dark under white cards; `#F6F4EF` retained as a deeper recessive neutral)* |
 | Near-white | `#FAFAF8` | **Dashboard** base background |
 | Light grey | `#EAE8E2` | Hairlines, dividers, fills |
 | Warm grey | `#847F78` | Wayfinding/inactive icons, large/secondary text *(only)* |
@@ -109,7 +111,8 @@ A **neutral-dominant, nature-derived analogous "landscape" palette.**
 Signature gradient: **`#119B91` → `#48D6C6`** (sunlit 3-stop variant for hero). Texture via soft caustics, never stripes.
 
 ### Blue (data only — not chrome)
-Bridge accent **`#1F8FAE`** — ramp `#D2EBF0` · `#7FCAD8` · `#38A6BC` · `#1F8FAE` · `#136A82`. Used for **data/charts**, not interface chrome.
+*(⚑ 6.7 — the data-blue ramp is **retired for charts**; charts now use a warm-neutral base + a single **teal** emphasis family, see Charts below. The blue ramps here are **banked** only.)*
+Bridge accent **`#1F8FAE`** — ramp `#D2EBF0` · `#7FCAD8` · `#38A6BC` · `#1F8FAE` · `#136A82`.
 *Banked:* brightened blue `#2E84C2` (5 steps `#DCEBF8`…`#2E84C2`…`#1C5E97`) — retained, usage decided at component-build.
 
 ### Brown (atmospheric only — never functional or text)
@@ -121,8 +124,8 @@ Bridge accent **`#1F8FAE`** — ramp `#D2EBF0` · `#7FCAD8` · `#38A6BC` · `#1F
 ### Semantic meaning (memorise this)
 > **green = good · blue/neutral = data · quiet grey/beige = bad · aqua = hero/media · brown/cane = warmth · red = critical harm (rationed)**
 
-### Charts
-Welcoming **tonal-blue-range** bars (not flat). One accent per view. Green only on a genuinely *meaningful* bar. Stacked bars use tonal blue steps. A "bad" bar = recessive grey/beige, never an alarm colour.
+### Charts *(⚑ 6.7 — moved off blue)*
+Default bar = **glass** (vertical gradient + hairline). Emphasis = a **single teal family**, research-chosen (most colour-blind-safe accent; single-hue-sequential for cohesion): **`#0095A8` → `#63B0BE` → `#A9CEDB`**, up to **three** emphasised bars then everything fades to glass — **never all-blue/all-teal**. Numbers labelled **directly** on bars/points. Green only on a genuinely *meaningful* bar; a "bad" bar = recessive grey/beige, never an alarm colour. Warm neutrals (cane/grey/ink) retained but ~10% used.
 
 ---
 
@@ -227,7 +230,7 @@ A **custom 119-icon library**, delivered as individual SVGs + sprite + gallery +
 | Tier | Light | Dark | Notes |
 |---|---|---|---|
 | **Primary** | Flat ink `#1C1B18`, white text | Light ink `#FAFAF8`, dark text | Highest-contrast, the one main action |
-| **Secondary** | Pillow-glass: `linear-gradient(165deg,#FFFFFF,#EAE7DF)` + hairline + soft shadow + inset highlight | Charcoal pill ≈ `#3A3833→#2A2823` gradient on a near-black bar (`#1A1916`), faint white top inset, soft outer shadow, off-white label | The premium lifted surface; same treatment as nav active state |
+| **Secondary** | Glass gradient `linear-gradient(165deg,#FFFFFF,#EAE7DF)` + hairline + inset highlight, **flush (no outer shadow)** *(⚑ 6.7 — shadow dropped so secondary never out-shadows the flat primary; the **lift** is now reserved for nav-active only)* | Charcoal pill ≈ `#3A3833→#2A2823` gradient on a near-black bar (`#1A1916`), faint white top inset, off-white label, flush | Shared glass gradient, flush. Core rule: **gradient = reusable, lift = reserved (nav-active only)** |
 | **Tertiary** *(only if a 3rd action is truly needed)* | Soft neutral `#EDEAE3` or ghost outline | Soft neutral `#2C2A25` or ghost | Most screens won't need this |
 | **Disabled** | `#ECEAE3` bg / `#B6B0A6` text | `#262420` bg / `#5E5A53` text | **Same treatment in both modes** |
 
@@ -235,7 +238,7 @@ A **custom 119-icon library**, delivered as individual SVGs + sprite + gallery +
 - **Routine** (delete draft, cancel) → **fully neutral** (ghost/outline, ink/grey text), protected by a **confirm step**. No colour.
 - **Critical** (genuinely harmful/urgent) → **rationed red accent only** (small dot/icon/label + clear copy + confirm). Never a red fill or red-washed surface.
 
-**Corners:** cards 14 · buttons ~10–11 · chips/avatars pill.
+**Corners:** cards 14 · buttons **16** *(⚑ 6.7)* · chips/avatars pill.
 **One primary action per screen.** Make the next step obvious.
 
 ---
@@ -266,9 +269,10 @@ A **custom 119-icon library**, delivered as individual SVGs + sprite + gallery +
 
 ---
 
-## Appendix A — Deferred to Design Tokens (workplan 6.7)
+## Appendix A — Deferred to Design Tokens (workplan 6.7) — ✅ RESOLVED
 
-These are intentionally *not* fixed here; they are derived from the rules above during tokenisation:
+*(⚑ 6.7 — all resolved in the tokens workshop; final values in `design-tokens.md`.)*
+These were intentionally *not* fixed here; they were derived from the rules above during tokenisation:
 - Exact spacing scale (px) and exact elevation values (px/blur/spread per L0–L2).
 - Where each palette colour lands per component; chat-bubble and avatar tones.
 - Any additional surface textures beyond the two locked signatures.

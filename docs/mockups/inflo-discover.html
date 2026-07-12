@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inflo — Discover Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-app:#FBFAF6; --surface-card:#FFFFFF; --surface-recess:#EFEAE2;
+  --border-hairline:#EAE8E2; --border-card:#EFEDE8;
+  --ink:#1C1B18; --text-2:#5E574E; --text-3:#847F78;
+  --avatar-bg:#E8E5DF; --avatar-ring:rgba(28,27,24,.09);
+  --good-dot:#7DB02E; --good-label:#4F7A1E; --good-tint:#ECF2D6;
+  --crit:#C0392B; --teal:#0095A8;
+  --r-card:14px; --r-panel:12px; --r-btn:16px; --r-pill:999px;
+  --elev-1:0 1px 2px rgba(28,27,24,.05), 0 5px 14px rgba(28,27,24,.07);
+  --elev-2:0 2px 6px rgba(28,27,24,.06), 0 14px 34px rgba(28,27,24,.11);
+  --lift-in:0 1px 2px rgba(28,27,24,.05), 0 8px 18px rgba(28,27,24,.09);
+  --recess-inset:inset 0 1px 2px rgba(28,27,24,.05);
+  --glass-grad:linear-gradient(165deg,#FFFFFF,#EAE7DF);
+  --glass-border:1px solid rgba(28,27,24,.07);
+  --glass-inset:inset 0 1px 0 rgba(255,255,255,.9);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Geist',-apple-system,sans-serif;color:var(--ink);background:#F2EFE8;
+  display:flex;align-items:center;justify-content:center;gap:40px;padding:28px;overflow:hidden}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input,textarea{font-family:inherit}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* rail */
+.rail{width:260px;display:flex;flex-direction:column;gap:20px}
+.rail .wordmark{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.rail .wordmark span{color:var(--text-3);font-weight:400}
+.rail p{font-size:13px;color:var(--text-2);line-height:1.55}
+.rail-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.persona-switch{display:flex;background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-btn);padding:4px;gap:4px}
+.persona-switch button{flex:1;padding:10px 8px;border-radius:12px;font-size:13px;font-weight:500;color:var(--text-2);
+  transition:all .18s ease-out;display:flex;flex-direction:column;align-items:center;gap:3px}
+.persona-switch button small{font-size:10px;font-weight:400;color:var(--text-3)}
+.persona-switch button.on{background:var(--glass-grad);border:1px solid rgba(28,27,24,.05);
+  box-shadow:var(--glass-inset),0 1px 2px rgba(28,27,24,.05),0 5px 12px rgba(28,27,24,.09);color:var(--ink);font-weight:600}
+.stage-readout{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);padding:16px}
+.stage-readout .big{font-size:17px;font-weight:600;margin:2px 0 4px}
+.stage-readout .hint{font-size:12px;color:var(--text-2);line-height:1.5}
+.reset-btn{padding:11px;border-radius:var(--r-btn);border:1px solid var(--border-hairline);
+  font-size:13px;font-weight:500;color:var(--text-2);background:var(--surface-card);transition:all .15s}
+.reset-btn:hover{color:var(--ink);border-color:#D8D4CB}
+.kbd-hint{font-size:11px;color:var(--text-3);line-height:1.5}
+
+/* phone */
+.phone{width:392px;height:846px;max-height:calc(100vh - 40px);background:var(--bg-app);border-radius:44px;
+  box-shadow:0 2px 6px rgba(28,27,24,.08),0 34px 80px rgba(28,27,24,.22),0 0 0 10px #1C1B18,0 0 0 12px #33312C;
+  overflow:hidden;position:relative;display:flex;flex-direction:column}
+.statusbar{height:48px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 4px;font-size:13px;font-weight:600}
+.scroll{flex:1;overflow-y:auto;scrollbar-width:none;padding:0 16px 112px}
+.scroll::-webkit-scrollbar{display:none}
+
+/* header */
+.dhead{padding:12px 0 10px;display:flex;align-items:center;justify-content:space-between}
+.dhead h1{font-size:24px;font-weight:700;letter-spacing:-.015em}
+.bell{position:relative;width:38px;height:38px;border-radius:var(--r-pill);display:flex;align-items:center;justify-content:center}
+.bell .dot{position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--good-dot);border:1.5px solid var(--bg-app)}
+.searchbar{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-btn);
+  display:flex;align-items:center;gap:8px;padding:12px 14px;color:var(--text-3);font-size:14px;margin-bottom:12px}
+.tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 16px;padding:0 16px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;padding:8px 15px;border-radius:var(--r-pill);font-size:12.5px;font-weight:500;color:var(--text-2);border:1px solid var(--border-hairline);background:#fff;transition:all .15s}
+.tab.on{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600}
+
+/* section heads */
+.shead{display:flex;align-items:baseline;justify-content:space-between;margin:20px 0 11px}
+.shead h2{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.shead .see{font-size:12px;font-weight:600;color:var(--text-3)}
+
+/* featured hero */
+.feat{height:190px;border-radius:var(--r-card);position:relative;overflow:hidden;box-shadow:var(--elev-1);width:100%;text-align:left}
+.feat .photo{position:absolute;inset:0;background:
+  radial-gradient(80% 65% at 70% 25%,#F0DCC0,transparent 60%),
+  radial-gradient(75% 80% at 20% 80%,#C88F6E,transparent 58%),
+  linear-gradient(150deg,#D9A98C,#7E5B4E)}
+.feat .photo::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 28% 20%,rgba(255,255,255,.42),transparent 50%)}
+.feat .scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(28,27,24,.72),transparent 66%)}
+.feat .fin{position:absolute;left:16px;right:16px;bottom:14px;color:#FBFAF6;z-index:2}
+.feat .ftag{display:inline-flex;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  background:rgba(251,250,246,.18);backdrop-filter:blur(8px);border:1px solid rgba(251,250,246,.24);border-radius:var(--r-pill);padding:4px 10px;margin-bottom:7px}
+.feat .ft{font-size:18px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+.feat .fs{font-size:12px;color:rgba(251,250,246,.78);margin-top:3px;font-weight:500}
+
+/* opportunity cards */
+.opp{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);
+  padding:14px;margin-bottom:12px;animation:popin .25s ease-out}
+.opp .otop{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+.blogo{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:14px;color:#fff;flex:none}
+.opp .om{flex:1;min-width:0}
+.opp .ot{font-size:14.5px;font-weight:600;line-height:1.25}
+.opp .ob{font-size:11.5px;color:var(--text-3);margin-top:1px;display:flex;align-items:center;gap:5px}
+.vtick{display:inline-flex;color:var(--good-label)}
+.dtag{flex:none;font-size:10px;font-weight:600;letter-spacing:.03em;padding:3.5px 9px;border-radius:var(--r-pill)}
+.dt-paid{background:var(--surface-recess);color:var(--text-2)}
+.dt-barter{background:#F3EFE2;color:#8A7A45}
+.dt-pr{background:#E8EFF0;color:#12707E}
+.dt-event{background:#EFE7EA;color:#8A5568}
+.opp .facts{display:flex;gap:14px;padding:9px 0;border-top:1px solid #F4F2ED;border-bottom:1px solid #F4F2ED;margin-bottom:11px}
+.fact{flex:1}
+.fact .fv{font-size:13.5px;font-weight:700;letter-spacing:-.01em}
+.fact .fk{font-size:10px;color:var(--text-3);font-weight:500;margin-top:1px;letter-spacing:.02em}
+.fit{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--teal)}
+.fit .fdot{width:6px;height:6px;border-radius:50%;background:var(--teal)}
+.fit.mid{color:var(--text-2)}.fit.mid .fdot{background:#B3AC9D}
+.opp .obot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.deadline{font-size:11px;color:var(--text-3);font-weight:500}
+.deadline b{color:var(--crit);font-weight:600}
+.abtn{flex:none;padding:10px 18px;border-radius:var(--r-btn);font-size:13px;font-weight:600;
+  background:var(--ink);color:#fff;transition:transform .13s;min-height:40px}
+.abtn:active{transform:scale(.96)}
+.abtn.done{background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset);color:var(--ink)}
+.abtn.quiet{background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset);color:var(--ink)}
+
+/* STP pipeline strip inside PR card */
+.stp{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-panel);padding:8px;margin-bottom:11px;display:none}
+.stp.show{display:block;animation:popin .3s}
+.stp .lifted{background:#fff;border-radius:10px;box-shadow:var(--lift-in);padding:11px 13px}
+.stprow{display:flex;align-items:center;justify-content:space-between}
+.stpstep{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;position:relative}
+.stpstep .sd{width:10px;height:10px;border-radius:50%;background:#DDD9D0;z-index:2;transition:all .3s}
+.stpstep.done .sd{background:var(--ink)}
+.stpstep.cur .sd{background:var(--ink);box-shadow:0 0 0 4px rgba(28,27,24,.12)}
+.stpstep .sl{font-size:9.5px;font-weight:500;color:var(--text-3);white-space:nowrap}
+.stpstep.done .sl,.stpstep.cur .sl{color:var(--ink);font-weight:600}
+.stpstep::after{content:'';position:absolute;top:4.5px;left:calc(50% + 8px);right:calc(-50% + 8px);height:1.5px;background:#DDD9D0}
+.stpstep:last-child::after{display:none}
+.stpstep.done::after{background:var(--ink)}
+.stpnote2{font-size:10.5px;color:var(--text-3);margin-top:9px;text-align:center}
+
+/* brand directory */
+.bdir{display:flex;gap:11px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:2px 16px 6px}
+.bdir::-webkit-scrollbar{display:none}
+.bcard{flex:none;width:158px;background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);
+  box-shadow:var(--elev-1);padding:13px;text-align:left}
+.bcard .blogo{margin-bottom:9px}
+.bcard .bn{font-size:14px;font-weight:600;display:flex;align-items:center;gap:5px}
+.bcard .bc{font-size:11px;color:var(--text-3);margin:2px 0 8px}
+.bcard .bstat{font-size:11px;color:var(--text-2);padding-top:8px;border-top:1px solid #F4F2ED;line-height:1.6}
+.bcard .bstat b{color:var(--ink);font-weight:600}
+.pitchbtn{width:100%;margin-top:10px;padding:9px;border-radius:13px;font-size:12px;font-weight:600;
+  background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset);color:var(--ink)}
+
+/* brand-side creator grid */
+.cgrid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.ccard2{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);
+  overflow:hidden;text-align:left;transition:transform .14s}
+.ccard2:active{transform:scale(.97)}
+.ccard2 .cphoto{height:120px;position:relative}
+.ccard2 .cscrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(28,27,24,.55),transparent 60%)}
+.ccard2 .cname{position:absolute;left:10px;bottom:8px;color:#fff;font-size:13px;font-weight:600;z-index:2;display:flex;align-items:center;gap:4px}
+.ccard2 .cmeta{padding:10px 11px 12px}
+.ccard2 .cn2{font-size:11px;color:var(--text-3);margin-bottom:6px}
+.ccard2 .cstats{display:flex;justify-content:space-between;font-size:11px;color:var(--text-2)}
+.ccard2 .cstats b{color:var(--ink);font-weight:700;font-size:12.5px;display:block}
+.cp1{background:radial-gradient(80% 70% at 60% 30%,#E9C9A8,transparent 60%),linear-gradient(150deg,#D9A98C,#8E5B7E)}
+.cp2{background:radial-gradient(75% 65% at 35% 25%,#DCE6C8,transparent 62%),linear-gradient(160deg,#A9BE8E,#5E7A55)}
+.cp3{background:radial-gradient(70% 60% at 65% 70%,#C9D4E0,transparent 58%),linear-gradient(155deg,#8FA3B5,#4E5E6E)}
+.cp4{background:radial-gradient(75% 60% at 60% 30%,#E8C6CE,transparent 60%),linear-gradient(150deg,#C98FA0,#7E4E5E)}
+
+/* bottom nav */
+.bnav{position:absolute;left:0;right:0;bottom:0;height:84px;background:rgba(251,250,246,.92);backdrop-filter:blur(14px);
+  border-top:1px solid var(--border-hairline);display:flex;padding:8px 10px 22px;z-index:30}
+.bnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:500;color:var(--text-3);border-radius:14px;padding:6px 0}
+.bnav button .icowrap{width:44px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:12px}
+.bnav button.on{color:var(--ink);font-weight:600}
+.bnav button.on .icowrap{background:var(--glass-grad);border:1px solid rgba(28,27,24,.05);
+  box-shadow:var(--glass-inset),0 1px 2px rgba(28,27,24,.05),0 5px 12px rgba(28,27,24,.09)}
+
+/* sheets */
+.scrim2{position:absolute;inset:0;background:rgba(28,27,24,.32);opacity:0;pointer-events:none;transition:opacity .22s;z-index:40}
+.scrim2.show{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg-app);border-radius:24px 24px 0 0;
+  box-shadow:var(--elev-2);transform:translateY(105%);transition:transform .28s ease-out;z-index:50;
+  padding:10px 20px 32px;max-height:84%;overflow-y:auto}
+.sheet.show{transform:none}
+.grab{width:38px;height:4px;border-radius:2px;background:#D8D4CB;margin:4px auto 16px}
+.sheet h3{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-bottom:4px}
+.sheet .ssub2{font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.5}
+.flabel{font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:7px;display:flex;justify-content:space-between}
+.flabel .opt{font-weight:400;color:var(--text-3)}
+.finput{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-btn);padding:0 16px;display:flex;align-items:center;min-height:50px;margin-bottom:14px}
+.finput input,.finput textarea{flex:1;border:none;background:none;outline:none;font-size:14.5px;color:var(--ink);padding:13px 0;resize:none;line-height:1.5}
+.btn{width:100%;padding:14px;border-radius:var(--r-btn);font-size:15px;font-weight:600;text-align:center;transition:transform .13s;min-height:48px;
+  display:flex;align-items:center;justify-content:center;gap:7px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--ink);color:#fff}
+.attachkit{display:flex;align-items:center;gap:11px;background:var(--surface-card);border:1px solid var(--border-card);
+  border-radius:var(--r-card);box-shadow:var(--elev-1);padding:12px 14px;margin-bottom:16px}
+.attachkit .ak{flex:1}
+.attachkit .at{font-size:13.5px;font-weight:600}
+.attachkit .as{font-size:11.5px;color:var(--text-3)}
+.kitav{width:38px;height:38px;border-radius:11px;background:radial-gradient(80% 70% at 60% 30%,#E9C9A8,transparent 60%),linear-gradient(150deg,#D9A98C,#8E5B7E);flex:none}
+/* QR pass */
+.qrwrap{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-panel);padding:8px;margin-bottom:16px}
+.qrlift{background:#fff;border-radius:10px;box-shadow:var(--lift-in);padding:18px;display:flex;flex-direction:column;align-items:center}
+.qr{display:grid;grid-template-columns:repeat(13,9px);grid-auto-rows:9px;gap:0;margin-bottom:12px}
+.qr i{background:#1C1B18}
+.qr i.o{background:transparent}
+.qrname{font-size:14px;font-weight:600}
+.qrsub{font-size:11.5px;color:var(--text-3);margin-top:2px}
+.toast{position:absolute;left:50%;bottom:112px;transform:translate(-50%,16px);background:var(--ink);color:#fff;
+  font-size:13px;font-weight:500;padding:11px 18px;border-radius:var(--r-pill);box-shadow:var(--elev-2);
+  opacity:0;pointer-events:none;transition:all .25s ease-out;z-index:60;white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:900px){
+  body{padding:0;gap:0;overflow:auto;flex-direction:column;justify-content:flex-start}
+  .rail{width:100%;max-width:392px;padding:16px 16px 8px;gap:12px}
+  .rail p,.kbd-hint,.stage-readout{display:none}
+  .phone{width:100%;max-width:440px;height:100vh;max-height:none;border-radius:0;box-shadow:none;flex:1}
+}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <div>
+    <div class="wordmark">inflo <span>/ discover</span></div>
+    <p style="margin-top:8px">The front door. Not everything is a chat — paid campaigns open the 7-stage deal room, but PR drops and events run structured no-chat pipelines (pure STP).</p>
+  </div>
+  <div>
+    <div class="rail-label" style="margin-bottom:8px">Viewing as</div>
+    <div class="persona-switch" id="personaSwitch">
+      <button class="on" data-v="creator" onclick="setView('creator')">Devasri<small>Creator · browsing</small></button>
+      <button data-v="brand" onclick="setView('brand')">Ananya<small>Brand · scouting</small></button>
+    </div>
+  </div>
+  <div class="stage-readout">
+    <div class="rail-label">Try the three tracks</div>
+    <div class="big" id="railStage">Creator view</div>
+    <div class="hint" id="railHint">Apply to the paid campaign, claim the PR drop (watch the STP pipeline appear), and RSVP to the event for a QR pass.</div>
+  </div>
+  <button class="reset-btn" onclick="location.reload()">Reset demo</button>
+  <div class="kbd-hint">Fit scores are teal-only emphasis per the chart rules. Verified brands get the tick; budgets are ranges until negotiated in a deal room.</div>
+</div>
+
+<div class="phone">
+  <div class="statusbar"><span>1:12</span><span style="letter-spacing:2px">▮▮▮</span></div>
+
+  <!-- CREATOR VIEW -->
+  <div class="scroll" id="creatorView">
+    <div class="dhead"><h1>Discover</h1>
+      <button class="bell" onclick="toast('3 new opportunities match your profile')" aria-label="Alerts">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span class="dot"></span></button>
+    </div>
+    <div class="searchbar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      Brands, campaigns, events
+    </div>
+    <div class="tabs">
+      <button class="tab on">For you</button><button class="tab">₹ Paid</button><button class="tab">PR drops</button><button class="tab">Events</button><button class="tab">Barter</button><button class="tab">Skincare</button>
+    </div>
+
+    <button class="feat" onclick="toast('Curated collection — opens the campaign list')">
+      <span class="photo"></span><span class="scrim"></span>
+      <span class="fin">
+        <span class="ftag">Curated · Festive '26</span>
+        <span class="ft" style="display:block">Diwali launches are briefing now</span>
+        <span class="fs" style="display:block">18 campaigns · beauty & lifestyle · ₹25K–₹1.2L</span>
+      </span>
+    </button>
+
+    <div class="shead"><h2>Matched to you</h2><button class="see" onclick="toast('Full list with filters')">See all ›</button></div>
+
+    <!-- PAID -->
+    <div class="opp">
+      <div class="otop">
+        <span class="blogo" style="background:linear-gradient(140deg,#B96A83,#8E5B7E)">MB</span>
+        <span class="om"><span class="ot">Vitamin C range — honest review Reels</span>
+          <span class="ob">Mamaearth Beauty <span class="vtick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span> · applications open</span></span>
+        <span class="dtag dt-paid">₹ Paid</span>
+      </div>
+      <div class="facts">
+        <span class="fact"><span class="fv tnum">₹30–45K</span><span class="fk">Budget / creator</span></span>
+        <span class="fact"><span class="fv">1 Reel + 2 St.</span><span class="fk">Deliverables</span></span>
+        <span class="fact"><span class="fv tnum">Aug 1–10</span><span class="fk">Posting window</span></span>
+      </div>
+      <div class="obot">
+        <span><span class="fit"><span class="fdot"></span>Strong fit · Skincare · 18–24 F</span><br>
+        <span class="deadline">Closes in <b>3 days</b> · 6 of 10 slots left</span></span>
+        <button class="abtn" id="applyBtn" onclick="openSheet('apply')">Apply</button>
+      </div>
+    </div>
+
+    <!-- PR / STP -->
+    <div class="opp">
+      <div class="otop">
+        <span class="blogo" style="background:linear-gradient(140deg,#A9BE8E,#5E7A55)">PG</span>
+        <span class="om"><span class="ot">Night repair serum — PR drop</span>
+          <span class="ob">Plum Goodness <span class="vtick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span> · you're pre-selected</span></span>
+        <span class="dtag dt-pr">PR · gifting</span>
+      </div>
+      <div class="stp" id="stpStrip">
+        <div class="lifted">
+          <div class="stprow" id="stpRow">
+            <span class="stpstep done"><span class="sd"></span><span class="sl">Claimed</span></span>
+            <span class="stpstep cur"><span class="sd"></span><span class="sl">Dispatch</span></span>
+            <span class="stpstep"><span class="sd"></span><span class="sl">Delivered</span></span>
+            <span class="stpstep"><span class="sd"></span><span class="sl">Posted*</span></span>
+          </div>
+          <div class="stpnote2">*Posting is optional — no contract, no obligation. Pure send-track-post.</div>
+        </div>
+      </div>
+      <div class="obot">
+        <span><span class="fit"><span class="fdot"></span>No chat needed · structured pipeline</span><br>
+        <span class="deadline" id="prSub">Worth ₹2,400 · 40 kits · nothing owed in return</span></span>
+        <button class="abtn" id="claimBtn" onclick="openSheet('claim')">Claim kit</button>
+      </div>
+    </div>
+
+    <!-- EVENT -->
+    <div class="opp">
+      <div class="otop">
+        <span class="blogo" style="background:linear-gradient(140deg,#C98FA0,#7E4E5E)">NY</span>
+        <span class="om"><span class="ot">Glow Lab — festive preview evening</span>
+          <span class="ob">Nykaa <span class="vtick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span> · invite only · 60 creators</span></span>
+        <span class="dtag dt-event">Event</span>
+      </div>
+      <div class="facts">
+        <span class="fact"><span class="fv tnum">14 Aug</span><span class="fk">7 PM · Lower Parel</span></span>
+        <span class="fact"><span class="fv">QR check-in</span><span class="fk">Attendance auto-logs</span></span>
+        <span class="fact"><span class="fv">Optional</span><span class="fk">Coverage terms</span></span>
+      </div>
+      <div class="obot">
+        <span><span class="fit"><span class="fdot"></span>You worked with Nykaa in July</span><br>
+        <span class="deadline">RSVP by <b>8 Aug</b></span></span>
+        <button class="abtn" id="rsvpBtn" onclick="openSheet('rsvp')">RSVP</button>
+      </div>
+    </div>
+
+    <!-- BARTER (quiet, mid-fit) -->
+    <div class="opp">
+      <div class="otop">
+        <span class="blogo" style="background:linear-gradient(140deg,#8FA3B5,#4E5E6E)">bo</span>
+        <span class="om"><span class="ot">Nirvana earbuds — barter collab</span>
+          <span class="ob">boAt Lifestyle <span class="vtick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></span></span>
+        <span class="dtag dt-barter">⇄ Barter</span>
+      </div>
+      <div class="obot">
+        <span><span class="fit mid"><span class="fdot"></span>Mid fit — outside your niche</span><br>
+        <span class="deadline">Product value <b style="color:var(--ink)">₹8,990</b> · 1 Reel</span></span>
+        <button class="abtn quiet" onclick="toast('Full contract flow — barter deals still e-sign')">View</button>
+      </div>
+    </div>
+
+    <div class="shead"><h2>Pitch a brand</h2><button class="see" onclick="toast('Full directory with category filters')">Directory ›</button></div>
+    <div class="bdir">
+      <div class="bcard">
+        <span class="blogo" style="background:linear-gradient(140deg,#CBB080,#8E7A4E)">MC</span>
+        <div class="bn">Minimalist <span class="vtick"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></div>
+        <div class="bc">Skincare · actives</div>
+        <div class="bstat">Active campaigns <b class="tnum">2</b><br>Creators rate <b class="tnum">4.8 ★</b> · pays in <b class="tnum">~12 d</b></div>
+        <button class="pitchbtn" onclick="openSheet('pitch')">Pitch an idea</button>
+      </div>
+      <div class="bcard">
+        <span class="blogo" style="background:linear-gradient(140deg,#B96A83,#8E5B7E)">NY</span>
+        <div class="bn">Nykaa <span class="vtick"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></div>
+        <div class="bc">Beauty · marketplace</div>
+        <div class="bstat">Active campaigns <b class="tnum">5</b><br>Creators rate <b class="tnum">4.9 ★</b> · pays in <b class="tnum">~9 d</b></div>
+        <button class="pitchbtn" onclick="openSheet('pitch')">Pitch an idea</button>
+      </div>
+      <div class="bcard">
+        <span class="blogo" style="background:linear-gradient(140deg,#A9BE8E,#5E7A55)">FR</span>
+        <div class="bn">Forest Ess. <span class="vtick"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></div>
+        <div class="bc">Ayurveda · luxury</div>
+        <div class="bstat">Active campaigns <b class="tnum">1</b><br>Creators rate <b class="tnum">4.7 ★</b> · pays in <b class="tnum">~15 d</b></div>
+        <button class="pitchbtn" onclick="openSheet('pitch')">Pitch an idea</button>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+
+  <!-- BRAND VIEW -->
+  <div class="scroll" id="brandView" style="display:none">
+    <div class="dhead"><h1>Discover</h1>
+      <button class="bell" onclick="toast('2 creators replied to your requests')" aria-label="Alerts">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span class="dot"></span></button>
+    </div>
+    <div class="searchbar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      Creators by niche, city, reach
+    </div>
+    <div class="tabs">
+      <button class="tab on">Skincare</button><button class="tab">10–100K</button><button class="tab">Mumbai</button><button class="tab">ER &gt; 4%</button><button class="tab">Has rates</button><button class="tab">Shortlist · 4</button>
+    </div>
+    <div class="shead" style="margin-top:4px"><h2>128 creators match</h2><button class="see" onclick="toast('Sort: fit · reach · ER · rating')">Sort ›</button></div>
+    <div class="cgrid2">
+      <button class="ccard2" onclick="toast('Opens her media kit — journey 3')">
+        <span class="cphoto cp1"><span class="cscrim"></span><span class="cname">Devasri N. <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></span>
+        <span class="cmeta"><span class="cn2">Skincare · Mumbai · ★ 4.9</span>
+        <span class="cstats"><span><b class="tnum">48.2K</b>reach</span><span><b class="tnum">4.6%</b>ER</span><span><b class="tnum">₹35K</b>reel</span></span></span>
+      </button>
+      <button class="ccard2" onclick="toast('Opens their media kit')">
+        <span class="cphoto cp2"><span class="cscrim"></span><span class="cname">Aarav K.</span></span>
+        <span class="cmeta"><span class="cn2">Grooming · Delhi · ★ 4.7</span>
+        <span class="cstats"><span><b class="tnum">92K</b>reach</span><span><b class="tnum">3.2%</b>ER</span><span><b class="tnum">₹60K</b>reel</span></span></span>
+      </button>
+      <button class="ccard2" onclick="toast('Opens their media kit')">
+        <span class="cphoto cp3"><span class="cscrim"></span><span class="cname">Meera R. <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></span>
+        <span class="cmeta"><span class="cn2">Skincare · Bengaluru · ★ 4.8</span>
+        <span class="cstats"><span><b class="tnum">31K</b>reach</span><span><b class="tnum">6.1%</b>ER</span><span><b class="tnum">₹22K</b>reel</span></span></span>
+      </button>
+      <button class="ccard2" onclick="toast('Opens their media kit')">
+        <span class="cphoto cp4"><span class="cscrim"></span><span class="cname">Ishita B.</span></span>
+        <span class="cmeta"><span class="cn2">Beauty · Mumbai · ★ 4.6</span>
+        <span class="cstats"><span><b class="tnum">67K</b>reach</span><span><b class="tnum">3.8%</b>ER</span><span><b>—</b>no rates</span></span></span>
+      </button>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+
+  <nav class="bnav">
+    <button class="on"><span class="icowrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7.5"/><path d="m20.5 20.5-4-4"/></svg></span>Discover</button>
+    <button onclick="toast('Chat — journey 1')"><span class="icowrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.3 8.7 8.7 0 0 1-3.7-.8L3 20l1.1-5.4a8.1 8.1 0 0 1-.9-3.7A8.4 8.4 0 0 1 11.7 2.6 8.4 8.4 0 0 1 21 11.5Z"/></svg></span>Chat</button>
+    <button onclick="toast('Track — dashboards, later journey')"><span class="icowrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-6M21 19H3"/></svg></span>Track</button>
+    <button onclick="toast('You — journey 3, the media kit')"><span class="icowrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></span>You</button>
+  </nav>
+
+  <!-- SHEETS -->
+  <div class="scrim2" id="scrim" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet"></div>
+  <div class="toast" id="toastEl"></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+function toast(t){const e=$('toastEl');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2600)}
+function setView(v){
+  document.querySelectorAll('#personaSwitch button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  $('creatorView').style.display=v==='creator'?'block':'none';
+  $('brandView').style.display=v==='brand'?'block':'none';
+  $('railStage').textContent=v==='creator'?'Creator view':'Brand view';
+  $('railHint').textContent=v==='creator'
+    ?'Apply to the paid campaign, claim the PR drop (watch the STP pipeline appear), and RSVP to the event for a QR pass.'
+    :'Filter-first creator scouting. Cards carry the trust signals; tapping one opens the media kit from journey 3.';
+}
+function closeSheet(){$('sheet').classList.remove('show');$('scrim').classList.remove('show')}
+function openSheet(kind){
+  const sh=$('sheet');let h='<div class="grab"></div>';
+  if(kind==='apply'){
+    h+=`<h3>Apply — Mamaearth Vitamin C</h3>
+    <div class="ssub2">Your media kit attaches automatically — that's the pitch. Add one line if you want.</div>
+    <div class="attachkit"><span class="kitav"></span>
+      <span class="ak"><span class="at">Devasri Nair — media kit</span><br><span class="as">48.2K · 4.6% ER · ★ 4.9 · rate card included</span></span>
+      <span style="color:var(--good-label)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></div>
+    <div class="flabel">Note to brand <span class="opt">optional</span></div>
+    <div class="finput" style="align-items:flex-start"><textarea rows="2">I already use the Vit-C underarm serum — happy to build the reel around a 2-week before/after.</textarea></div>
+    <div class="flabel">Your quote <span class="opt">within their ₹30–45K range</span></div>
+    <div class="finput"><input class="tnum" value="₹42,000 · 1 Reel + 2 Stories"></div>
+    <button class="btn btn-primary" onclick="applied()">Submit application</button>`;
+  }
+  if(kind==='claim'){
+    h+=`<h3>Claim your PR kit</h3>
+    <div class="ssub2">No contract, no chat, nothing owed. Plum ships, Inflo tracks, posting is entirely your call — a courtesy tag if you love it.</div>
+    <div class="flabel">Deliver to</div>
+    <div class="finput"><input value="#01-03, 7 Chapel Rd, Bandra W, Mumbai 400050"></div>
+    <div class="flabel">Shade / variant</div>
+    <div class="finput"><input value="Night repair · full size · 30ml"></div>
+    <button class="btn btn-primary" onclick="claimed()">Confirm & claim</button>`;
+  }
+  if(kind==='rsvp'){
+    h+=`<h3>You're on the list</h3>
+    <div class="ssub2">Show this at the door — scanning it logs your attendance automatically. It also lives in your Chat under Events.</div>
+    <div class="qrwrap"><div class="qrlift">
+      <div class="qr">${qrCells()}</div>
+      <div class="qrname">Devasri Nair · +1</div>
+      <div class="qrsub">Nykaa Glow Lab · 14 Aug, 7 PM · Lower Parel</div>
+    </div></div>
+    <button class="btn btn-primary" onclick="rsvpd()">Add to my deals</button>`;
+  }
+  if(kind==='pitch'){
+    h+=`<h3>Pitch Minimalist</h3>
+    <div class="ssub2">Outbound is structured — a real idea, not a cold DM. Strong pitches convert 4× better than "open to collabs".</div>
+    <div class="attachkit"><span class="kitav"></span>
+      <span class="ak"><span class="at">Devasri Nair — media kit</span><br><span class="as">attached automatically</span></span></div>
+    <div class="flabel">The idea</div>
+    <div class="finput" style="align-items:flex-start"><textarea rows="3">"Actives, decoded" — a 3-reel myth-busting series on niacinamide percentages, filmed as street interviews + lab-coat verdicts.</textarea></div>
+    <div class="flabel">Format & ask</div>
+    <div class="finput"><input class="tnum" value="3 Reels · Sep window · ₹90,000 bundle"></div>
+    <button class="btn btn-primary" onclick="pitched()">Send pitch</button>`;
+  }
+  sh.innerHTML=h;sh.classList.add('show');$('scrim').classList.add('show');
+}
+function qrCells(){
+  let h='';const seed=[1,0,1,1,0,1,0,0,1,1,0,1,1];
+  for(let r=0;r<13;r++)for(let c=0;c<13;c++){
+    const corner=(r<4&&c<4)||(r<4&&c>8)||(r>8&&c<4);
+    const on=corner?((r%4===0||r%4===3||c%4===0||c%4===3)||(r%4>0&&r%4<3&&c%4>0&&c%4<3)):((seed[r]+seed[c]+r*c)%3!==0);
+    h+=`<i class="${on?'':'o'}"></i>`;
+  }return h;
+}
+function applied(){
+  closeSheet();
+  const b=$('applyBtn');b.textContent='Applied ✓';b.classList.add('done');b.onclick=()=>toast('Brand reviews applications — accepted ones open a deal room at Pending');
+  toast('Applied — if accepted, a deal room opens at Pending · 1 / 7');
+}
+function claimed(){
+  closeSheet();
+  const b=$('claimBtn');b.textContent='Claimed ✓';b.classList.add('done');b.onclick=()=>toast('Track dispatch here — no chat thread exists for this');
+  $('stpStrip').classList.add('show');
+  $('prSub').innerHTML='Dispatching in <b style="color:var(--ink)">1–2 days</b> · BlueDart · tracked here';
+  toast('Claimed — the STP pipeline tracks it from here');
+}
+function rsvpd(){
+  closeSheet();
+  const b=$('rsvpBtn');b.textContent='Going ✓';b.classList.add('done');b.onclick=()=>openSheet('rsvp');
+  toast('QR pass saved — attendance logs itself at the venue');
+}
+function pitched(){
+  closeSheet();
+  toast('Pitch sent — replies land in Chat as a new Pending deal');
+}
+</script>
+</body>
+</html>

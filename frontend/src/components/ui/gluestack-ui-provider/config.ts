@@ -2,16 +2,23 @@
 import { vars } from 'nativewind';
 
 export const config = {
+  // Inflo (task 6.7): the LIGHT ramps below are remapped from gluestack's demo
+  // greys to our palette (docs/design-tokens.md) so gluestack components inherit
+  // our tokens — primary → ink, backgrounds → warm neutrals, success → green,
+  // error → critical red. Only the anchor steps components actually use are
+  // remapped; untouched steps keep gluestack defaults (harmless, unused). DARK
+  // is left as-is for now (MVP is light-first; dark is a fast-follow).
   light: vars({
+    // Primary → Ink #1C1B18 (flat ink primary button; hover/active give press feedback)
     '--color-primary-0': '179 179 179',
     '--color-primary-50': '153 153 153',
     '--color-primary-100': '128 128 128',
     '--color-primary-200': '115 115 115',
     '--color-primary-300': '102 102 102',
     '--color-primary-400': '82 82 82',
-    '--color-primary-500': '51 51 51',
-    '--color-primary-600': '41 41 41',
-    '--color-primary-700': '31 31 31',
+    '--color-primary-500': '28 27 24',
+    '--color-primary-600': '43 41 37',
+    '--color-primary-700': '13 12 11',
     '--color-primary-800': '13 13 13',
     '--color-primary-900': '10 10 10',
     '--color-primary-950': '8 8 8',
@@ -51,8 +58,8 @@ export const config = {
     '--color-error-200': '252 165 165',
     '--color-error-300': '248 113 113',
     '--color-error-400': '239 68 68',
-    '--color-error-500': '230 53 53',
-    '--color-error-600': '220 38 38',
+    '--color-error-500': '192 57 43', // → status.critical #C0392B
+    '--color-error-600': '168 47 35', // → critical, pressed
     '--color-error-700': '185 28 28',
     '--color-error-800': '153 27 27',
     '--color-error-900': '127 29 29',
@@ -65,8 +72,8 @@ export const config = {
     '--color-success-200': '132 211 162',
     '--color-success-300': '102 181 132',
     '--color-success-400': '72 151 102',
-    '--color-success-500': '52 131 82',
-    '--color-success-600': '42 121 72',
+    '--color-success-500': '125 176 46', // → status.good.dot #7DB02E
+    '--color-success-600': '79 122 30', // → status.good.label #4F7A1E
     '--color-success-700': '32 111 62',
     '--color-success-800': '22 101 52',
     '--color-success-900': '20 83 45',
@@ -110,16 +117,16 @@ export const config = {
     '--color-typography-500': '140 140 140',
     '--color-typography-600': '115 115 115',
     '--color-typography-700': '82 82 82',
-    '--color-typography-800': '64 64 64',
-    '--color-typography-900': '38 38 39',
-    '--color-typography-950': '23 23 23',
+    '--color-typography-800': '94 87 78', // → text.secondary #5E574E (secondary-solid button text)
+    '--color-typography-900': '28 27 24', // → ink
+    '--color-typography-950': '28 27 24', // → ink
 
     /* Outline */
     '--color-outline-0': '253 254 254',
     '--color-outline-50': '243 243 243',
-    '--color-outline-100': '230 230 230',
-    '--color-outline-200': '221 220 219',
-    '--color-outline-300': '211 211 211',
+    '--color-outline-100': '234 232 226', // → border.hairline #EAE8E2
+    '--color-outline-200': '239 237 232', // → border.cardHairline #EFEDE8
+    '--color-outline-300': '234 232 226', // → border.hairline #EAE8E2
     '--color-outline-400': '165 163 163',
     '--color-outline-500': '140 141 141',
     '--color-outline-600': '115 116 116',
@@ -128,9 +135,9 @@ export const config = {
     '--color-outline-900': '39 38 36',
     '--color-outline-950': '26 23 23',
 
-    /* Background */
+    /* Background — 0 = card white, 50 = app base #FBFAF6 */
     '--color-background-0': '255 255 255',
-    '--color-background-50': '246 246 246',
+    '--color-background-50': '251 250 246',
     '--color-background-100': '242 241 241',
     '--color-background-200': '220 219 219',
     '--color-background-300': '213 212 212',

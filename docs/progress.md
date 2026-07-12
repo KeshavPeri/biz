@@ -16,7 +16,9 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 6 — Frontend Foundation — **in progress**.
+- **Current phase:** Phase 6 — Frontend Foundation — **COMPLETE** (foundation 6.1–6.7 built, 6.6
+  live-verified; committed at task 6.8 on 2026-07-13). **Next up: Phase 7 — Identity & Trust**
+  (Bucket 1, first feature-level build; start filling RTM Build columns).
 - **Current task:** Task 6.1 done (Expo app scaffolded; **Expo SDK 54** — downgraded twice,
   56→55→54, to match the test phones' Expo Go build — see downgrade notes below — Expo
   Router + TS). Icon library placed at `frontend/assets/icons/` (119 SVGs, line-style,
@@ -24,7 +26,21 @@ up exactly where the last one left off, with zero context lost.
   **"Inflo"** (slug/internal stays `biz`). `CLAUDE.md` design + icon pointers wired. Task
   6.2 done (dev server runs on web + Expo Go, see below). Task 6.3 done (SDK 54 + template
   re-scaffold). **Task 6.4 done** (UI library: NativeWind v4 + gluestack-ui v3 installed &
-  rendering — see SESSION HISTORY + DECISIONS LOG). Next: 6.5 (nav/screens).
+  rendering — see SESSION HISTORY + DECISIONS LOG). **Task 6.7 decisions done** via a guided
+  visual design workshop with Devasri → `docs/design-tokens.md` (Part 1 decisions + Part 2
+  dev tokens) + `docs/inflo-style-tile.html` (visual reference). Six approved deviations from
+  `design-direction.md` were folded back into that doc (marked ⚑ 6.7): button radius 16;
+  secondary button flush/no-shadow; app base `#FBFAF6`; greige avatars; card whisper hairline;
+  and two signature shifts — **aqua-water hero retired → photography**, **data-blue charts
+  retired → warm-neutral + single teal `#0095A8` family**. **Task 6.7-build DONE** (tokens
+  wired into the NativeWind/gluestack theme + Geist loaded on web & native + on-brand proof
+  block on Home — see SESSION HISTORY). **Task 6.5 DONE** — themed 5-tab bottom-nav shell
+  (Discover · Chat · Track · You · Account) built + rendering; see SESSION HISTORY 2026-07-13.
+  **Task 6.6 DONE + VERIFIED** — `@supabase/supabase-js` wired via `frontend/src/lib/supabase.ts`
+  (anon key only, from `EXPO_PUBLIC_*`), throwaway connect-test on Discover. Project resumed; live
+  anon connection confirmed working (`connected — profiles rows visible: 0`, see NEEDS MY INPUT for
+  the resolved note + a local macOS DNS-cache flush needed for the in-app path). **Next: 6.8**
+  (commit Phase 6 — nothing committed yet this phase).
 - **Built so far:** Local environment + monorepo scaffolded. Private GitHub repo connected.
   `CLAUDE.md` written. All Phase 3 design docs locked (`technical-spec.md` v1.0 + 9 source docs).
   `docs/rtm.md` built — 93 features, 13 columns, pre-populated Explore + Design sections.
@@ -59,10 +75,10 @@ up exactly where the last one left off, with zero context lost.
   `backend/.venv/bin/python backend/tests/test_rls.py`. Frontend (Expo): scaffolded in
   `frontend/` (task 6.1) — `cd frontend && npm run web` / `npm run start` (dev server not
   yet started, that's task 6.2).
-- **Frontend scaffold (task 6.1, re-scaffolded for SDK 54 at task 6.3):** `frontend/` is a
-  standard Expo Router + TypeScript app (SDK 54). Routes live in `frontend/src/app/`
-  (`(tabs)/index.tsx` Home + `(tabs)/explore.tsx` Explore + `modal.tsx`, the stock SDK 54
-  template's classic Tabs layout — SDK 56's "Native Tabs" API doesn't exist in SDK 54),
+- **Frontend scaffold (task 6.1, re-scaffolded for SDK 54 at task 6.3; tabs replaced at 6.5):**
+  `frontend/` is a standard Expo Router + TypeScript app (SDK 54). Routes live in
+  `frontend/src/app/` — the 5-tab shell `(tabs)/{index,chat,track,you,account}.tsx` +
+  `modal.tsx` (the stock template's Home/Explore tabs were replaced at task 6.5),
   shared components in `frontend/src/components/`, path alias `@/*` → `frontend/src/*`. Web
   support (`react-native-web`, `react-dom`, static web output) included out of the box.
   `npx tsc --noEmit` passes cleanly (0 errors). `app.json`/`package.json` use `Inflo` /
@@ -95,7 +111,19 @@ up exactly where the last one left off, with zero context lost.
 real secrets, big architectural change, irreversible + low confidence), describe it here and
 do not proceed. I'll resolve these at the start of my next session.*
 
-- *(nothing flagged yet)*
+- **2026-07-13 — RESOLVED: Supabase project resumed; live anon connection VERIFIED.** The paused
+  dev project was resumed; `govozzmbcynoeijlqmxp.supabase.co` now resolves (Cloudflare
+  104.18.38.10 / 172.64.149.246). Ran the real `testSupabaseConnection()` path against the live
+  project with the anon (publishable) key → **`ok:true — Supabase connected (profiles rows visible:
+  0)`** (0 = empty table / anon RLS scope; no auth or permission error). Key confirmed
+  `sb_publishable_…` = anon, **not** service_role. **The frontend Supabase wiring works end-to-end.**
+  - ⚠️ **One local gotcha (Keshav's Mac only):** macOS `mDNSResponder` had cached the old NXDOMAIN,
+    so `getaddrinfo` (what curl / Node / Metro / the browser use) still returned ENOTFOUND even
+    though direct DNS resolves. The live test above only passed by forcing resolution through direct
+    DNS. **To make the in-app "Supabase check" line connect locally, flush the DNS cache:**
+    `sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder` (or just reboot / wait for the
+    negative-cache TTL). This is a machine-cache issue, not code/keys/project — nothing to change in
+    the repo.
 
 ## ASSUMPTIONS & DECISIONS LOG  *(append-only — newest at top)*
 
@@ -179,6 +207,109 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-07-13 — Phase 6: connect Supabase JS client in the frontend (task 6.6)
+- **Did:** Installed `@supabase/supabase-js` (2.110.2) in `frontend/`. New
+  **`frontend/src/lib/supabase.ts`** — the single client module, the frontend's only Supabase
+  door. Configured from Expo public env (`EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY`),
+  **anon (publishable) key ONLY** — no service_role in the frontend (two-key model,
+  docs/api-architecture.md). Exports `supabase` (or `null` when unconfigured), `isSupabaseConfigured`,
+  and `testSupabaseConnection()` — a throwaway HEAD count on `profiles` that returns a friendly
+  ok/fail message (distinguishes "not configured" / "couldn't reach project" / "reached, query
+  error" — never a raw dump). Session persistence intentionally OFF for now; Phase 7 auth will add a
+  storage adapter.
+- **Test surfaced on Discover:** `(tabs)/index.tsx` runs the check on mount and shows a small
+  "Supabase check · …" line on the placeholder (throwaway; `TabPlaceholder` now takes children).
+- **Env & secrets:** created **`frontend/.env.example`** (documented, tracked) and **`frontend/.env`**
+  (gitignored, auto-filled from the repo-root `.env`'s `SUPABASE_URL`/`SUPABASE_ANON_KEY`). Added
+  explicit `.env` to `frontend/.gitignore`. Confirmed `git status` never lists `frontend/.env`; the
+  key used is `sb_publishable_…` (anon), verified **not** `sb_secret_`/service_role.
+- **Verified:** `npx tsc --noEmit` = 0 errors; `expo export --platform web` bundles all 5 routes;
+  graceful "not configured" path confirmed via a Node harness. **Live network test could NOT complete
+  from this environment** — the project host `govozzmbcynoeijlqmxp.supabase.co` is **NXDOMAIN**
+  (see NEEDS MY INPUT). Client init + credential loading + code path all work up to the network
+  boundary; app shows a clean "Could not reach Supabase…" message rather than an error dump.
+- **Not committed** (task 6.8). Nav/tokens/icons/"Inflo" name intact.
+- **Next:** resolve the dead Supabase project (NEEDS MY INPUT), then task 6.8 (commit Phase 6).
+
+### 2026-07-13 — Phase 6: themed 5-tab bottom-nav shell (task 6.5)
+- **Did:** Replaced the template Home/Explore tabs with Inflo's 5-tab shell —
+  **Discover · Chat · Track · You · Account** — rebuilt in RN from `inflo-one.html`'s
+  `.bnav` (not ported).
+  - **`src/components/bottom-nav.tsx`** — custom Expo Router `tabBar`. Warm translucent
+    bar (`rgba(251,250,246,0.92)`) over an `expo-blur` `BlurView` (blur sits *under* the
+    92% fill so it can't break native; `experimentalBlurMethod="dimezisBlurView"` for
+    Android Expo Go). Respects the home-indicator safe area via `useSafeAreaInsets`.
+    **Active tab = the reserved pillow-glass signature** (icon in a lifted glass pill,
+    reusing `GlassSurface variant="pillow"`) — never a colour change; inactive is flat.
+    Labels 11px, ink+semibold active / warm-grey (`ink-3`) medium inactive. Static green
+    notification dot on Chat. Light haptic on iOS press.
+  - **Icon mapping** (pre-approved SVGs only, `frontend/assets/icons/`): Discover→`discover.svg`,
+    Chat→`chat.svg`, Track→`insights.svg` (bar-chart glyph, user-confirmed over line-chart.svg),
+    You→`profile.svg`, Account→`settings.svg`. All inherit `currentColor` via react-native-svg's
+    `color` prop.
+  - **SVG-as-component tooling:** added `react-native-svg-transformer` (dev) + `expo-blur`;
+    extended `metro.config.js` (svg → sourceExts, `react-native-svg-transformer/expo`
+    transformer, kept `withNativeWind`); new `svg.d.ts` type decl.
+  - **Routes:** `(tabs)/_layout.tsx` now lists the 5 screens with the custom `tabBar`;
+    `index.tsx` → Discover, plus new `chat/track/you/account.tsx`; deleted `explore.tsx`.
+    Placeholders share `src/components/tab-placeholder.tsx` (screen title on `bg-app`).
+- **Verified:** `npx tsc --noEmit` = 0 errors. `expo export --platform web` bundles all 5
+  routes; JS bundle contains the compiled SVGs (chat arc + `currentColor`), the warm bar
+  colour, and `dimezisBlurView` → confirms the transformer + BlurView are wired. (Static
+  SSR HTML is empty because the root layout gates render on Geist `fontsLoaded`; the client
+  bundle hydrates fine — not a regression.) Expo Go visual check still to be eyeballed on device.
+- **Not committed** (that's task 6.8). "Inflo" name + `biz` slug untouched; all 6.7 tokens intact.
+- **Next:** 6.6 (Supabase client), then 6.8 (commit the whole Phase 6 frontend).
+
+### 2026-07-12 — Phase 6: design tokens → theme + Geist font (task 6.7-build)
+- **Did (tokens → NativeWind):** translated `docs/design-tokens.md` Part 2 into
+  `frontend/tailwind.config.js` `theme.extend`, names traceable to the doc:
+  colours (`bg-app` #FBFAF6, `dashboard`, `chatCanvas`, `surface.card/recess`,
+  `hairline`/`hairline-card`, `avatar`+`ring`, `ink`/`ink-2`/`ink-3` text scale,
+  `status.good`/`good-label`/`good-tint`/`neutral`/`critical`/`critical-tint`,
+  `cane.1–5`, `chart.e1/e2/e3`+`-top`/`grid`/`axis`); radii (`rounded-card` 14,
+  `panel` 12, `button`/`input` 16, `pill`); warm-tinted shadows (`shadow-l1`/`l2`/
+  `liftIn`/`recessInset`/`pillowGlass`/`glassInset`); 5 Geist family classes
+  (`font-geist`, `-medium`, `-semibold`, `-bold`, `-mono`); and the 6 type roles as
+  fontSize tokens (`text-display/title/subtitle/body/secondary/micro`, each with
+  lineHeight + letterSpacing — weight comes from the family class since RN picks
+  weight by font FILE). **Spacing:** left Tailwind defaults untouched — its scale
+  already IS the doc's 4px grid (1=4…12=48); documented in a config comment.
+- **Did (gluestack consumes tokens):** remapped the LIGHT CSS-var anchor steps in
+  `src/components/ui/gluestack-ui-provider/config.ts` → our palette (primary→ink
+  `#1C1B18`, typography-800→secondary text, -900/950→ink, background-50→app base,
+  outline-100/200/300→hairlines, success-500/600→green, error-500/600→critical red).
+  Dark left as-is (MVP is light-first). Edited the owned `src/components/ui/button/
+  index.tsx`: base `rounded`→`rounded-button` (16) and button text→`font-geist-semibold`.
+  → a gluestack `<Button action="primary">` now renders flat ink, radius 16, Geist.
+- **Did (glass material):** new `src/components/ui/glass-surface.tsx` — reusable
+  `<GlassSurface variant="flush"|"pillow">` using **expo-linear-gradient** (#FFFFFF→
+  #EAE7DF ~165°) + hairline + inset top-highlight overlay (so it reads convex on
+  native too, where inset box-shadows aren't supported). `flush` = shared material
+  (secondary btn/bubbles/bars); `pillow` = reserved nav-active signature (for 6.5).
+- **Did (fonts):** `npx expo install @expo-google-fonts/geist @expo-google-fonts/geist-mono
+  expo-linear-gradient`. `src/app/_layout.tsx` now loads Geist 400/500/600/700 + Mono 400
+  via the `useFonts` hook (runtime-loads on web AND native/Expo Go — the config plugin is
+  native-only, so hook is the cross-platform path), with `SplashScreen.preventAutoHideAsync()`
+  and a render gate (returns null until loaded) → no font-flash.
+- **Did (proof block):** replaced the temporary "gluestack-ui works" test button (and the
+  stock Expo template Home body) in `src/app/(tabs)/index.tsx` with a minimal proof: a white
+  **L1** card on `bg-app`, one line of each of the 6 type roles (+ a tabular-figures `₹45,000`),
+  a good-status dot + deep-green label, and Primary (flat-ink gluestack Button) + Secondary
+  (glass-flush) buttons. Mirrors `docs/inflo-style-tile.html`. Nav/real screens NOT built (6.5).
+- **New free dep flagged:** `expo-linear-gradient` (standard Expo library, no cost/service) —
+  needed because a CSS gradient className is web-only; this makes the glass render on native too.
+- **Verify:** `npx tsc --noEmit` = **0 errors**. `npx expo start --web` → clean bundle, no
+  metro/log errors; entry bundle (8.3 MB, http 200) contains all 5 Geist families, the proof
+  screen + GlassSurface, and the token values compiled (app base `#FBFAF6`, `status.good.label`
+  `#4F7A1E`, L1 warm shadow `0 5px 14px rgba(28,27,24,…)`, glass `#EAE7DF`). **Not yet eyeballed
+  in a real browser or on a phone — user to check web (localhost) + Expo Go.** Not committed (6.8).
+- **Assumption logged:** replaced the whole template Home body (not just the test button) so the
+  proof sits on a clean app-base canvas to eyeball tokens; `explore.tsx`/`modal.tsx`/tab layout
+  untouched. "Inflo" name, `biz` slug, icon library intact.
+- **Next:** user eyeballs web + Expo Go; then themed 6.5 (nav shell — reuse `GlassSurface`
+  `variant="pillow"` for active tab), 6.6 (Supabase/Zustand), 6.8 (commit).
 
 ### 2026-06-16 — Phase 6: UI library — NativeWind v4 + gluestack-ui v3 (task 6.4)
 - **Decision:** NOT NativeBase (deprecated). Installed **NativeWind v4** + **gluestack-ui v3**

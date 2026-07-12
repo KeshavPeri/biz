@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inflo — Deal Room Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============ INFLO TOKENS (design-tokens.md) ============ */
+:root{
+  --bg-app:#FBFAF6; --bg-chat:#EBE7E0; --surface-card:#FFFFFF; --surface-recess:#EFEAE2;
+  --border-hairline:#EAE8E2; --border-card:#EFEDE8;
+  --ink:#1C1B18; --text-2:#5E574E; --text-3:#847F78;
+  --avatar-bg:#E8E5DF; --avatar-ring:rgba(28,27,24,.09);
+  --good-dot:#7DB02E; --good-label:#4F7A1E; --good-tint:#ECF2D6;
+  --crit:#C0392B; --crit-tint:#FBF3F1;
+  --teal:#0095A8;
+  --r-card:14px; --r-panel:12px; --r-btn:16px; --r-pill:999px;
+  --elev-1:0 1px 2px rgba(28,27,24,.05), 0 5px 14px rgba(28,27,24,.07);
+  --elev-2:0 2px 6px rgba(28,27,24,.06), 0 14px 34px rgba(28,27,24,.11);
+  --lift-in:0 1px 2px rgba(28,27,24,.05), 0 8px 18px rgba(28,27,24,.09);
+  --recess-inset:inset 0 1px 2px rgba(28,27,24,.05);
+  --glass-grad:linear-gradient(165deg,#FFFFFF,#EAE7DF);
+  --glass-border:1px solid rgba(28,27,24,.07);
+  --glass-inset:inset 0 1px 0 rgba(255,255,255,.9);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:'Geist',-apple-system,sans-serif; color:var(--ink);
+  background:#F2EFE8; display:flex; align-items:center; justify-content:center;
+  gap:40px; padding:28px; overflow:hidden;
+}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ============ TYPE ROLES ============ */
+.t-display{font-size:26px;font-weight:700;letter-spacing:-.01em;line-height:1.12}
+.t-title{font-size:20px;font-weight:600;letter-spacing:-.01em}
+.t-sub{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.t-body{font-size:15px;font-weight:400;line-height:1.5}
+.t-sec{font-size:13px;font-weight:400}
+.t-micro{font-size:11px;font-weight:500;letter-spacing:.02em}
+
+/* ============ DEMO RAIL (outside the phone) ============ */
+.rail{width:260px;display:flex;flex-direction:column;gap:20px}
+.rail .wordmark{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.rail .wordmark span{color:var(--text-3);font-weight:400}
+.rail p{font-size:13px;color:var(--text-2);line-height:1.55}
+.rail-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.persona-switch{display:flex;background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-btn);padding:4px;gap:4px}
+.persona-switch button{
+  flex:1;padding:10px 8px;border-radius:12px;font-size:13px;font-weight:500;color:var(--text-2);
+  transition:all .18s ease-out;display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.persona-switch button small{font-size:10px;font-weight:400;color:var(--text-3)}
+.persona-switch button.on{
+  background:var(--glass-grad);border:1px solid rgba(28,27,24,.05);
+  box-shadow:var(--glass-inset),0 1px 2px rgba(28,27,24,.05),0 5px 12px rgba(28,27,24,.09);
+  color:var(--ink);font-weight:600;
+}
+.rail .stage-readout{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);padding:16px}
+.rail .stage-readout .big{font-size:17px;font-weight:600;margin:2px 0 4px}
+.rail .stage-readout .hint{font-size:12px;color:var(--text-2);line-height:1.5}
+.reset-btn{
+  padding:11px;border-radius:var(--r-btn);border:1px solid var(--border-hairline);
+  font-size:13px;font-weight:500;color:var(--text-2);background:var(--surface-card);transition:all .15s;
+}
+.reset-btn:hover{color:var(--ink);border-color:#D8D4CB}
+.kbd-hint{font-size:11px;color:var(--text-3)}
+
+/* ============ PHONE FRAME ============ */
+.phone{
+  width:392px;height:846px;max-height:calc(100vh - 40px);
+  background:var(--bg-app);border-radius:44px;
+  box-shadow:0 2px 6px rgba(28,27,24,.08),0 34px 80px rgba(28,27,24,.22),0 0 0 10px #1C1B18,0 0 0 12px #33312C;
+  overflow:hidden;position:relative;display:flex;flex-direction:column;
+}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg-app);
+  transition:transform .26s ease-out,opacity .26s ease-out}
+.screen.off-r{transform:translateX(28px);opacity:0;pointer-events:none}
+.screen.off-l{transform:translateX(-28px);opacity:0;pointer-events:none}
+.statusbar{height:48px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 4px;font-size:13px;font-weight:600}
+
+/* ============ CHAT LIST ============ */
+.list-head{padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between}
+.list-head .bell{position:relative;width:38px;height:38px;border-radius:var(--r-pill);display:flex;align-items:center;justify-content:center;color:var(--ink)}
+.bell .dot{position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--good-dot);border:1.5px solid var(--bg-app)}
+.searchbar{margin:0 16px 12px;background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-btn);
+  display:flex;align-items:center;gap:8px;padding:11px 14px;color:var(--text-3);font-size:14px}
+.filters{display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.fchip{flex:none;padding:7px 14px;border-radius:var(--r-pill);font-size:12px;font-weight:500;color:var(--text-2);border:1px solid var(--border-hairline);background:#fff}
+.fchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chatlist{flex:1;overflow-y:auto;padding:2px 16px 100px;display:flex;flex-direction:column;gap:12px;scrollbar-width:none}
+.chatlist::-webkit-scrollbar{display:none}
+.ccard{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);
+  box-shadow:var(--elev-1);padding:14px;display:flex;flex-direction:column;gap:9px;
+  transition:transform .14s ease-out;text-align:left;width:100%}
+.ccard:active{transform:scale(.985)}
+.ccard .row1{display:flex;align-items:center;gap:10px}
+.avstack{display:flex;flex:none}
+.av{width:34px;height:34px;border-radius:50%;background:var(--avatar-bg);border:1.5px solid #fff;
+  box-shadow:0 0 0 1px var(--avatar-ring),0 2px 5px rgba(28,27,24,.08);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-2)}
+.avstack .av+.av{margin-left:-10px}
+.ccard .names{flex:1;min-width:0}
+.ccard .dname{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ccard .meta{display:flex;gap:6px;align-items:center;margin-top:2px}
+.stagepill{padding:2.5px 9px;border-radius:var(--r-pill);font-size:10.5px;font-weight:600;letter-spacing:.01em}
+.sp-chatting{background:var(--surface-recess);color:var(--text-2)}
+.sp-approval{background:#F3EFE2;color:#8A7A45}
+.sp-creating{background:#E8EFF0;color:#12707E}
+.sp-posted{background:var(--good-tint);color:var(--good-label)}
+.sp-payment{background:#EFEBE3;color:#6A553E}
+.sp-closed{background:var(--surface-recess);color:var(--text-3)}
+.sp-pending{background:var(--surface-recess);color:var(--text-3)}
+.iotag{font-size:10px;font-weight:600;color:var(--text-3);border:1px solid var(--border-hairline);border-radius:5px;padding:1.5px 5px}
+.ccard .preview{font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ccard .preview b{color:var(--ink);font-weight:600}
+.ccard .row3{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.nextaction{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--ink);min-width:0}
+.nextaction .na-dot{width:6px;height:6px;border-radius:50%;background:var(--good-dot);flex:none}
+.nextaction.quiet{color:var(--text-3)}.nextaction.quiet .na-dot{background:#C9C4BA}
+.nextaction span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ccard .right-meta{display:flex;align-items:center;gap:8px;flex:none}
+.delivmonth{font-size:11px;color:var(--text-3)}
+.unread{min-width:19px;height:19px;border-radius:var(--r-pill);background:var(--ink);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 5px}
+.minirights{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:500;color:var(--text-2);
+  background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset);border-radius:var(--r-pill);padding:2px 8px}
+.fab{position:absolute;right:18px;bottom:96px;width:54px;height:54px;border-radius:18px;background:var(--ink);color:#fff;
+  display:flex;align-items:center;justify-content:center;box-shadow:var(--elev-2);transition:transform .14s}
+.fab:active{transform:scale(.93)}
+
+/* ============ BOTTOM NAV ============ */
+.bnav{position:absolute;left:0;right:0;bottom:0;height:84px;background:rgba(251,250,246,.92);backdrop-filter:blur(14px);
+  border-top:1px solid var(--border-hairline);display:flex;padding:8px 10px 22px;z-index:30}
+.bnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:500;color:var(--text-3);border-radius:14px;padding:6px 0;position:relative}
+.bnav button .icowrap{width:44px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:12px}
+.bnav button.on{color:var(--ink);font-weight:600}
+.bnav button.on .icowrap{background:var(--glass-grad);border:1px solid rgba(28,27,24,.05);
+  box-shadow:var(--glass-inset),0 1px 2px rgba(28,27,24,.05),0 5px 12px rgba(28,27,24,.09)}
+
+/* ============ DEAL ROOM ============ */
+.droom{background:var(--bg-chat)}
+.dhead{background:var(--bg-app);border-bottom:1px solid var(--border-hairline);flex:none;z-index:20}
+.dhead .top{display:flex;align-items:center;gap:10px;padding:8px 12px 8px 8px}
+.backbtn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:12px;color:var(--ink)}
+.dhead .titles{flex:1;min-width:0}
+.dhead .dname{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.dhead .sub{font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:6px;margin-top:1px}
+.dhead .sub .members{display:flex;align-items:center;gap:2px}
+.hicons{display:flex;gap:2px}
+.hicons button{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:12px;color:var(--ink)}
+.rightschip{display:none;align-items:center;gap:5px;margin:0 12px 8px;padding:6px 12px;width:fit-content;
+  background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset);border-radius:var(--r-pill);
+  font-size:11px;font-weight:500;color:var(--text-2)}
+.rightschip.show{display:inline-flex;animation:fadein .3s ease-out}
+.rightschip b{color:var(--ink);font-weight:600}
+/* stage tracker */
+.tracker{padding:10px 14px 12px;border-top:1px solid var(--border-hairline)}
+.tracker .trow{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px}
+.tracker .tname{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tracker .tcount{font-size:12px;color:var(--text-2);flex:none;font-weight:500}
+.stepper{display:flex;align-items:center}
+.node{width:9px;height:9px;border-radius:50%;background:#DDD9D0;flex:none;position:relative;transition:all .3s ease-out}
+.node.done{background:var(--ink)}
+.node.cur{background:var(--ink);box-shadow:0 0 0 4px rgba(28,27,24,.12)}
+.node.dispute{background:var(--crit);box-shadow:0 0 0 4px rgba(192,57,43,.15)}
+.seg{flex:1;height:1.5px;background:#DDD9D0;transition:background .3s}
+.seg.done{background:var(--ink)}
+
+/* messages */
+.msgs{flex:1;overflow-y:auto;padding:16px 14px 12px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}
+.msgs::-webkit-scrollbar{display:none}
+.daychip{align-self:center;font-size:11px;font-weight:500;color:var(--text-3);background:rgba(255,255,255,.6);border-radius:var(--r-pill);padding:4px 12px;margin:4px 0}
+.sysmsg{align-self:center;text-align:center;font-size:11.5px;font-weight:500;color:var(--text-2);
+  background:rgba(255,255,255,.72);border:1px solid rgba(28,27,24,.05);border-radius:var(--r-pill);
+  padding:6px 14px;max-width:86%;line-height:1.45;animation:popin .28s ease-out}
+.mrow{display:flex;gap:8px;max-width:86%;animation:popin .28s ease-out}
+.mrow.out{align-self:flex-end;flex-direction:row-reverse}
+.mrow .mav{width:26px;height:26px;border-radius:50%;background:var(--avatar-bg);flex:none;align-self:flex-end;
+  box-shadow:0 0 0 1px var(--avatar-ring);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;color:var(--text-2)}
+.bubble{padding:9px 13px 7px;border-radius:16px;font-size:15px;line-height:1.45;position:relative}
+.mrow.in .bubble{background:#fff;border:1px solid #E6E2DA;border-bottom-left-radius:6px}
+.mrow.out .bubble{background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset);border-bottom-right-radius:6px}
+.bubble .sname{font-size:12px;font-weight:700;margin-bottom:2px;color:var(--ink)}
+.bubble .btime{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--text-3);margin-left:8px;float:right;margin-top:6px;transform:translateY(2px)}
+.ticks{display:inline-flex;color:var(--text-3)}
+@keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* rich cards inside chat (AI summary, contract, proof, invoice) */
+.richcard{align-self:center;width:100%;background:var(--surface-card);border:1px solid var(--border-card);
+  border-radius:var(--r-card);box-shadow:var(--elev-1);padding:14px;animation:popin .32s ease-out}
+.richcard .rc-head{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.rc-ico{width:34px;height:34px;border-radius:11px;background:var(--surface-recess);box-shadow:var(--recess-inset);
+  display:flex;align-items:center;justify-content:center;color:var(--ink);flex:none}
+.rc-head .rc-t{font-size:14px;font-weight:600;line-height:1.2}
+.rc-head .rc-s{font-size:11.5px;color:var(--text-3);margin-top:1px}
+/* signature pattern: recessed track + lifted panel */
+.track{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-panel);padding:8px}
+.lifted{background:#fff;border-radius:10px;box-shadow:var(--lift-in);padding:12px}
+.field{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #F4F2ED;font-size:13px}
+.field:last-child{border-bottom:none}
+.field .fk{color:var(--text-2);flex:none}
+.field .fv{font-weight:600;text-align:right;line-height:1.35}
+.field .fv small{display:block;font-weight:400;color:var(--text-3);font-size:11px}
+.approvals{margin-top:11px;display:flex;flex-direction:column;gap:7px}
+.apr{display:flex;align-items:center;gap:9px;font-size:13px}
+.apr .av{width:26px;height:26px;font-size:9.5px}
+.apr .aname{flex:1;font-weight:500}
+.apr .aname small{display:block;font-weight:400;color:var(--text-3);font-size:11px}
+.astatus{font-size:11.5px;font-weight:600;display:flex;align-items:center;gap:5px}
+.astatus.ok{color:var(--good-label)}.astatus.ok .adot{background:var(--good-dot)}
+.astatus.wait{color:var(--text-3)}.astatus.wait .adot{background:#C9C4BA}
+.adot{width:6px;height:6px;border-radius:50%}
+.rc-actions{display:flex;gap:9px;margin-top:12px}
+/* buttons */
+.btn{flex:1;padding:12px 14px;border-radius:var(--r-btn);font-size:14px;font-weight:600;text-align:center;transition:transform .13s ease-out;min-height:44px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--ink);color:#fff}
+.btn-glass{background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset);color:var(--ink)}
+.btn-ghost{border:1px solid var(--border-hairline);color:var(--text-2);background:#fff}
+.btn:disabled{background:#ECEAE3;color:#B6B0A6;border:none;box-shadow:none;cursor:default}
+.btn.small{padding:9px 12px;font-size:13px;min-height:38px;flex:none}
+/* generating shimmer */
+.genline{height:11px;border-radius:6px;background:linear-gradient(90deg,#EFEAE2 25%,#F7F4EE 50%,#EFEAE2 75%);background-size:200% 100%;animation:sh 1.1s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+/* proof preview */
+.proof{display:flex;gap:11px;align-items:center}
+.proof .thumb{width:52px;height:52px;border-radius:11px;flex:none;background:linear-gradient(140deg,#E7B98F,#C5766B 55%,#8E5B7E);position:relative;overflow:hidden}
+.proof .thumb::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.5),transparent 55%)}
+.proof .pmeta{flex:1;min-width:0}
+.proof .purl{font-size:12px;color:var(--teal);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proof .pline{font-size:12.5px;font-weight:600;margin:1px 0}
+.proof .psub{font-size:11px;color:var(--text-3)}
+/* file chip */
+.filechip{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border-hairline);border-radius:11px;margin-top:4px}
+.filechip .fmeta{flex:1;min-width:0}
+.filechip .fname{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.filechip .fsize{font-size:11px;color:var(--text-3)}
+/* stars */
+.stars{display:flex;gap:6px;justify-content:center;margin:10px 0 4px}
+.stars button{color:#D8D3C9;transition:transform .12s, color .12s}
+.stars button.lit{color:#C9A93C}
+.stars button:active{transform:scale(1.15)}
+
+/* ============ STICKY ACTION BAR + COMPOSER ============ */
+.dfoot{flex:none;background:var(--bg-app);border-top:1px solid var(--border-hairline);z-index:20}
+.sticky{padding:10px 14px 4px}
+.sticky .slabel{font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:7px;display:flex;justify-content:space-between;align-items:center}
+.sticky .slabel .round{color:var(--text-2);text-transform:none;letter-spacing:0;font-weight:500}
+.sticky .sbtns{display:flex;gap:9px}
+.sticky .waiting{font-size:13px;color:var(--text-2);background:var(--surface-recess);box-shadow:var(--recess-inset);
+  border-radius:var(--r-btn);padding:12px 14px;text-align:center;font-weight:500;width:100%}
+.composer{display:flex;align-items:flex-end;gap:9px;padding:9px 14px 26px}
+.composer .cinput{flex:1;background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-btn);
+  display:flex;align-items:center;gap:8px;padding:0 6px 0 14px;min-height:44px}
+.composer input{flex:1;border:none;background:none;outline:none;font-family:inherit;font-size:14.5px;color:var(--ink);min-width:0}
+.composer input::placeholder{color:var(--text-3)}
+.composer .send{width:36px;height:36px;border-radius:13px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;flex:none;transition:transform .13s}
+.composer .send:active{transform:scale(.9)}
+.composer .attach{width:40px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--text-2);flex:none}
+
+/* dispute banner */
+.dispbanner{display:none;align-items:center;gap:8px;margin:0 14px 8px;padding:9px 13px;border-radius:var(--r-panel);
+  background:var(--crit-tint);font-size:12px;font-weight:500;color:var(--crit)}
+.dispbanner.show{display:flex;animation:fadein .25s}
+.dispbanner button{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--crit);text-decoration:underline}
+
+/* ============ SHEETS & MODALS ============ */
+.scrim{position:absolute;inset:0;background:rgba(28,27,24,.32);opacity:0;pointer-events:none;transition:opacity .22s;z-index:40}
+.scrim.show{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg-app);border-radius:24px 24px 0 0;
+  box-shadow:var(--elev-2);transform:translateY(105%);transition:transform .28s ease-out;z-index:50;
+  padding:10px 18px 34px;max-height:78%;overflow-y:auto}
+.sheet.show{transform:none}
+.grab{width:38px;height:4px;border-radius:2px;background:#D8D4CB;margin:4px auto 16px}
+.sheet h3{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-bottom:3px}
+.sheet .ssub{font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.5}
+.sheet .urlbox{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-btn);padding:13px 14px;margin-bottom:14px}
+.sheet .urlbox input{width:100%;border:none;background:none;outline:none;font-family:inherit;font-size:14px;color:var(--ink)}
+.qchips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}
+.qchip{padding:9px 14px;border-radius:var(--r-pill);font-size:12.5px;font-weight:500;background:var(--glass-grad);
+  border:var(--glass-border);box-shadow:var(--glass-inset);color:var(--ink)}
+.ai-answer{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-panel);padding:8px;margin-top:4px;display:none}
+.ai-answer.show{display:block;animation:fadein .3s}
+.ai-answer .lifted{font-size:13.5px;line-height:1.55;color:var(--ink)}
+.signpad{border:1.5px dashed #D8D4CB;border-radius:var(--r-card);height:120px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;background:#fff}
+.signature{font-family:'Geist';font-style:italic;font-size:30px;font-weight:500;color:var(--ink);transform:rotate(-3deg);letter-spacing:-.02em}
+.otp{display:flex;gap:10px;justify-content:center;margin:14px 0 18px}
+.otp .d{width:48px;height:56px;border-radius:12px;background:var(--surface-recess);box-shadow:var(--recess-inset);
+  display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600}
+.memrow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border-hairline)}
+.memrow:last-child{border-bottom:none}
+.memrow .av{width:40px;height:40px;font-size:13px}
+.memrow .mname{font-size:15px;font-weight:600}
+.memrow .mrole{font-size:12.5px;color:var(--text-2)}
+.toast{position:absolute;left:50%;bottom:118px;transform:translate(-50%,16px);background:var(--ink);color:#fff;
+  font-size:13px;font-weight:500;padding:11px 18px;border-radius:var(--r-pill);box-shadow:var(--elev-2);
+  opacity:0;pointer-events:none;transition:all .25s ease-out;z-index:60;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* small screens: fill viewport */
+@media (max-width:900px){
+  body{padding:0;gap:0;overflow:auto;flex-direction:column;justify-content:flex-start}
+  .rail{width:100%;max-width:392px;padding:16px 16px 8px;gap:12px}
+  .rail p,.kbd-hint,.stage-readout{display:none}
+  .phone{width:100%;max-width:440px;height:100vh;max-height:none;border-radius:0;box-shadow:none;flex:1}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ DEMO RAIL ============ -->
+<div class="rail">
+  <div>
+    <div class="wordmark">inflo <span>/ deal room</span></div>
+    <p style="margin-top:8px">A working walk-through of one deal, end to end — the structured flow that replaces WhatsApp + spreadsheets. Play both sides.</p>
+  </div>
+  <div>
+    <div class="rail-label" style="margin-bottom:8px">Viewing as</div>
+    <div class="persona-switch" id="personaSwitch">
+      <button class="on" data-p="creator" onclick="setPersona('creator')">Devasri<small>Creator</small></button>
+      <button data-p="brand" onclick="setPersona('brand')">Ananya<small>Nykaa · Maker</small></button>
+    </div>
+  </div>
+  <div class="stage-readout">
+    <div class="rail-label">Now at</div>
+    <div class="big" id="railStage">Chatting · 2 / 7</div>
+    <div class="hint" id="railHint">Negotiate freely, then request a terms summary from the sticky bar.</div>
+  </div>
+  <button class="reset-btn" onclick="resetDemo()">Reset demo</button>
+  <div class="kbd-hint">Every advance is gated exactly per the v5 spec — switch personas when the other party owes an action.</div>
+</div>
+
+<!-- ============ PHONE ============ -->
+<div class="phone">
+
+  <!-- SCREEN: CHAT LIST -->
+  <div class="screen" id="scrList">
+    <div class="statusbar"><span>1:12</span><span style="letter-spacing:2px">▮▮▮</span></div>
+    <div class="list-head">
+      <div class="t-display" style="font-size:24px">Chats</div>
+      <button class="bell" aria-label="Notifications">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span class="dot"></span>
+      </button>
+    </div>
+    <div class="searchbar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      Search deals and messages
+    </div>
+    <div class="filters">
+      <button class="fchip on">All</button><button class="fchip">Needs action</button><button class="fchip">Priority ·</button><button class="fchip">Q3 launches</button><button class="fchip">Closed</button>
+    </div>
+    <div class="chatlist" id="chatList"></div>
+    <button class="fab" aria-label="New chat" onclick="toast('New chat — built in the Discover journey')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <nav class="bnav">
+      <button onclick="toast('Discover — next journey')"><span class="icowrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7.5"/><path d="m20.5 20.5-4-4"/></svg></span>Discover</button>
+      <button class="on"><span class="icowrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.3 8.7 8.7 0 0 1-3.7-.8L3 20l1.1-5.4a8.1 8.1 0 0 1-.9-3.7A8.4 8.4 0 0 1 11.7 2.6 8.4 8.4 0 0 1 21 11.5Z"/></svg></span>Chat</button>
+      <button onclick="toast('Track — later journey')"><span class="icowrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-6M21 19H3"/></svg></span>Track</button>
+      <button onclick="toast('You — media kit journey')"><span class="icowrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></span>You</button>
+    </nav>
+  </div>
+
+  <!-- SCREEN: DEAL ROOM -->
+  <div class="screen droom off-r" id="scrDeal">
+    <div class="statusbar" style="background:var(--bg-app)"><span>1:12</span><span style="letter-spacing:2px">▮▮▮</span></div>
+    <div class="dhead">
+      <div class="top">
+        <button class="backbtn" onclick="showList()" aria-label="Back">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>
+        </button>
+        <div class="titles">
+          <div class="dname">Nykaa Glow Reel — July</div>
+          <button class="sub" onclick="openSheet('members')"><span class="members">3 in this deal</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+        </div>
+        <div class="hicons">
+          <button aria-label="Search in chat" onclick="toast('Search this deal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+          <button aria-label="Deal assistant" onclick="openSheet('ai')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z"/></svg></button>
+        </div>
+      </div>
+      <div class="rightschip" id="rightsChip">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="13" rx="2.5"/><path d="M8 7V5.5a4 4 0 0 1 8 0V7"/></svg>
+        <b>Usage rights</b> · paid social · expires 24 Jan 27
+      </div>
+      <div class="tracker">
+        <div class="trow">
+          <span class="tname" id="trkName">Chatting</span>
+          <button class="tcount tnum" id="trkCount" onclick="toast('Stage detail — tap-through later')">2 / 7 ›</button>
+        </div>
+        <div class="stepper" id="stepper"></div>
+      </div>
+    </div>
+
+    <div class="msgs" id="msgs"></div>
+
+    <div class="dfoot">
+      <div class="dispbanner" id="dispBanner">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9.5"/></svg>
+        Payment paused — dispute open with platform ops
+        <button onclick="resolveDispute()">Resolve (demo)</button>
+      </div>
+      <div class="sticky" id="sticky"></div>
+      <div class="composer">
+        <button class="attach" onclick="toast('Attach — files land in Document Hub')" aria-label="Attach">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m21 12-8.8 8.8a5.5 5.5 0 0 1-7.8-7.8L13 4.4a3.7 3.7 0 0 1 5.2 5.2L9.6 18a1.8 1.8 0 0 1-2.6-2.6L15 7.5"/></svg>
+        </button>
+        <div class="cinput">
+          <input id="chatInput" placeholder="Message" onkeydown="if(event.key==='Enter')sendMsg()">
+          <button class="send" onclick="sendMsg()" aria-label="Send">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHEETS -->
+  <div class="scrim" id="scrim" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet"></div>
+  <div class="toast" id="toastEl"></div>
+</div>
+
+<script>
+/* ================= STATE ================= */
+const STAGES=['Pending','Chatting','Approval','Creating','Posted','Payment','Closed'];
+const PEOPLE={
+  creator:{n:'Devasri Nair',i:'DN',role:'Creator'},
+  brand:{n:'Ananya Shah',i:'AS',role:'Brand · Maker'},
+  checker:{n:'Rohit Menon',i:'RM',role:'Brand · Checker'}
+};
+let S; // state
+function freshState(){return{
+  persona:'creator', stage:2,
+  summaryRequestedBy:null, summaryConfirmed:false, summaryReady:false,
+  approvals:{creator:false,brand:false},
+  signed:{creator:false,brand:false,checker:false},
+  briefSent:false, round:0, maxRounds:2, contentSubmitted:false, contentApproved:false,
+  posted:false, postConfirmed:false,
+  paymentReleased:false, checkerCleared:false, paymentConfirmed:false, disputed:false,
+  rated:{creator:false,brand:false},
+  msgs:[]
+};}
+
+/* ================= HELPERS ================= */
+const $=id=>document.getElementById(id);
+const other=()=>S.persona==='creator'?'brand':'creator';
+function now(){const d=new Date();let h=d.getHours()%12||12,m=String(d.getMinutes()).padStart(2,'0');return h+':'+m+(d.getHours()<12?' AM':' PM')}
+function toast(t){const e=$('toastEl');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2200)}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+
+/* ================= MESSAGES ================= */
+function addMsg(m){S.msgs.push(m);renderMsgs();}
+function sys(text){addMsg({type:'sys',text})}
+function chat(from,text){addMsg({type:'chat',from,text,time:now()})}
+function renderMsgs(){
+  const c=$('msgs');
+  let h=`<div class="daychip">Today</div>`;
+  for(const m of S.msgs){
+    if(m.type==='sys'){h+=`<div class="sysmsg">${m.text}</div>`;continue}
+    if(m.type==='card'){h+=renderCard(m);continue}
+    const mine=m.from===S.persona;
+    const p=PEOPLE[m.from];
+    h+=`<div class="mrow ${mine?'out':'in'}">
+      ${mine?'':`<div class="mav">${p.i}</div>`}
+      <div class="bubble">${mine?'':`<div class="sname">${p.n.split(' ')[0]} · ${p.role.split(' ·')[0]}</div>`}${esc(m.text)}
+        <span class="btime">${m.time}${mine?`<span class="ticks"><svg width="15" height="11" viewBox="0 0 18 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m1 6.5 3 3L10 3"/><path d="m8 6.5 3 3L17 3"/></svg></span>`:''}</span>
+      </div></div>`;
+  }
+  c.innerHTML=h;
+  requestAnimationFrame(()=>c.scrollTop=c.scrollHeight);
+}
+
+/* ================= RICH CARDS ================= */
+const ICONS={
+  spark:`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z"/></svg>`,
+  doc:`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>`,
+  clip:`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3V9Z"/></svg>`,
+  link:`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1L11.5 5.4"/><path d="M14 10a5 5 0 0 0-7.1 0l-3 3a5 5 0 0 0 7.1 7.1l1.5-1.5"/></svg>`,
+  rupee:`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12M6 8.5h12M6 4c6 0 8 2 8 4.5S12 13 8 13l7 7"/></svg>`,
+  star:`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.3.9-4.5 4.3 1 6.2-5.5-3-5.5 3 1-6.2L3 9.5l6.3-.9L12 3Z"/></svg>`
+};
+function aprRow(key,label,sub,ok,waitText){
+  const p=PEOPLE[key];
+  return `<div class="apr"><div class="av">${p.i}</div>
+    <div class="aname">${label}<small>${sub}</small></div>
+    <div class="astatus ${ok?'ok':'wait'}"><span class="adot"></span>${ok?'Approved':(waitText||'Pending')}</div></div>`;
+}
+function renderCard(m){
+  if(m.kind==='generating'){
+    return `<div class="richcard"><div class="rc-head"><div class="rc-ico">${ICONS.spark}</div>
+      <div><div class="rc-t">Terms summary</div><div class="rc-s">Reading 34 messages…</div></div></div>
+      <div class="track"><div class="lifted" style="display:flex;flex-direction:column;gap:9px">
+      <div class="genline" style="width:78%"></div><div class="genline" style="width:92%"></div><div class="genline" style="width:64%"></div><div class="genline" style="width:84%"></div></div></div></div>`;
+  }
+  if(m.kind==='summary'){
+    const both=S.approvals.creator&&S.approvals.brand;
+    const myTurn=!S.approvals[S.persona];
+    return `<div class="richcard"><div class="rc-head"><div class="rc-ico">${ICONS.spark}</div>
+      <div style="flex:1"><div class="rc-t">Terms summary</div><div class="rc-s">Generated from this chat · all 12 minimum fields found</div></div></div>
+      <div class="track"><div class="lifted">
+        <div class="field"><span class="fk">Payment</span><span class="fv tnum">₹45,000<small>Net 30 · from invoice date</small></span></div>
+        <div class="field"><span class="fk">Deliverables</span><span class="fv">1 Reel + 2 Stories<small>Instagram · @devasri.creates</small></span></div>
+        <div class="field"><span class="fk">Posting window</span><span class="fv tnum">18 – 24 Jul 2026</span></div>
+        <div class="field"><span class="fk">Exclusivity</span><span class="fv">Yes · 60 days<small>Skincare category only</small></span></div>
+        <div class="field"><span class="fk">Usage rights</span><span class="fv">6 months<small>Paid social only</small></span></div>
+        <div class="field"><span class="fk">Whitelisting</span><span class="fv">No</span></div>
+        <div class="field"><span class="fk">Blackout</span><span class="fv">7 days post-live</span></div>
+        <div class="field"><span class="fk">Revisions</span><span class="fv tnum">2 rounds max</span></div>
+        <div class="field"><span class="fk">Ownership</span><span class="fv">Creator</span></div>
+        <div class="field"><span class="fk">Disclosure</span><span class="fv">Paid partnership label</span></div>
+      </div></div>
+      <div class="approvals">
+        ${aprRow('creator','Devasri Nair','Creator',S.approvals.creator)}
+        ${aprRow('brand','Ananya Shah','Nykaa · Maker',S.approvals.brand)}
+      </div>
+      ${both?'':`<div class="rc-actions">
+        <button class="btn btn-ghost small" onclick="toast('Raise issue → terms reopen in chat')">Raise issue</button>
+        <button class="btn btn-primary small" style="flex:1" ${myTurn?'':'disabled'} onclick="approveSummary()">${myTurn?'Approve terms':'Awaiting '+PEOPLE[other()].n.split(' ')[0]}</button>
+      </div>`}
+    </div>`;
+  }
+  if(m.kind==='contract'){
+    const all=S.signed.creator&&S.signed.brand&&S.signed.checker;
+    return `<div class="richcard"><div class="rc-head"><div class="rc-ico">${ICONS.doc}</div>
+      <div style="flex:1"><div class="rc-t">Collaboration agreement</div><div class="rc-s">v1 · generated from approved terms · ${all?'fully executed':'awaiting signatures'}</div></div></div>
+      <div class="filechip"><div class="rc-ico" style="width:30px;height:30px">${ICONS.doc}</div>
+        <div class="fmeta"><div class="fname">Nykaa_x_Devasri_Jul26.pdf</div><div class="fsize">6 pages · 214 KB · tap to review</div></div></div>
+      <div class="approvals">
+        ${aprRow('creator','Devasri Nair','Creator · e-sign',S.signed.creator,'To sign')}
+        ${aprRow('brand','Ananya Shah','Nykaa · Maker · e-sign',S.signed.brand,'To sign')}
+        ${aprRow('checker','Rohit Menon','Nykaa · Checker sign-off',S.signed.checker,S.signed.brand?'Reviewing':'After maker')}
+      </div></div>`;
+  }
+  if(m.kind==='brief'){
+    return `<div class="richcard"><div class="rc-head"><div class="rc-ico">${ICONS.doc}</div>
+      <div style="flex:1"><div class="rc-t">Campaign brief</div><div class="rc-s">Shared by Ananya · v1 · acknowledged</div></div></div>
+      <div class="track"><div class="lifted">
+        <div class="field"><span class="fk">Objective</span><span class="fv">Glow Serum launch<small>July drop · Gen-Z skew</small></span></div>
+        <div class="field"><span class="fk">Tone</span><span class="fv">Real routine, no hard sell</span></div>
+        <div class="field"><span class="fk">Must include</span><span class="fv">#NykaaGlow · @nykaa tag</span></div>
+        <div class="field"><span class="fk">Don't</span><span class="fv">No competitor products in frame</span></div>
+      </div></div></div>`;
+  }
+  if(m.kind==='submission'){
+    return `<div class="richcard"><div class="rc-head"><div class="rc-ico">${ICONS.clip}</div>
+      <div style="flex:1"><div class="rc-t">Content submitted</div><div class="rc-s">Round ${m.round} of ${S.maxRounds} · by Devasri</div></div></div>
+      <div class="filechip"><div class="rc-ico" style="width:30px;height:30px">${ICONS.clip}</div>
+        <div class="fmeta"><div class="fname">GlowReel_v${m.round}.mp4</div><div class="fsize">0:34 · 48 MB · tap to preview</div></div></div></div>`;
+  }
+  if(m.kind==='proof'){
+    return `<div class="richcard"><div class="rc-head"><div class="rc-ico">${ICONS.link}</div>
+      <div style="flex:1"><div class="rc-t">Posted — live link</div><div class="rc-s">Verified via Instagram · ${S.postConfirmed?'confirmed by Nykaa':'awaiting brand confirmation'}</div></div></div>
+      <div class="track"><div class="lifted"><div class="proof">
+        <div class="thumb"></div>
+        <div class="pmeta">
+          <div class="purl">instagram.com/reel/CxG…</div>
+          <div class="pline">@devasri.creates · Reel</div>
+          <div class="psub">Posted 19 Jul · "my honest 5-step glow routine ✨" · Paid partnership</div>
+        </div></div></div></div></div>`;
+  }
+  if(m.kind==='invoice'){
+    return `<div class="richcard"><div class="rc-head"><div class="rc-ico">${ICONS.rupee}</div>
+      <div style="flex:1"><div class="rc-t">Invoice INV-2026-0114</div><div class="rc-s">Auto-generated from deal terms · stored in Document Hub</div></div></div>
+      <div class="track"><div class="lifted">
+        <div class="field"><span class="fk">1 Reel + 2 Stories</span><span class="fv tnum">₹45,000</span></div>
+        <div class="field"><span class="fk">GST 18%</span><span class="fv tnum">₹8,100</span></div>
+        <div class="field"><span class="fk" style="font-weight:600;color:var(--ink)">Total due</span><span class="fv tnum" style="font-size:15px">₹53,100<small>Net 30 · due 18 Aug 2026</small></span></div>
+      </div></div>
+      ${S.paymentReleased?`<div class="approvals">
+        ${aprRow('brand','Payment released','OTP verified · '+now(),true)}
+        ${aprRow('checker','Checker sign-off','Rohit Menon',S.checkerCleared,'Reviewing')}
+      </div>`:''}
+    </div>`;
+  }
+  if(m.kind==='closed'){
+    return `<div class="richcard"><div class="rc-head"><div class="rc-ico">${ICONS.star}</div>
+      <div style="flex:1"><div class="rc-t">Deal closed</div><div class="rc-s">₹53,100 received · 3 deliverables · 41 days start to close</div></div></div>
+      <div class="track"><div class="lifted">
+        <div class="field"><span class="fk">Devasri rated Nykaa</span><span class="fv">★★★★★<small>"Clear brief, fast payment"</small></span></div>
+        <div class="field"><span class="fk">Nykaa rated Devasri</span><span class="fv">★★★★★<small>"Zero-friction delivery"</small></span></div>
+        <div class="field"><span class="fk">Usage rights</span><span class="fv">Active until 24 Jan 27<small>tracked in Rights Tracker</small></span></div>
+      </div></div></div>`;
+  }
+  return '';
+}
+
+/* ================= STAGE TRACKER ================= */
+function renderTracker(){
+  const st=$('stepper');let h='';
+  for(let i=1;i<=7;i++){
+    const cls=i<S.stage?'done':(i===S.stage?(S.disputed&&i===6?'dispute':'cur'):'');
+    h+=`<div class="node ${cls}"></div>`;
+    if(i<7)h+=`<div class="seg ${i<S.stage?'done':''}"></div>`;
+  }
+  st.innerHTML=h;
+  $('trkName').textContent=(S.disputed&&S.stage===6?'Payment — disputed':STAGES[S.stage-1]);
+  $('trkName').style.color=(S.disputed&&S.stage===6)?'var(--crit)':'';
+  $('trkCount').textContent=S.stage+' / 7 ›';
+  $('rightsChip').classList.toggle('show',S.stage>=4);
+  $('dispBanner').classList.toggle('show',S.disputed);
+  // rail
+  $('railStage').textContent=STAGES[S.stage-1]+' · '+S.stage+' / 7';
+  $('railHint').textContent=railHints();
+}
+function railHints(){
+  if(S.stage===2&&!S.summaryRequestedBy)return'Negotiate freely, then request a terms summary from the sticky bar.';
+  if(S.stage===2&&!S.summaryConfirmed)return'Both parties must confirm — switch to '+PEOPLE[S.summaryRequestedBy==='creator'?'brand':'creator'].n.split(' ')[0]+' to confirm.';
+  if(S.stage===2&&S.summaryReady)return'Every participant approves the summary before the deal can advance.';
+  if(S.stage===3)return'Contract auto-generated. All signatures + Rohit\'s checker sign-off gate this stage.';
+  if(S.stage===4&&!S.contentApproved)return'Creator submits, brand approves or requests a revision — capped at 2 rounds.';
+  if(S.stage===4)return'Content approved. The Posted hard gate needs a verified live URL.';
+  if(S.stage===5)return'Nykaa reviews the live post before Payment unlocks.';
+  if(S.stage===6)return'Ananya releases via OTP, Rohit checker-clears, Devasri confirms receipt.';
+  return'Read-only. Ratings exchanged. Rights run on independently of the deal.';
+}
+
+/* ================= STICKY ACTION BAR ================= */
+function renderSticky(){
+  const el=$('sticky');const p=S.persona;
+  const label=(t,round)=>`<div class="slabel"><span>${t}</span>${round?`<span class="round tnum">${round}</span>`:''}</div>`;
+  const wait=t=>`<div class="waiting">${t}</div>`;
+  let h='';
+  if(S.stage===2){
+    if(!S.summaryRequestedBy){
+      h=label('Chatting — next step')+`<div class="sbtns"><button class="btn btn-primary" onclick="requestSummary()">Request terms summary</button></div>`;
+    }else if(!S.summaryConfirmed){
+      h=label('Summary requested — both parties confirm')+(S.summaryRequestedBy===p
+        ?wait(`Waiting for ${PEOPLE[other()].n.split(' ')[0]} to confirm the summary`)
+        :`<div class="sbtns"><button class="btn btn-ghost" onclick="toast('Declined — keep chatting')">Not yet</button><button class="btn btn-primary" onclick="confirmSummary()">Confirm summary</button></div>`);
+    }else if(S.summaryReady){
+      h=label('Terms summary — all parties approve')+(S.approvals[p]
+        ?wait(`Approved. Waiting for ${PEOPLE[other()].n.split(' ')[0]}`)
+        :`<div class="sbtns"><button class="btn btn-glass" onclick="scrollBottom()">Review summary</button><button class="btn btn-primary" onclick="approveSummary()">Approve terms</button></div>`);
+    }else{h=wait('Generating summary…')}
+  }
+  if(S.stage===3){
+    const mineSigned=(p==='creator'?S.signed.creator:S.signed.brand);
+    h=label('Approval — e-sign to proceed')+(mineSigned
+      ?wait(S.signed.brand&&!S.signed.checker?'With Rohit for checker sign-off':'Signed. Waiting on the other signatories')
+      :`<div class="sbtns"><button class="btn btn-ghost" onclick="toast('Request changes → amendment flow')">Request changes</button><button class="btn btn-primary" onclick="openSheet('sign')">Sign contract</button></div>`);
+  }
+  if(S.stage===4){
+    if(!S.contentApproved){
+      if(p==='creator'){
+        h=label('Creating',`Round ${Math.min(S.round+ (S.contentSubmitted?0:1),S.maxRounds)} of ${S.maxRounds}`)+(S.contentSubmitted
+          ?wait('Submitted. Nykaa is reviewing')
+          :`<div class="sbtns"><button class="btn btn-primary" onclick="openSheet('upload')">${S.round>0?'Submit revised content':'Submit content'}</button></div>`);
+      }else{
+        h=label('Creating — review submission',`Round ${S.round} of ${S.maxRounds}`)+(S.contentSubmitted
+          ?`<div class="sbtns"><button class="btn btn-ghost" ${S.round>=S.maxRounds?'disabled':''} onclick="requestRevision()">Request revision</button><button class="btn btn-primary" onclick="approveContent()">Approve content</button></div>`
+          :wait('Waiting for Devasri to submit content'));
+      }
+    }else{
+      h=label('Content approved — posting gate')+(p==='creator'
+        ?`<div class="sbtns"><button class="btn btn-primary" onclick="openSheet('posted')">Mark as posted</button></div>`
+        :wait('Waiting for Devasri to post and submit the live link'));
+    }
+  }
+  if(S.stage===5){
+    h=label('Posted — brand confirms')+(p==='brand'
+      ?`<div class="sbtns"><button class="btn btn-ghost" onclick="toast('Issue raised → back to Devasri')">Raise issue</button><button class="btn btn-primary" onclick="confirmPost()">Confirm post live</button></div>`
+      :wait('Live link submitted. Waiting for Nykaa to confirm'));
+  }
+  if(S.stage===6){
+    if(S.disputed){h=label('Payment — paused')+wait('Dispute open. Platform ops mediating')}
+    else if(!S.paymentReleased){
+      h=label('Payment — ₹53,100 due')+(p==='brand'
+        ?`<div class="sbtns"><button class="btn btn-ghost" onclick="raiseDispute()">Raise dispute</button><button class="btn btn-primary" onclick="openSheet('otp')">Release payment</button></div>`
+        :`<div class="sbtns"><button class="btn btn-ghost" onclick="raiseDispute()">Raise dispute</button><button class="btn btn-primary" disabled>Awaiting release</button></div>`);
+    }else if(!S.checkerCleared){h=label('Payment')+wait('Released by Ananya — with Rohit for checker sign-off')}
+    else{
+      h=label('Payment released')+(p==='creator'
+        ?`<div class="sbtns"><button class="btn btn-primary" onclick="confirmReceived()">Confirm ₹53,100 received</button></div>`
+        :wait('Waiting for Devasri to confirm receipt'));
+    }
+  }
+  if(S.stage===7){
+    h=label('Closed — read-only')+(S.rated[p]
+      ?`<div class="sbtns"><button class="btn btn-glass" onclick="toast('Deal summary — Track journey')">View deal summary</button><button class="btn btn-ghost" onclick="toast('Comment added to record')">Add comment</button></div>`
+      :`<div class="sbtns"><button class="btn btn-primary" onclick="openSheet('rate')">Rate ${p==='creator'?'Nykaa':'Devasri'}</button></div>`);
+  }
+  el.innerHTML=h;
+}
+
+/* ================= FLOW ACTIONS ================= */
+function requestSummary(){
+  S.summaryRequestedBy=S.persona;
+  sys(`${PEOPLE[S.persona].n.split(' ')[0]} requested a terms summary · waiting for ${PEOPLE[other()].n.split(' ')[0]} to confirm`);
+  refresh();toast('Switch persona to confirm as '+PEOPLE[other()].n.split(' ')[0]);
+}
+function confirmSummary(){
+  S.summaryConfirmed=true;
+  sys('Both parties confirmed · Inflo is generating the terms summary');
+  addMsg({type:'card',kind:'generating'});refresh();
+  setTimeout(()=>{
+    S.msgs=S.msgs.filter(m=>m.kind!=='generating');
+    S.summaryReady=true;
+    addMsg({type:'card',kind:'summary'});
+    sys('All 12 minimum deal fields detected · nothing missing');
+    refresh();
+  },1600);
+}
+function approveSummary(){
+  if(S.approvals[S.persona])return;
+  S.approvals[S.persona]=true;
+  sys(`${PEOPLE[S.persona].n.split(' ')[0]} approved the terms`);
+  if(S.approvals.creator&&S.approvals.brand){
+    S.stage=3;
+    sys('All parties approved · deal moved to Approval');
+    addMsg({type:'card',kind:'contract'});
+  }else{toast('Switch persona — '+PEOPLE[other()].n.split(' ')[0]+' still has to approve')}
+  refresh();
+}
+function doSign(){
+  closeSheet();
+  if(S.persona==='creator'){S.signed.creator=true;sys('Devasri signed · stored signature · IP + timestamp logged')}
+  else{
+    S.signed.brand=true;sys('Ananya signed as maker · routed to Rohit for checker sign-off');
+    setTimeout(()=>{S.signed.checker=true;sys('Rohit (checker) approved and signed');checkExecuted();refresh()},1700);
+  }
+  checkExecuted();refresh();
+}
+function checkExecuted(){
+  if(S.signed.creator&&S.signed.brand&&S.signed.checker&&S.stage===3){
+    S.stage=4;
+    sys('Contract fully executed · deal auto-advanced to Creating · usage rights now tracked');
+    setTimeout(()=>{
+      addMsg({type:'card',kind:'brief'});
+      chat('brand','Brief attached! Golden-hour lighting if you can — the serum bottle catches it beautifully. Excited for this one 🤍');
+      refresh();
+    },900);
+  }
+}
+function doUpload(){
+  closeSheet();
+  S.contentSubmitted=true;S.round++;
+  addMsg({type:'card',kind:'submission',round:S.round});
+  chat('creator',S.round===1?'First cut is in! Kept the routine super honest — serum is the hero of step 3.':'Round 2 — tightened the hook to 2 seconds and re-shot the close-up in daylight.');
+  refresh();toast('Switch to Ananya to review');
+}
+function requestRevision(){
+  S.contentSubmitted=false;
+  sys(`Ananya requested a revision · Round ${S.round} of ${S.maxRounds} used · ${S.maxRounds-S.round} remaining`);
+  chat('brand','So close! Can we get the serum close-up in natural light? The texture is the whole story.');
+  refresh();toast('Switch to Devasri to resubmit');
+}
+function approveContent(){
+  S.contentApproved=true;
+  sys('Content approved by Nykaa · Posted gate is now open');
+  refresh();toast('Switch to Devasri to mark as posted');
+}
+function doPosted(){
+  closeSheet();
+  S.posted=true;S.stage=5;
+  addMsg({type:'card',kind:'proof'});
+  sys('Live link verified via Instagram · awaiting brand confirmation');
+  refresh();toast('Switch to Ananya to confirm');
+}
+function confirmPost(){
+  S.postConfirmed=true;S.stage=6;
+  sys('Post confirmed live · deal auto-advanced to Payment');
+  addMsg({type:'card',kind:'invoice'});
+  refresh();
+}
+function doOtp(){
+  closeSheet();
+  S.paymentReleased=true;
+  sys('Ananya authorised ₹53,100 via OTP · intercepted by maker-checker');
+  refresh();
+  setTimeout(()=>{
+    S.checkerCleared=true;
+    sys('Rohit (checker) approved the release · transfer initiated to Devasri · UPI');
+    S.msgs=S.msgs.map(m=>m);renderMsgs();refresh();
+    toast('Switch to Devasri to confirm receipt');
+  },1700);
+}
+function confirmReceived(){
+  S.paymentConfirmed=true;S.stage=7;
+  sys('Devasri confirmed ₹53,100 received · deal moved to Closed · chat is now read-only');
+  refresh();
+}
+function doRate(n){
+  closeSheet();
+  S.rated[S.persona]=true;
+  sys(`${PEOPLE[S.persona].n.split(' ')[0]} left a ${n}-star review`);
+  if(S.rated.creator&&S.rated.brand){addMsg({type:'card',kind:'closed'})}
+  else{toast('Switch persona for the other rating')}
+  refresh();
+}
+function raiseDispute(){
+  S.disputed=true;
+  sys('Dispute raised · payment paused · platform ops notified · both parties alerted');
+  refresh();
+}
+function resolveDispute(){
+  S.disputed=false;
+  sys('Dispute resolved by platform ops · payment flow resumed');
+  refresh();
+}
+function sendMsg(){
+  const i=$('chatInput');const t=i.value.trim();if(!t)return;
+  i.value='';chat(S.persona,t);
+}
+
+/* ================= SHEETS ================= */
+function openSheet(kind){
+  const sh=$('sheet');let h='<div class="grab"></div>';
+  if(kind==='sign'){
+    h+=`<h3>Sign as ${PEOPLE[S.persona].n}</h3>
+    <div class="ssub">Your stored signature will be applied. Each use is timestamped and IP-logged in the audit trail.</div>
+    <div class="signpad"><span class="signature">${PEOPLE[S.persona].n}</span></div>
+    <div class="sbtns" style="display:flex;gap:9px">
+      <button class="btn btn-ghost" onclick="toast('Draw-new + print-and-sign bypass live here')">Other options</button>
+      <button class="btn btn-primary" onclick="doSign()">Use saved signature</button></div>`;
+  }
+  if(kind==='upload'){
+    h+=`<h3>Submit content</h3>
+    <div class="ssub">Round ${S.round+1} of ${S.maxRounds}. Files attach to this deliverable and land in the Document Hub.</div>
+    <div class="filechip" style="margin-bottom:16px"><div class="rc-ico" style="width:34px;height:34px">${ICONS.clip}</div>
+      <div class="fmeta"><div class="fname">GlowReel_v${S.round+1}.mp4</div><div class="fsize">0:34 · 48 MB · Instagram Reel · 9:16</div></div>
+      <div class="astatus ok"><span class="adot"></span>Ready</div></div>
+    <button class="btn btn-primary" style="width:100%" onclick="doUpload()">Submit for review</button>`;
+  }
+  if(kind==='posted'){
+    h+=`<h3>Mark as posted</h3>
+    <div class="ssub">Paste the live URL. Inflo verifies the post and attaches proof — this is the only way the deal reaches Payment.</div>
+    <div class="urlbox"><input value="https://instagram.com/reel/CxG8k2h" readonly></div>
+    <div class="track" style="margin-bottom:16px"><div class="lifted"><div class="proof">
+      <div class="thumb"></div>
+      <div class="pmeta"><div class="pline">@devasri.creates · Reel</div>
+      <div class="psub">"my honest 5-step glow routine ✨" · Paid partnership · just now</div></div></div></div></div>
+    <button class="btn btn-primary" style="width:100%" onclick="doPosted()">Confirm and submit proof</button>`;
+  }
+  if(kind==='otp'){
+    h+=`<h3>Release ₹53,100</h3>
+    <div class="ssub">To Devasri Nair · UPI · devasri@okaxis. OTP sent to your registered number. Rohit's checker approval follows automatically.</div>
+    <div class="otp"><div class="d">4</div><div class="d">8</div><div class="d">2</div><div class="d">7</div></div>
+    <button class="btn btn-primary" style="width:100%" onclick="doOtp()">Authorise release</button>`;
+  }
+  if(kind==='rate'){
+    const target=S.persona==='creator'?'Nykaa':'Devasri';
+    h+=`<h3>Rate ${target}</h3>
+    <div class="ssub">Ratings feed the trust score both sides see in Discover.</div>
+    <div class="stars" id="stars">${[1,2,3,4,5].map(n=>`<button data-n="${n}" onclick="litStars(${n})"><svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.7 5.6 6.3.9-4.5 4.3 1 6.2-5.5-3-5.5 3 1-6.2L3 9.5l6.3-.9L12 3Z"/></svg></button>`).join('')}</div>
+    <button class="btn btn-primary" style="width:100%;margin-top:12px" id="rateBtn" disabled onclick="doRate(window._stars)">Submit review</button>`;
+  }
+  if(kind==='members'){
+    h+=`<h3>3 in this deal</h3><div class="ssub">Roles are set by the deal record — quiet text, no pills.</div>
+    ${['creator','brand','checker'].map(k=>`<div class="memrow"><div class="av">${PEOPLE[k].i}</div>
+      <div><div class="mname">${PEOPLE[k].n}</div><div class="mrole">${PEOPLE[k].role}</div></div></div>`).join('')}`;
+  }
+  if(kind==='ai'){
+    h+=`<h3 style="display:flex;align-items:center;gap:8px"><span class="rc-ico" style="width:30px;height:30px">${ICONS.spark}</span>Deal assistant</h3>
+    <div class="ssub" style="margin-top:10px">This deal is a <b>₹45,000 Instagram campaign</b> for Nykaa's Glow Serum — 1 Reel + 2 Stories, posting 18–24 Jul, currently at <b>${STAGES[S.stage-1]}</b>. 60-day skincare exclusivity and 6-month paid-social usage rights apply.</div>
+    <div class="qchips">
+      <button class="qchip" onclick="aiAnswer('pay')">When do I get paid?</button>
+      <button class="qchip" onclick="aiAnswer('excl')">What can't I post?</button>
+      <button class="qchip" onclick="aiAnswer('next')">What's blocking us?</button>
+    </div>
+    <div class="ai-answer" id="aiAns"><div class="lifted" id="aiAnsTxt"></div></div>
+    <div class="urlbox" style="margin-top:14px"><input placeholder="Ask about this deal…" onkeydown="if(event.key==='Enter'){aiAnswer('free');this.value=''}"></div>`;
+  }
+  sh.innerHTML=h;
+  sh.classList.add('show');$('scrim').classList.add('show');
+}
+function litStars(n){
+  window._stars=n;
+  document.querySelectorAll('#stars button').forEach(b=>b.classList.toggle('lit',+b.dataset.n<=n));
+  $('rateBtn').disabled=false;
+}
+function aiAnswer(k){
+  const a={
+    pay:'Payment terms are Net 30 from the invoice date. Your invoice generates automatically the moment Nykaa confirms your post is live — so if you post on 19 Jul, expect ₹53,100 (incl. GST) by 18 Aug. I\'ll chase it for you at day 27.',
+    excl:'You have a 60-day skincare-only exclusivity from your posting date, plus a 7-day full blackout right after the post goes live. Fitness, food and fashion deals are unaffected — I\'ll warn you automatically if an incoming deal conflicts.',
+    next:'Right now the deal is waiting at '+STAGES[S.stage-1]+'. '+railHints(),
+    free:'In the real build, Claude reads the full deal record and chat history to answer this. (Mocked in this prototype.)'
+  };
+  $('aiAnsTxt').textContent=a[k];$('aiAns').classList.add('show');
+}
+function closeSheet(){$('sheet').classList.remove('show');$('scrim').classList.remove('show')}
+
+/* ================= CHAT LIST ================= */
+function stageClass(){return['','sp-pending','sp-chatting','sp-approval','sp-creating','sp-posted','sp-payment','sp-closed'][S.stage]||'sp-chatting'}
+function nextActionText(){
+  const p=S.persona;
+  if(S.stage===2&&!S.summaryRequestedBy)return[true,'Agree terms, then request a summary'];
+  if(S.stage===2&&!S.summaryConfirmed)return S.summaryRequestedBy===p?[false,'Awaiting summary confirmation']:[true,'Confirm the summary request'];
+  if(S.stage===2&&S.summaryReady)return S.approvals[p]?[false,'Awaiting other approvals']:[true,'Approve the terms summary'];
+  if(S.stage===3){const mine=p==='creator'?S.signed.creator:S.signed.brand;return mine?[false,'Awaiting signatures']:[true,'Your signature is needed']}
+  if(S.stage===4&&!S.contentApproved)return p==='creator'?(S.contentSubmitted?[false,'Nykaa is reviewing']:[true,'Submit your content']):(S.contentSubmitted?[true,'Review Devasri\'s submission']:[false,'Awaiting content']);
+  if(S.stage===4)return p==='creator'?[true,'Post and submit the live link']:[false,'Awaiting live link'];
+  if(S.stage===5)return p==='brand'?[true,'Confirm the post is live']:[false,'Awaiting brand confirmation'];
+  if(S.stage===6&&!S.paymentReleased)return p==='brand'?[true,'Release ₹53,100']:[false,'Payment due from Nykaa'];
+  if(S.stage===6&&!S.paymentConfirmed)return p==='creator'&&S.checkerCleared?[true,'Confirm payment received']:[false,'Payment in flight'];
+  if(S.stage===7&&!S.rated[p])return[true,'Leave your review'];
+  return[false,'All caught up'];
+}
+function renderList(){
+  const lastChat=[...S.msgs].reverse().find(m=>m.type==='chat');
+  const [active,na]=nextActionText();
+  const stageName=(S.disputed&&S.stage===6)?'Disputed':STAGES[S.stage-1];
+  $('chatList').innerHTML=`
+  <button class="ccard" onclick="showDeal()" style="box-shadow:var(--elev-2)">
+    <div class="row1">
+      <div class="avstack"><div class="av">DN</div><div class="av">AS</div><div class="av">RM</div></div>
+      <div class="names"><div class="dname">Nykaa Glow Reel — July</div>
+        <div class="meta"><span class="stagepill ${S.disputed&&S.stage===6?'sp-payment':stageClass()}" ${S.disputed&&S.stage===6?'style="background:var(--crit-tint);color:var(--crit)"':''}>${stageName}</span><span class="iotag">Inbound</span><span class="delivmonth">Jul 2026</span></div></div>
+      ${S.stage<7?'<div class="unread tnum">2</div>':''}
+    </div>
+    <div class="preview">${lastChat?`<b>${PEOPLE[lastChat.from].n.split(' ')[0]}:</b> ${esc(lastChat.text)}`:'<b>Ananya:</b> Sharing the July brief shortly!'}</div>
+    <div class="row3">
+      <div class="nextaction ${active?'':'quiet'}"><span class="na-dot"></span><span>${na}</span></div>
+      <div class="right-meta">${S.stage>=4?'<span class="minirights">Rights · 6 mo</span>':''}<span class="delivmonth tnum">${S.stage>=5?'3 of 3':S.stage===4?(S.contentApproved?'1 of 3':'0 of 3'):'0 of 3'}</span></div>
+    </div>
+  </button>
+  <button class="ccard" onclick="toast('Static in this prototype')">
+    <div class="row1"><div class="avstack"><div class="av">MG</div><div class="av">DN</div></div>
+      <div class="names"><div class="dname">Mamaearth PR drop · Vit-C range</div>
+        <div class="meta"><span class="stagepill sp-posted">No contract</span><span class="iotag">PR</span><span class="delivmonth">Jul 2026</span></div></div></div>
+    <div class="preview"><b>Broadcast:</b> Your package was dispatched · BlueDart · arriving Thu</div>
+    <div class="row3"><div class="nextaction quiet"><span class="na-dot"></span><span>Nothing owed — pure gifting</span></div><span class="delivmonth">Status feed</span></div>
+  </button>
+  <button class="ccard" onclick="toast('Static in this prototype')">
+    <div class="row1"><div class="avstack"><div class="av">bo</div><div class="av">DN</div></div>
+      <div class="names"><div class="dname">boAt UGC · 3 product videos</div>
+        <div class="meta"><span class="stagepill sp-creating">Creating</span><span class="iotag">Outbound</span><span class="delivmonth">Aug 2026</span></div></div>
+      <div class="unread tnum">5</div></div>
+    <div class="preview"><b>Karan:</b> V2 of the earbuds script looks great, one small note on the…</div>
+    <div class="row3"><div class="nextaction"><span class="na-dot"></span><span>Submit video 2 of 3</span></div><span class="delivmonth tnum">1 of 3</span></div>
+  </button>
+  <button class="ccard" onclick="toast('Static in this prototype')">
+    <div class="row1"><div class="avstack"><div class="av">SW</div></div>
+      <div class="names"><div class="dname">Swiggy Foodie Fest · Mumbai</div>
+        <div class="meta"><span class="stagepill sp-closed">Event</span><span class="iotag">Inbound</span><span class="delivmonth">2 Aug</span></div></div></div>
+    <div class="preview"><b>Inflo:</b> You're confirmed — QR pass saved to your Document Hub</div>
+    <div class="row3"><div class="nextaction quiet"><span class="na-dot"></span><span>Scan QR at entry to confirm attendance</span></div><span class="minirights">QR pass</span></div>
+  </button>`;
+}
+
+/* ================= NAV & PERSONA ================= */
+function showDeal(){$('scrList').classList.add('off-l');$('scrDeal').classList.remove('off-r')}
+function showList(){renderList();$('scrDeal').classList.add('off-r');$('scrList').classList.remove('off-l')}
+function scrollBottom(){const c=$('msgs');c.scrollTo({top:c.scrollHeight,behavior:'smooth'})}
+function setPersona(p){
+  S.persona=p;
+  document.querySelectorAll('#personaSwitch button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  refresh();
+}
+function refresh(){renderTracker();renderSticky();renderMsgs();renderList()}
+function resetDemo(){S=freshState();seed();setPersona('creator');showList();toast('Demo reset')}
+
+/* ================= SEED CONVERSATION ================= */
+function seed(){
+  S.msgs=[
+    {type:'sys',text:'Ananya accepted your connection request · deal moved to Chatting'},
+    {type:'chat',from:'brand',text:'Hi Devasri! Loved your monsoon skincare series — the honest-review format is exactly the energy we want for the Glow Serum launch.',time:'11:42 AM'},
+    {type:'chat',from:'creator',text:'Thank you! I actually use the vitamin C range already so this is an easy yes. What are you thinking scope-wise?',time:'11:48 AM'},
+    {type:'chat',from:'brand',text:'1 Reel + 2 Stories on Instagram, posting between 18–24 July. We can do ₹45,000, Net 30 from invoice date. 60-day exclusivity but skincare category only.',time:'11:53 AM'},
+    {type:'chat',from:'creator',text:'Works for me. Two revision rounds max, I keep ownership, and usage rights capped at 6 months paid social only — no OOH.',time:'12:01 PM'},
+    {type:'chat',from:'brand',text:'Deal. No whitelisting needed. 7-day blackout after the post and the standard paid-partnership label. I think we\'ve covered everything?',time:'12:04 PM'},
+  ];
+}
+
+/* ================= INIT ================= */
+S=freshState();seed();refresh();
+</script>
+</body>
+</html>

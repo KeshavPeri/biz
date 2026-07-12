@@ -185,6 +185,14 @@ These live in `/docs` and are the authority for design decisions. As of Phase 3 
   colours, typography, do's/don'ts** (from my co-founder). Read before building any UI-visible
   feature. The SVG icon library lives at `frontend/assets/icons/` — use those icons; do not
   invent or import other icon sets without flagging.
+- `docs/design-tokens.md` — the buildable **token system** derived from design-direction (task
+  6.7). Part 2 is the dev-ready tokens for the NativeWind + gluestack theme. This is the value
+  source for all colours/spacing/radii/elevation/type.
+- `docs/mockups/` — **token-faithful HTML/CSS prototypes of target screens** (from my co-founder;
+  see its `README.md` for the screen→phase map). Use the relevant mockup as the **visual +
+  structural target** when building a screen, mapping its CSS variables onto the `design-tokens.md`
+  tokens. **Do NOT port the HTML/CSS directly** — rebuild in React Native/gluestack. Canonical
+  order if anything disagrees: design-direction → design-tokens → mockups.
 - `docs/rtm.md` — Requirement Traceability Matrix: every feature → its code → its test →
   status (update after each feature). 13 columns across 4 sections — **Explore** (Feature ID,
   Feature, Bucket, Phase, Priority, Scope) and **Design** (Design Summary, Build Elements) are

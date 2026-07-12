@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inflo — Onboarding Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-app:#FBFAF6; --surface-card:#FFFFFF; --surface-recess:#EFEAE2;
+  --border-hairline:#EAE8E2; --border-card:#EFEDE8;
+  --ink:#1C1B18; --text-2:#5E574E; --text-3:#847F78;
+  --avatar-bg:#E8E5DF; --avatar-ring:rgba(28,27,24,.09);
+  --good-dot:#7DB02E; --good-label:#4F7A1E; --good-tint:#ECF2D6;
+  --crit:#C0392B; --crit-tint:#FBF3F1; --teal:#0095A8;
+  --r-card:14px; --r-panel:12px; --r-btn:16px; --r-pill:999px;
+  --elev-1:0 1px 2px rgba(28,27,24,.05), 0 5px 14px rgba(28,27,24,.07);
+  --elev-2:0 2px 6px rgba(28,27,24,.06), 0 14px 34px rgba(28,27,24,.11);
+  --lift-in:0 1px 2px rgba(28,27,24,.05), 0 8px 18px rgba(28,27,24,.09);
+  --recess-inset:inset 0 1px 2px rgba(28,27,24,.05);
+  --glass-grad:linear-gradient(165deg,#FFFFFF,#EAE7DF);
+  --glass-border:1px solid rgba(28,27,24,.07);
+  --glass-inset:inset 0 1px 0 rgba(255,255,255,.9);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Geist',-apple-system,sans-serif;color:var(--ink);background:#F2EFE8;
+  display:flex;align-items:center;justify-content:center;gap:40px;padding:28px;overflow:hidden}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input,textarea{font-family:inherit}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* rail */
+.rail{width:260px;display:flex;flex-direction:column;gap:20px}
+.rail .wordmark{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.rail .wordmark span{color:var(--text-3);font-weight:400}
+.rail p{font-size:13px;color:var(--text-2);line-height:1.55}
+.rail-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.stage-readout{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);padding:16px}
+.stage-readout .big{font-size:17px;font-weight:600;margin:2px 0 4px}
+.stage-readout .hint{font-size:12px;color:var(--text-2);line-height:1.5}
+.reset-btn{padding:11px;border-radius:var(--r-btn);border:1px solid var(--border-hairline);
+  font-size:13px;font-weight:500;color:var(--text-2);background:var(--surface-card);transition:all .15s}
+.reset-btn:hover{color:var(--ink);border-color:#D8D4CB}
+.kbd-hint{font-size:11px;color:var(--text-3);line-height:1.5}
+
+/* phone */
+.phone{width:392px;height:846px;max-height:calc(100vh - 40px);background:var(--bg-app);border-radius:44px;
+  box-shadow:0 2px 6px rgba(28,27,24,.08),0 34px 80px rgba(28,27,24,.22),0 0 0 10px #1C1B18,0 0 0 12px #33312C;
+  overflow:hidden;position:relative;display:flex;flex-direction:column}
+.statusbar{height:48px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 4px;font-size:13px;font-weight:600}
+
+/* onboarding chrome */
+.obhead{flex:none;padding:6px 16px 12px;display:flex;align-items:center;gap:12px}
+.backbtn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:12px;color:var(--ink);flex:none}
+.backbtn.hide{visibility:hidden}
+.progress{flex:1;display:flex;gap:5px}
+.pseg{flex:1;height:3.5px;border-radius:2px;background:#E2DED4;overflow:hidden;position:relative}
+.pseg .fill{position:absolute;inset:0;background:var(--ink);border-radius:2px;transform:scaleX(0);transform-origin:left;transition:transform .35s ease-out}
+.pseg.done .fill,.pseg.cur .fill{transform:scaleX(1)}
+.pseg.cur .fill{background:var(--ink)}
+.saveexit{font-size:12.5px;font-weight:500;color:var(--text-3);flex:none;padding:6px 4px}
+
+.stepwrap{flex:1;position:relative;overflow:hidden}
+.step{position:absolute;inset:0;display:flex;flex-direction:column;padding:8px 22px 0;overflow-y:auto;scrollbar-width:none;
+  transition:transform .28s ease-out,opacity .28s ease-out}
+.step::-webkit-scrollbar{display:none}
+.step.off-r{transform:translateX(36px);opacity:0;pointer-events:none}
+.step.off-l{transform:translateX(-36px);opacity:0;pointer-events:none}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px}
+.qtitle{font-size:25px;font-weight:700;letter-spacing:-.015em;line-height:1.15;margin-bottom:7px}
+.qsub{font-size:14px;color:var(--text-2);line-height:1.55;margin-bottom:22px}
+.qsub b{color:var(--ink);font-weight:600}
+
+.obfoot{flex:none;padding:12px 22px 30px;background:var(--bg-app)}
+.btn{width:100%;padding:14px;border-radius:var(--r-btn);font-size:15px;font-weight:600;text-align:center;transition:transform .13s ease-out;min-height:48px}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--ink);color:#fff}
+.btn-glass{background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset);color:var(--ink)}
+.btn-ghost{border:1px solid var(--border-hairline);color:var(--text-2);background:#fff}
+.btn:disabled{background:#ECEAE3;color:#B6B0A6;border:none;box-shadow:none;cursor:default}
+.skiplink{display:block;text-align:center;font-size:13px;font-weight:500;color:var(--text-3);padding:12px 0 0;width:100%}
+
+/* welcome */
+.hero{margin:-8px -22px 22px;padding:44px 26px 30px;background:#1C1B18;color:#FBFAF6;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;inset:0;background:
+  radial-gradient(90% 70% at 85% 0%,rgba(0,149,168,.28),transparent 60%),
+  radial-gradient(70% 60% at 10% 100%,rgba(169,206,219,.14),transparent 55%)}
+.hero *{position:relative;z-index:1}
+.hero .hword{font-size:34px;font-weight:600;letter-spacing:-.02em;margin-bottom:14px}
+.hero h1{font-size:27px;font-weight:700;letter-spacing:-.015em;line-height:1.18;margin-bottom:10px}
+.hero p{font-size:14px;color:rgba(251,250,246,.72);line-height:1.55;max-width:290px}
+.rolecard{width:100%;text-align:left;background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);
+  box-shadow:var(--elev-1);padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:12px;transition:transform .14s ease-out}
+.rolecard:active{transform:scale(.98)}
+.rolecard .ric{width:44px;height:44px;border-radius:13px;background:var(--surface-recess);box-shadow:var(--recess-inset);
+  display:flex;align-items:center;justify-content:center;flex:none;color:var(--ink)}
+.rolecard .rt{font-size:16px;font-weight:600;margin-bottom:2px}
+.rolecard .rs{font-size:12.5px;color:var(--text-2);line-height:1.4}
+.rolecard .chev{margin-left:auto;color:var(--text-3);flex:none}
+
+/* inputs */
+.fgroup{margin-bottom:16px}
+.flabel{font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:7px;display:flex;justify-content:space-between}
+.flabel .opt{font-weight:400;color:var(--text-3)}
+.finput{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-btn);padding:0 16px;display:flex;align-items:center;gap:10px;min-height:52px}
+.finput input,.finput textarea{flex:1;border:none;background:none;outline:none;font-size:15px;color:var(--ink);min-width:0;padding:14px 0}
+.finput textarea{resize:none;line-height:1.5}
+.finput input::placeholder,.finput textarea::placeholder{color:var(--text-3)}
+.finput .prefix{color:var(--text-3);font-size:15px}
+.charcount{font-size:11px;color:var(--text-3);text-align:right;margin-top:5px}
+.aiassist{font-size:12px;font-weight:600;color:var(--ink);display:inline-flex;align-items:center;gap:5px;
+  background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset);border-radius:var(--r-pill);padding:6px 12px;margin-top:8px}
+
+/* otp */
+.otp{display:flex;gap:10px;margin:6px 0 14px}
+.otp .d{flex:1;height:60px;border-radius:13px;background:var(--surface-recess);box-shadow:var(--recess-inset);
+  display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:600;transition:all .15s}
+.otp .d.filled{background:#fff;box-shadow:var(--lift-in)}
+.resend{font-size:13px;color:var(--text-3)}
+.resend b{color:var(--ink);font-weight:600}
+
+/* platform rows */
+.platrow{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);
+  padding:13px 14px;display:flex;align-items:center;gap:12px;margin-bottom:11px}
+.platrow .pic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none;font-weight:700;font-size:15px;color:#fff}
+.platrow .pmeta{flex:1;min-width:0}
+.platrow .pname{font-size:14.5px;font-weight:600}
+.platrow .psub{font-size:12px;color:var(--text-3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.platrow .psub b{color:var(--good-label);font-weight:600}
+.connectbtn{flex:none;padding:9px 16px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;
+  background:var(--ink);color:#fff;transition:transform .13s;min-height:36px}
+.connectbtn:active{transform:scale(.95)}
+.connectbtn.linked{background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset);color:var(--ink)}
+.connectbtn.busy{background:#ECEAE3;color:#B6B0A6}
+.threshold{display:flex;align-items:center;gap:8px;padding:11px 14px;border-radius:var(--r-panel);font-size:12.5px;font-weight:500;line-height:1.45;margin-top:6px}
+.threshold.warn{background:var(--surface-recess);box-shadow:var(--recess-inset);color:var(--text-2)}
+.threshold.ok{background:var(--good-tint);color:var(--good-label)}
+.threshold svg{flex:none}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:9px}
+.chip{padding:10px 15px;border-radius:var(--r-pill);font-size:13.5px;font-weight:500;background:#fff;
+  border:1px solid var(--border-hairline);color:var(--text-2);transition:all .15s ease-out}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600}
+
+/* proof rows */
+.proofadd{width:100%;border:1.5px dashed #D8D4CB;border-radius:var(--r-card);padding:15px;text-align:center;
+  font-size:13.5px;font-weight:500;color:var(--text-2);margin-top:4px}
+.proofrow{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);
+  padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:10px;animation:popin .25s ease-out}
+.proofrow .av{width:36px;height:36px;border-radius:11px;background:var(--avatar-bg);box-shadow:0 0 0 1px var(--avatar-ring);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-2);flex:none}
+.proofrow .pm{flex:1}.proofrow .pt{font-size:14px;font-weight:600}
+.proofrow .ps{font-size:12px;color:var(--text-3)}
+@keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* signature */
+.sigtoggle{display:flex;background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-btn);padding:4px;gap:4px;margin-bottom:16px}
+.sigtoggle button{flex:1;padding:10px;border-radius:12px;font-size:13px;font-weight:500;color:var(--text-2);transition:all .18s}
+.sigtoggle button.on{background:var(--glass-grad);border:1px solid rgba(28,27,24,.05);
+  box-shadow:var(--glass-inset),0 1px 2px rgba(28,27,24,.05),0 5px 12px rgba(28,27,24,.09);color:var(--ink);font-weight:600}
+.sigpad{background:#fff;border:1.5px dashed #D8D4CB;border-radius:var(--r-card);height:170px;position:relative;overflow:hidden;touch-action:none}
+.sigpad canvas{width:100%;height:100%;display:block}
+.sigpad .sighint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--text-3);pointer-events:none}
+.sigpad .typed{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-style:italic;font-size:34px;font-weight:500;transform:rotate(-3deg);letter-spacing:-.02em;pointer-events:none}
+.sigclear{font-size:12.5px;font-weight:500;color:var(--text-3);margin-top:10px;text-decoration:underline}
+.signote{display:flex;gap:9px;margin-top:16px;padding:12px 14px;border-radius:var(--r-panel);
+  background:var(--surface-recess);box-shadow:var(--recess-inset);font-size:12px;color:var(--text-2);line-height:1.5}
+.signote svg{flex:none;margin-top:1px}
+
+/* toggles */
+.togglerow{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);
+  padding:15px 16px;display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.togglerow .tm{flex:1}
+.togglerow .tt{font-size:14.5px;font-weight:600;margin-bottom:2px}
+.togglerow .ts{font-size:12px;color:var(--text-2);line-height:1.45}
+.switch{width:48px;height:29px;border-radius:var(--r-pill);background:#DDD9D0;position:relative;flex:none;transition:background .2s;box-shadow:var(--recess-inset)}
+.switch::after{content:'';position:absolute;top:3px;left:3px;width:23px;height:23px;border-radius:50%;
+  background:linear-gradient(165deg,#FFFFFF,#EAE7DF);box-shadow:0 1px 3px rgba(28,27,24,.2),inset 0 1px 0 rgba(255,255,255,.9);transition:left .2s ease-out}
+.switch.on{background:var(--ink)}
+.switch.on::after{left:22px}
+
+/* finish */
+.ring{width:150px;height:150px;margin:14px auto 18px;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring .rc{fill:none;stroke:var(--surface-recess);stroke-width:11}
+.ring .rf{fill:none;stroke:var(--teal);stroke-width:11;stroke-linecap:round;stroke-dasharray:414;stroke-dashoffset:414;transition:stroke-dashoffset 1.1s ease-out .3s}
+.ring .rlabel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .rnum{font-size:32px;font-weight:700;letter-spacing:-.02em}
+.ring .rtxt{font-size:11px;font-weight:500;color:var(--text-3);letter-spacing:.04em;text-transform:uppercase}
+.recap{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-panel);padding:8px;margin-bottom:14px}
+.recap .lifted{background:#fff;border-radius:10px;box-shadow:var(--lift-in);padding:4px 14px}
+.rfield{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #F4F2ED;font-size:13px}
+.rfield:last-child{border-bottom:none}
+.rfield .fk{color:var(--text-2);flex:none}
+.rfield .fv{font-weight:600;text-align:right;line-height:1.35;min-width:0}
+.rfield .fv small{display:block;font-weight:400;color:var(--text-3);font-size:11px}
+.nudge{display:flex;align-items:center;gap:10px;padding:11px 2px;font-size:13px;color:var(--text-2)}
+.nudge .ndot{width:7px;height:7px;border-radius:50%;background:#C9C4BA;flex:none}
+.toast{position:absolute;left:50%;bottom:110px;transform:translate(-50%,16px);background:var(--ink);color:#fff;
+  font-size:13px;font-weight:500;padding:11px 18px;border-radius:var(--r-pill);box-shadow:var(--elev-2);
+  opacity:0;pointer-events:none;transition:all .25s ease-out;z-index:60;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* brand/agency overview */
+.ovlist{display:flex;flex-direction:column;gap:10px}
+.ovrow{display:flex;gap:12px;background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);padding:13px 14px}
+.ovrow .num{width:26px;height:26px;border-radius:9px;background:var(--surface-recess);box-shadow:var(--recess-inset);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-2);flex:none}
+.ovrow .ot{font-size:14px;font-weight:600;margin-bottom:2px}
+.ovrow .os{font-size:12px;color:var(--text-2);line-height:1.45}
+
+@media (max-width:900px){
+  body{padding:0;gap:0;overflow:auto;flex-direction:column;justify-content:flex-start}
+  .rail{width:100%;max-width:392px;padding:16px 16px 8px;gap:12px}
+  .rail p,.kbd-hint,.stage-readout{display:none}
+  .phone{width:100%;max-width:440px;height:100vh;max-height:none;border-radius:0;box-shadow:none;flex:1}
+}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <div>
+    <div class="wordmark">inflo <span>/ onboarding</span></div>
+    <p style="margin-top:8px">Grouped progressive disclosure — Typeform tone, Duolingo momentum, Revolut trust framing. Role fork at the top; only what's needed to power Discover, nothing more.</p>
+  </div>
+  <div class="stage-readout">
+    <div class="rail-label">Design intent</div>
+    <div class="big" id="railStage">Role fork</div>
+    <div class="hint" id="railHint">Creator path is fully playable. Brand and agency show their capture scope.</div>
+  </div>
+  <button class="reset-btn" onclick="location.reload()">Reset demo</button>
+  <div class="kbd-hint">Post-onboarding enrichment (production quality, blackout dates, deal-type preferences) deliberately lives in the You tab as nudges — visible on the final screen.</div>
+</div>
+
+<div class="phone">
+  <div class="statusbar"><span>1:12</span><span style="letter-spacing:2px">▮▮▮</span></div>
+  <div class="obhead" id="obhead" style="display:none">
+    <button class="backbtn" id="backBtn" onclick="go(-1)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>
+    </button>
+    <div class="progress" id="progress"></div>
+    <button class="saveexit" onclick="toast('Progress saved — partial profiles persist')">Save</button>
+  </div>
+  <div class="stepwrap" id="stepwrap"></div>
+  <div class="obfoot" id="obfoot"></div>
+  <div class="toast" id="toastEl"></div>
+</div>
+
+<script>
+/* ============ STATE ============ */
+const D={ role:null, email:'', otpDone:false,
+  platforms:{}, // key:{handle,followers,er}
+  name:'Devasri Nair', city:'Mumbai', niches:[], langs:[], bio:'',
+  partnerships:[], affiliations:[],
+  sigMode:'draw', sigDrawn:false, sigTyped:'',
+  inbound:true, outbound:true, notifs:true
+};
+const CREATOR_STEPS=['role','account','otp','platforms','about','proof','signature','prefs','done'];
+const GROUPS=[['account','otp'],['platforms'],['about'],['proof'],['signature'],['prefs']]; // 6 progress segments
+let cur=0; // index into CREATOR_STEPS
+const $=id=>document.getElementById(id);
+function toast(t){const e=$('toastEl');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2200)}
+
+const RAIL={role:['Role fork','One decision up top — the whole flow reshapes around it.'],
+account:['Account · 1 of 6','Email or phone + OTP. Revolut-style trust framing, zero fluff.'],
+otp:['Account · 1 of 6','Tap the digits — any four work in the demo.'],
+platforms:['Platforms · 2 of 6','OAuth pulls handle, followers, ER. The 7K threshold check runs live.'],
+about:['About you · 3 of 6','Essentials only — this powers Discover ranking. Everything else is a nudge later.'],
+proof:['Social proof · 4 of 6','Fully skippable. Reducing drop-off beats completeness here.'],
+signature:['Signature · 5 of 6','Stored once, one-tap forever. Every use is IP + timestamp logged.'],
+prefs:['Preferences · 6 of 6','Inbound / outbound shapes how the profile surfaces in Discover.'],
+done:['Complete','Completeness ring + what Inflo now knows + the nudges that follow.']};
+
+/* ============ RENDER SHELL ============ */
+function renderProgress(){
+  const key=CREATOR_STEPS[cur];
+  const gi=GROUPS.findIndex(g=>g.includes(key));
+  const p=$('progress');
+  p.innerHTML=GROUPS.map((g,i)=>`<div class="pseg ${i<gi?'done':i===gi?'cur':''}"><div class="fill"></div></div>`).join('');
+  $('obhead').style.display=(key==='role'||key==='done')?'none':'flex';
+  $('railStage').textContent=RAIL[key][0];$('railHint').textContent=RAIL[key][1];
+}
+function go(dir){
+  if(dir>0&&!validate())return;
+  cur=Math.max(0,Math.min(CREATOR_STEPS.length-1,cur+dir));
+  render(dir);
+}
+function render(dir=1){
+  renderProgress();
+  const wrap=$('stepwrap');
+  const el=document.createElement('div');
+  el.className='step '+(dir>0?'off-r':'off-l');
+  el.innerHTML=STEPS[CREATOR_STEPS[cur]]();
+  wrap.appendChild(el);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    el.classList.remove('off-r','off-l');
+    [...wrap.children].forEach(c=>{if(c!==el){c.classList.add(dir>0?'off-l':'off-r');setTimeout(()=>c.remove(),300)}});
+  }));
+  $('obfoot').innerHTML=FOOT[CREATOR_STEPS[cur]]?FOOT[CREATOR_STEPS[cur]]():'';
+  after(CREATOR_STEPS[cur]);
+}
+function validate(){
+  const k=CREATOR_STEPS[cur];
+  if(k==='account'&&!$('emailIn').value.trim()){toast('Add an email or phone to continue');return false}
+  if(k==='account')D.email=$('emailIn').value.trim();
+  if(k==='platforms'&&!passesThreshold()){toast('Connect one platform with 7K+ followers');return false}
+  if(k==='about'){
+    D.name=$('nameIn').value.trim();D.city=$('cityIn').value.trim();D.bio=$('bioIn').value.trim();
+    if(!D.name||D.niches.length===0||D.langs.length===0){toast('Name, one niche and one language needed');return false}
+  }
+  if(k==='signature'&&!(D.sigMode==='draw'?D.sigDrawn:D.sigTyped.trim())){toast('Add your signature — it signs every future contract');return false}
+  return true;
+}
+function passesThreshold(){return Object.values(D.platforms).some(p=>p.followers>=7000)}
+
+/* ============ STEP TEMPLATES ============ */
+const ICON={creator:`<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>`,
+brand:`<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M15 9h.01M15 13h.01M10 21v-4h4v4"/></svg>`,
+agency:`<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="10" r="2.6"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M13.6 15.4A4.5 4.5 0 0 1 21.5 19"/></svg>`,
+chev:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>`,
+shield:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.2 8.4 7 10 3.8-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>`,
+check:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`,
+spark:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z"/></svg>`};
+
+const PLATFORMS=[
+  {k:'ig',n:'Instagram',c:'linear-gradient(140deg,#B96A83,#8E5B7E)',demo:{handle:'@devasri.creates',followers:48200,er:4.6}},
+  {k:'yt',n:'YouTube',c:'linear-gradient(140deg,#C0574B,#A4443B)',demo:{handle:'Devasri Nair',followers:12400,er:3.1}},
+  {k:'tt',n:'TikTok',c:'linear-gradient(140deg,#3A3833,#1C1B18)',demo:{handle:'@devasri',followers:5100,er:6.2}},
+  {k:'x',n:'X / Twitter',c:'linear-gradient(140deg,#4A4740,#2C2A25)',demo:{handle:'@devasri_says',followers:2300,er:1.8}},
+];
+const NICHES=[['💄','Beauty'],['🧴','Skincare'],['🏋️','Fitness'],['🍜','Food'],['👗','Fashion'],['✈️','Travel'],['📱','Tech'],['🎙️','Podcast'],['🎨','Art']];
+const LANGS=['English','Hindi','Tamil','Telugu','Marathi','Bengali','Kannada'];
+
+const STEPS={
+role(){return `
+  <div class="hero">
+    <div class="hword">inflo</div>
+    <h1>Deals, run properly.</h1>
+    <p>The calm home for creator–brand deals — chat, contract, content and payment in one flow. No more WhatsApp + spreadsheets.</p>
+  </div>
+  <div class="eyebrow">To start</div>
+  <div class="qtitle" style="font-size:21px;margin-bottom:16px">Which one are you?</div>
+  <button class="rolecard" onclick="D.role='creator';go(1)">
+    <span class="ric">${ICON.creator}</span>
+    <span><span class="rt">I'm a creator</span><br><span class="rs">Get discovered, close deals, get paid on time</span></span>
+    <span class="chev">${ICON.chev}</span></button>
+  <button class="rolecard" onclick="showOverview('brand')">
+    <span class="ric">${ICON.brand}</span>
+    <span><span class="rt">I'm a brand</span><br><span class="rs">Find the right creators and run campaigns end-to-end</span></span>
+    <span class="chev">${ICON.chev}</span></button>
+  <button class="rolecard" onclick="showOverview('agency')">
+    <span class="ric">${ICON.agency}</span>
+    <span><span class="rt">I'm an agency</span><br><span class="rs">Manage your roster and every client deal in one place</span></span>
+    <span class="chev">${ICON.chev}</span></button>`},
+
+account(){return `
+  <div class="eyebrow">Account</div>
+  <div class="qtitle">First, let's make this yours.</div>
+  <div class="qsub">One account for every deal you'll ever run. We'll verify it in a second.</div>
+  <div class="fgroup"><div class="flabel">Email or phone</div>
+    <div class="finput"><input id="emailIn" value="devasri@gmail.com" placeholder="you@example.com"></div></div>
+  <div class="fgroup"><div class="flabel">Password</div>
+    <div class="finput"><input type="password" value="••••••••••" placeholder="8+ characters"></div></div>
+  <div class="signote">${ICON.shield}<span>Your data stays yours. Earnings are never public, and brands only ever see what you choose to show. India DPDP compliant.</span></div>`},
+
+otp(){return `
+  <div class="eyebrow">Account</div>
+  <div class="qtitle">Enter the code we sent.</div>
+  <div class="qsub">Sent to <b>${D.email||'devasri@gmail.com'}</b> — tap the boxes to fill (demo).</div>
+  <div class="otp" id="otpBoxes">${[0,1,2,3].map(i=>`<button class="d" onclick="fillOtp()"></button>`).join('')}</div>
+  <div class="resend">Didn't get it? <b>Resend in 0:42</b></div>`},
+
+platforms(){
+  const ok=passesThreshold();
+  return `
+  <div class="eyebrow">Platforms</div>
+  <div class="qtitle">Connect where you create.</div>
+  <div class="qsub">We pull your followers, engagement and reach automatically — your media kit builds itself. You can add more handles per platform any time.</div>
+  ${PLATFORMS.map(p=>{
+    const d=D.platforms[p.k];
+    return `<div class="platrow">
+      <div class="pic" style="background:${p.c}">${p.n[0]}</div>
+      <div class="pmeta"><div class="pname">${p.n}</div>
+        <div class="psub">${d?`${d.handle} · <span class="tnum">${(d.followers/1000).toFixed(1)}K</span> followers · <span class="tnum">${d.er}%</span> ER ${d.followers>=7000?'· <b>verified</b>':''}`:'Not connected'}</div></div>
+      <button class="connectbtn ${d?'linked':''}" id="cb-${p.k}" onclick="connectPlat('${p.k}')">${d?'Linked ✓':'Connect'}</button>
+    </div>`}).join('')}
+  <div class="threshold ${ok?'ok':'warn'}" id="thresholdMsg">
+    ${ok?ICON.check:ICON.shield}
+    <span>${ok?'You\u2019re verified — 48.2K on Instagram clears the 7K minimum.':'Inflo needs at least <b>7K followers on one platform</b> to verify you. Your progress saves either way.'}</span>
+  </div>`},
+
+about(){return `
+  <div class="eyebrow">About you</div>
+  <div class="qtitle">The 60-second media kit.</div>
+  <div class="qsub">Just the essentials — this is what brands filter on. The polish comes later, on your terms.</div>
+  <div class="fgroup"><div class="flabel">Display name</div>
+    <div class="finput"><input id="nameIn" value="${D.name}" placeholder="How brands will see you"></div></div>
+  <div class="fgroup"><div class="flabel">City</div>
+    <div class="finput"><input id="cityIn" value="${D.city}" placeholder="Where you're based"></div></div>
+  <div class="fgroup"><div class="flabel">Your niche <span class="opt">pick up to 3</span></div>
+    <div class="chips">${NICHES.map(([e,n])=>`<button class="chip ${D.niches.includes(n)?'on':''}" onclick="togNiche('${n}',this)">${e} ${n}</button>`).join('')}</div></div>
+  <div class="fgroup"><div class="flabel">Content languages</div>
+    <div class="chips">${LANGS.map(l=>`<button class="chip ${D.langs.includes(l)?'on':''}" onclick="togLang('${l}',this)">${l}</button>`).join('')}</div></div>
+  <div class="fgroup"><div class="flabel">Bio <span class="opt">one line is plenty</span></div>
+    <div class="finput" style="align-items:flex-start"><textarea id="bioIn" rows="2" maxlength="120" oninput="$('bc').textContent=this.value.length+' / 120'" placeholder="Honest skincare, real routines.">${D.bio}</textarea></div>
+    <div class="charcount" id="bc">${D.bio.length} / 120</div>
+    <button class="aiassist" onclick="aiBio()">${ICON.spark} Write it for me</button></div>`},
+
+proof(){return `
+  <div class="eyebrow">Social proof <span style="text-transform:none;letter-spacing:0;font-weight:400">· optional</span></div>
+  <div class="qtitle">Worked with brands before?</div>
+  <div class="qsub">Past partnerships and credentials lift your trust score in Discover. Add a couple now or skip — it's waiting in your media kit either way.</div>
+  <div id="proofList">${D.partnerships.map(p=>proofRowHtml(p)).join('')}</div>
+  <button class="proofadd" onclick="addProof()">+ Add a past partnership</button>
+  <div style="height:14px"></div>
+  <div class="flabel" style="margin-bottom:8px">Credentials & features <span class="opt">self-declared</span></div>
+  <div class="chips">${['📺 Show appearance','🏆 Award','📰 Press feature','🎙️ Podcast'].map(a=>`<button class="chip ${D.affiliations.includes(a)?'on':''}" onclick="togAff('${a}',this)">${a}</button>`).join('')}</div>`},
+
+signature(){return `
+  <div class="eyebrow">Signature</div>
+  <div class="qtitle">Sign once. Never chase a contract again.</div>
+  <div class="qsub">Every deal on Inflo ends in a real e-signed contract. Store yours now and future signings are one tap.</div>
+  <div class="sigtoggle">
+    <button class="${D.sigMode==='draw'?'on':''}" onclick="setSigMode('draw')">Draw it</button>
+    <button class="${D.sigMode==='type'?'on':''}" onclick="setSigMode('type')">Type it</button>
+  </div>
+  <div class="sigpad" id="sigpad">
+    <canvas id="sigCanvas" style="display:${D.sigMode==='draw'?'block':'none'}"></canvas>
+    <div class="sighint" id="sigHint" style="display:${D.sigMode==='draw'&&!D.sigDrawn?'flex':'none'}">Sign with your finger</div>
+    <div class="typed" id="sigTypedView" style="display:${D.sigMode==='type'?'flex':'none'}">${D.sigTyped||''}</div>
+  </div>
+  ${D.sigMode==='type'?`<div class="fgroup" style="margin-top:14px"><div class="finput"><input id="sigTypeIn" value="${D.sigTyped}" placeholder="Type your full name" oninput="D.sigTyped=this.value;$('sigTypedView').textContent=this.value"></div></div>`
+  :`<button class="sigclear" onclick="clearSig()">Clear and redraw</button>`}
+  <div class="signote">${ICON.shield}<span>Stored encrypted. Each use is confirmed by you, then timestamped and IP-logged in the deal's audit trail. Changing it later requires re-verification.</span></div>`},
+
+prefs(){return `
+  <div class="eyebrow">Preferences</div>
+  <div class="qtitle">How do you want deals to find you?</div>
+  <div class="qsub">Both on is the default — most creators keep it that way. This shows as a badge on your profile card.</div>
+  <div class="togglerow"><div class="tm"><div class="tt">Accept inbound requests</div><div class="ts">Brands and agencies can reach out to you directly from Discover</div></div>
+    <button class="switch ${D.inbound?'on':''}" onclick="D.inbound=!D.inbound;this.classList.toggle('on')" aria-label="Inbound"></button></div>
+  <div class="togglerow"><div class="tm"><div class="tt">Initiate outreach</div><div class="ts">Pitch brands yourself with a structured idea proposal</div></div>
+    <button class="switch ${D.outbound?'on':''}" onclick="D.outbound=!D.outbound;this.classList.toggle('on')" aria-label="Outbound"></button></div>
+  <div class="togglerow"><div class="tm"><div class="tt">Deal notifications</div><div class="ts">Stage advances, payments and deadlines. Critical alerts always arrive.</div></div>
+    <button class="switch ${D.notifs?'on':''}" onclick="D.notifs=!D.notifs;this.classList.toggle('on')" aria-label="Notifications"></button></div>`},
+
+done(){
+  const igK=D.platforms.ig?(D.platforms.ig.followers/1000).toFixed(1)+'K':null;
+  const pct=computePct();
+  return `
+  <div style="text-align:center;padding-top:16px">
+    <div class="eyebrow">You're in, ${D.name.split(' ')[0]}</div>
+    <div class="qtitle" style="margin-bottom:4px">Your media kit is live.</div>
+    <div class="qsub" style="margin-bottom:0">Brands can already find you. Here's how complete it is —</div>
+  </div>
+  <div class="ring">
+    <svg width="150" height="150"><circle class="rc" cx="75" cy="75" r="66"/><circle class="rf" id="ringFill" cx="75" cy="75" r="66"/></svg>
+    <div class="rlabel"><span class="rnum tnum">${pct}%</span><span class="rtxt">Complete</span></div>
+  </div>
+  <div class="flabel" style="margin-bottom:8px">What Inflo now knows</div>
+  <div class="recap"><div class="lifted">
+    <div class="rfield"><span class="fk">Verified reach</span><span class="fv tnum">${igK?igK+' · Instagram':'—'}<small>${Object.keys(D.platforms).length} platform${Object.keys(D.platforms).length===1?'':'s'} linked · weekly refresh</small></span></div>
+    <div class="rfield"><span class="fk">Niche</span><span class="fv">${D.niches.slice(0,3).join(' · ')||'—'}<small>${D.city} · ${D.langs.join(', ')}</small></span></div>
+    <div class="rfield"><span class="fk">Social proof</span><span class="fv tnum">${D.partnerships.length} partnership${D.partnerships.length===1?'':'s'}<small>${D.affiliations.length} credential${D.affiliations.length===1?'':'s'} · self-declared</small></span></div>
+    <div class="rfield"><span class="fk">Signature</span><span class="fv">Stored ✓<small>one-tap signing enabled</small></span></div>
+    <div class="rfield"><span class="fk">Open to</span><span class="fv">${D.inbound&&D.outbound?'Inbound + outbound':D.inbound?'Inbound only':D.outbound?'Outbound only':'Request-to-connect'}</span></div>
+  </div></div>
+  <div class="flabel" style="margin-bottom:2px">We'll nudge you later for</div>
+  <div class="nudge"><span class="ndot"></span>Rate card — visible to brands only, unlocks a Discover filter</div>
+  <div class="nudge"><span class="ndot"></span>Audience demographics — auto-pulls once IG business account links</div>
+  <div class="nudge"><span class="ndot"></span>Production quality & blackout dates — sharpens brand matching</div>`}
+};
+
+/* footers per step */
+const FOOT={
+account:()=>`<button class="btn btn-primary" onclick="go(1)">Continue</button>`,
+otp:()=>`<button class="btn btn-primary" id="otpNext" disabled onclick="go(1)">Verify</button>`,
+platforms:()=>`<button class="btn btn-primary" id="platNext" ${passesThreshold()?'':'disabled'} onclick="go(1)">Continue</button>`,
+about:()=>`<button class="btn btn-primary" onclick="go(1)">Continue</button>`,
+proof:()=>`<button class="btn btn-primary" onclick="go(1)">Continue</button><button class="skiplink" onclick="go(1)">Skip for now</button>`,
+signature:()=>`<button class="btn btn-primary" onclick="go(1)">Save signature</button>`,
+prefs:()=>`<button class="btn btn-primary" onclick="go(1)">Finish setup</button>`,
+done:()=>`<button class="btn btn-primary" onclick="toast('→ Discover — the next journey we build')">Start discovering</button>`
+};
+
+/* ============ STEP BEHAVIOURS ============ */
+let otpCount=0;
+function fillOtp(){
+  const boxes=[...document.querySelectorAll('#otpBoxes .d')];
+  if(otpCount>=4)return;
+  boxes[otpCount].textContent=[4,8,2,7][otpCount];
+  boxes[otpCount].classList.add('filled');
+  otpCount++;
+  if(otpCount===4){D.otpDone=true;$('otpNext').disabled=false;toast('Verified ✓')}
+}
+function connectPlat(k){
+  if(D.platforms[k])return;
+  const b=$('cb-'+k);b.textContent='Linking…';b.classList.add('busy');
+  setTimeout(()=>{
+    D.platforms[k]=PLATFORMS.find(p=>p.k===k).demo;
+    rerenderInPlace('platforms');
+    if(passesThreshold())toast('Verified — above the 7K minimum');
+  },900);
+}
+function rerenderInPlace(key){
+  const wrap=$('stepwrap');const el=wrap.lastElementChild;
+  el.innerHTML=STEPS[key]();
+  $('obfoot').innerHTML=FOOT[key]();
+  after(key);
+}
+function togNiche(n,btn){
+  if(D.niches.includes(n))D.niches=D.niches.filter(x=>x!==n);
+  else if(D.niches.length<3)D.niches.push(n);
+  else{toast('Three niches max — keep it sharp');return}
+  btn.classList.toggle('on');
+}
+function togLang(l,btn){D.langs.includes(l)?D.langs=D.langs.filter(x=>x!==l):D.langs.push(l);btn.classList.toggle('on')}
+function togAff(a,btn){D.affiliations.includes(a)?D.affiliations=D.affiliations.filter(x=>x!==a):D.affiliations.push(a);btn.classList.toggle('on')}
+function aiBio(){
+  const n=D.niches[0]||'Skincare';
+  $('bioIn').value=`Honest ${n.toLowerCase()} from ${D.city||'Mumbai'} — real routines, zero filters, reviews you can trust.`;
+  $('bc').textContent=$('bioIn').value.length+' / 120';
+  toast('Drafted from your niche + city — edit freely');
+}
+const DEMO_PROOFS=[{b:'Plum Goodness',d:'Instagram Reel · 210K views · 2025'},{b:'Sugar Cosmetics',d:'3-post series · 480K reach · 2024'},{b:'Nykaa',d:'Story set · 96K views · 2024'}];
+function proofRowHtml(p){return `<div class="proofrow"><div class="av">${p.b.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
+  <div class="pm"><div class="pt">${p.b}</div><div class="ps">${p.d}</div></div>
+  <div style="color:var(--good-label)">${ICON.check}</div></div>`}
+function addProof(){
+  if(D.partnerships.length>=3){toast('Plenty for now — add more from your media kit');return}
+  const p=DEMO_PROOFS[D.partnerships.length];D.partnerships.push(p);
+  $('proofList').insertAdjacentHTML('beforeend',proofRowHtml(p));
+}
+function setSigMode(m){D.sigMode=m;rerenderInPlace('signature')}
+function clearSig(){D.sigDrawn=false;initCanvas(true);$('sigHint').style.display='flex'}
+function initCanvas(clear){
+  const c=$('sigCanvas');if(!c)return;
+  const r=c.parentElement.getBoundingClientRect();
+  c.width=r.width*2;c.height=r.height*2;
+  const x=c.getContext('2d');x.scale(2,2);x.lineWidth=2.4;x.lineCap='round';x.lineJoin='round';x.strokeStyle='#1C1B18';
+  let draw=false,px=0,py=0;
+  const pos=e=>{const b=c.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return[t.clientX-b.left,t.clientY-b.top]};
+  c.onpointerdown=e=>{draw=true;[px,py]=pos(e);$('sigHint').style.display='none';D.sigDrawn=true;c.setPointerCapture(e.pointerId)};
+  c.onpointermove=e=>{if(!draw)return;const[nx,ny]=pos(e);x.beginPath();x.moveTo(px,py);x.lineTo(nx,ny);x.stroke();[px,py]=[nx,ny]};
+  c.onpointerup=()=>draw=false;
+}
+function after(key){
+  if(key==='signature')requestAnimationFrame(()=>initCanvas());
+  if(key==='done')requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const pct=computePct();
+    $('ringFill').style.strokeDashoffset=414-(414*pct/100);
+  }));
+}
+function computePct(){
+  let p=40; // account+otp+platforms+signature+prefs baseline
+  if(Object.keys(D.platforms).length>1)p+=6;
+  if(D.niches.length)p+=8; if(D.langs.length)p+=6; if(D.bio)p+=6;
+  p+=Math.min(D.partnerships.length,3)*4; p+=Math.min(D.affiliations.length,2)*3;
+  return Math.min(p,86); // never 100 at onboarding — nudges own the rest
+}
+
+/* ============ BRAND / AGENCY OVERVIEW ============ */
+function showOverview(kind){
+  const wrap=$('stepwrap');const el=document.createElement('div');
+  el.className='step off-r';
+  const rows=kind==='brand'
+    ?[['Verify the business','Company name, industry, GST / company ID, domain-verified email — generic inboxes blocked. Earns the Verified badge.'],
+      ['Authorised signatory','Stored business signature with declared authority level. Logged on every contract.'],
+      ['Team & maker-checker','Invite the team, assign roles, and set which actions need Checker sign-off — payments, contracts, content.'],
+      ['Billing & payment setup','Tax registration validated by API, billing profile, payment method — required before any deal pays out.']]
+    :[['Agency setup','Agency name, type (talent / brand / boutique), domain-verified email. Solo-manager mode supported.'],
+      ['Roster & scoped access','Invite account managers, assign each to specific clients — everyone sees only their book.'],
+      ['Representation signature','Stored signature (up to 3 named signatories) for rep agreements and deal contracts.']];
+  el.innerHTML=`
+    <div class="eyebrow">${kind==='brand'?'Brand onboarding':'Agency onboarding'} · capture scope</div>
+    <div class="qtitle" style="font-size:22px">Playable in the next layer.</div>
+    <div class="qsub">Here's exactly what this path captures — the trust gate is heavier than the creator side, by design.</div>
+    <div class="ovlist">${rows.map((r,i)=>`<div class="ovrow"><span class="num tnum">${i+1}</span><span><span class="ot">${r[0]}</span><br><span class="os">${r[1]}</span></span></div>`).join('')}</div>`;
+  wrap.appendChild(el);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    el.classList.remove('off-r');
+    [...wrap.children].forEach(c=>{if(c!==el){c.classList.add('off-l');setTimeout(()=>c.remove(),300)}});
+  }));
+  $('obhead').style.display='none';
+  $('obfoot').innerHTML=`<button class="btn btn-glass" onclick="cur=0;render(-1)">← Back to role select</button>`;
+  $('railStage').textContent=(kind==='brand'?'Brand':'Agency')+' scope';
+  $('railHint').textContent='Static overview — documents the data model for the build.';
+}
+
+/* init */
+render();
+</script>
+</body>
+</html>

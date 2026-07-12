@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inflo — Media Kit Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-app:#FBFAF6; --surface-card:#FFFFFF; --surface-recess:#EFEAE2;
+  --border-hairline:#EAE8E2; --border-card:#EFEDE8;
+  --ink:#1C1B18; --text-2:#5E574E; --text-3:#847F78;
+  --avatar-bg:#E8E5DF; --avatar-ring:rgba(28,27,24,.09);
+  --good-dot:#7DB02E; --good-label:#4F7A1E; --good-tint:#ECF2D6;
+  --crit:#C0392B; --teal:#0095A8; --teal2:#63B0BE; --teal3:#A9CEDB;
+  --r-card:14px; --r-panel:12px; --r-btn:16px; --r-pill:999px;
+  --elev-1:0 1px 2px rgba(28,27,24,.05), 0 5px 14px rgba(28,27,24,.07);
+  --elev-2:0 2px 6px rgba(28,27,24,.06), 0 14px 34px rgba(28,27,24,.11);
+  --lift-in:0 1px 2px rgba(28,27,24,.05), 0 8px 18px rgba(28,27,24,.09);
+  --recess-inset:inset 0 1px 2px rgba(28,27,24,.05);
+  --glass-grad:linear-gradient(165deg,#FFFFFF,#EAE7DF);
+  --glass-border:1px solid rgba(28,27,24,.07);
+  --glass-inset:inset 0 1px 0 rgba(255,255,255,.9);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Geist',-apple-system,sans-serif;color:var(--ink);background:#F2EFE8;
+  display:flex;align-items:center;justify-content:center;gap:40px;padding:28px;overflow:hidden}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input,textarea{font-family:inherit}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* rail */
+.rail{width:260px;display:flex;flex-direction:column;gap:20px}
+.rail .wordmark{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.rail .wordmark span{color:var(--text-3);font-weight:400}
+.rail p{font-size:13px;color:var(--text-2);line-height:1.55}
+.rail-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.persona-switch{display:flex;background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-btn);padding:4px;gap:4px}
+.persona-switch button{flex:1;padding:10px 8px;border-radius:12px;font-size:13px;font-weight:500;color:var(--text-2);
+  transition:all .18s ease-out;display:flex;flex-direction:column;align-items:center;gap:3px}
+.persona-switch button small{font-size:10px;font-weight:400;color:var(--text-3)}
+.persona-switch button.on{background:var(--glass-grad);border:1px solid rgba(28,27,24,.05);
+  box-shadow:var(--glass-inset),0 1px 2px rgba(28,27,24,.05),0 5px 12px rgba(28,27,24,.09);color:var(--ink);font-weight:600}
+.stage-readout{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);padding:16px}
+.stage-readout .big{font-size:17px;font-weight:600;margin:2px 0 4px}
+.stage-readout .hint{font-size:12px;color:var(--text-2);line-height:1.5}
+.reset-btn{padding:11px;border-radius:var(--r-btn);border:1px solid var(--border-hairline);
+  font-size:13px;font-weight:500;color:var(--text-2);background:var(--surface-card);transition:all .15s}
+.reset-btn:hover{color:var(--ink);border-color:#D8D4CB}
+.kbd-hint{font-size:11px;color:var(--text-3);line-height:1.5}
+
+/* phone */
+.phone{width:392px;height:846px;max-height:calc(100vh - 40px);background:var(--bg-app);border-radius:44px;
+  box-shadow:0 2px 6px rgba(28,27,24,.08),0 34px 80px rgba(28,27,24,.22),0 0 0 10px #1C1B18,0 0 0 12px #33312C;
+  overflow:hidden;position:relative;display:flex;flex-direction:column}
+.statusbar{height:48px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 4px;font-size:13px;font-weight:600;
+  position:absolute;top:0;left:0;right:0;z-index:20;color:#FBFAF6}
+.statusbar.dark{color:var(--ink)}
+
+.scroll{flex:1;overflow-y:auto;scrollbar-width:none;padding-bottom:110px}
+.scroll::-webkit-scrollbar{display:none}
+
+/* hero — photography-led with neutral scrim */
+.hero{height:330px;position:relative;overflow:hidden;border-radius:0 0 26px 26px}
+.hero .photo{position:absolute;inset:0;background:
+  radial-gradient(85% 65% at 68% 30%,#E9C9A8 0%,transparent 62%),
+  radial-gradient(70% 80% at 25% 75%,#B96A83 0%,transparent 58%),
+  radial-gradient(100% 100% at 85% 95%,#6E5A78 0%,transparent 55%),
+  linear-gradient(150deg,#D9A98C,#8E5B7E)}
+.hero .photo::after{content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 30% 22%,rgba(255,255,255,.4),transparent 48%)}
+.hero .scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(28,27,24,.72),transparent 66%)}
+.hero .topbar{position:absolute;top:52px;left:12px;right:12px;display:flex;justify-content:space-between;z-index:5}
+.hicon{width:38px;height:38px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+  background:rgba(28,27,24,.28);backdrop-filter:blur(10px);color:#FBFAF6}
+.hero .id{position:absolute;left:20px;right:20px;bottom:18px;color:#FBFAF6;z-index:5}
+.hero .nameline{display:flex;align-items:center;gap:8px}
+.hero h1{font-size:26px;font-weight:700;letter-spacing:-.015em}
+.vbadge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;
+  background:rgba(251,250,246,.22);backdrop-filter:blur(6px);color:#fff;flex:none}
+.hero .metaline{font-size:13px;color:rgba(251,250,246,.85);margin-top:4px;font-weight:500}
+.hero .bioline{font-size:13px;color:rgba(251,250,246,.68);margin-top:6px;line-height:1.45;max-width:300px}
+.openchip{display:inline-flex;align-items:center;gap:6px;margin-top:11px;padding:6px 13px;border-radius:var(--r-pill);
+  background:rgba(251,250,246,.16);backdrop-filter:blur(8px);border:1px solid rgba(251,250,246,.22);
+  font-size:11.5px;font-weight:600;color:#FBFAF6}
+.openchip .dotg{width:6px;height:6px;border-radius:50%;background:var(--good-dot)}
+
+/* trust strip */
+.truststrip{display:flex;margin:14px 16px 0;background:var(--surface-card);border:1px solid var(--border-card);
+  border-radius:var(--r-card);box-shadow:var(--elev-1)}
+.tcell{flex:1;padding:13px 6px;text-align:center;position:relative}
+.tcell+.tcell::before{content:'';position:absolute;left:0;top:12px;bottom:12px;width:1px;background:var(--border-hairline)}
+.tcell .tv{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.tcell .tv .star{color:#C9A93C}
+.tcell .tk{font-size:10.5px;font-weight:500;color:var(--text-3);margin-top:2px;letter-spacing:.02em}
+
+/* sections */
+.section{margin:22px 16px 0}
+.shead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px}
+.shead h2{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.shead .ssub{font-size:11.5px;color:var(--text-3);font-weight:500}
+.shead .editlink{font-size:12px;font-weight:600;color:var(--ink);display:none;align-items:center;gap:4px}
+body[data-view="own"] .editlink{display:inline-flex}
+.card{background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);padding:15px}
+
+/* platform cards */
+.platgrid{display:flex;gap:11px}
+.platcard{flex:1;background:var(--surface-card);border:1px solid var(--border-card);border-radius:var(--r-card);box-shadow:var(--elev-1);padding:13px}
+.platcard .ptop{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.platcard .pic{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex:none}
+.platcard .phandle{font-size:11px;color:var(--text-3);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.platcard .pfoll{font-size:21px;font-weight:700;letter-spacing:-.01em}
+.platcard .pfoll small{font-size:11px;font-weight:500;color:var(--text-3);letter-spacing:0}
+.platcard .prow{display:flex;justify-content:space-between;font-size:11px;color:var(--text-2);margin-top:7px;padding-top:7px;border-top:1px solid #F4F2ED}
+.platcard .prow b{color:var(--ink);font-weight:600}
+.growth{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--good-label)}
+
+/* demographics chart — glass bars + teal emphasis, labels direct */
+.chartwrap{display:flex;align-items:flex-end;gap:12px;height:130px;padding:4px 4px 0}
+.cbar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.cbar .bval{font-size:11px;font-weight:600;color:var(--ink)}
+.cbar .bar{width:100%;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,#FCFAF6,#E9E4DB);
+  border:1px solid rgba(28,27,24,.12);box-shadow:var(--glass-inset);transform-origin:bottom;animation:grow .7s ease-out}
+.cbar.hero1 .bar{background:linear-gradient(180deg,#1CACBE,#0095A8);border-color:rgba(28,27,24,.08)}
+.cbar.hero1 .bval{color:var(--teal)}
+.cbar.hero2 .bar{background:linear-gradient(180deg,#7DC1CC,#63B0BE);border-color:rgba(28,27,24,.08)}
+.cbar .blab{font-size:10.5px;color:var(--text-3);font-weight:500}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.splitline{display:flex;gap:9px;margin-top:14px}
+.splitpill{flex:1;text-align:center;background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-panel);padding:9px 6px}
+.splitpill .sv{font-size:14px;font-weight:700}
+.splitpill .sk{font-size:10px;color:var(--text-3);font-weight:500;margin-top:1px}
+.autonote{font-size:10.5px;color:var(--text-3);margin-top:10px;display:flex;align-items:center;gap:5px}
+
+/* content grid */
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.cthumb{aspect-ratio:3/4;border-radius:12px;position:relative;overflow:hidden;transition:transform .14s}
+.cthumb:active{transform:scale(.96)}
+.cthumb::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(28,27,24,.55),transparent 55%)}
+.cthumb .views{position:absolute;left:8px;bottom:7px;z-index:2;color:#fff;font-size:10.5px;font-weight:600;display:flex;align-items:center;gap:4px}
+.t1{background:radial-gradient(80% 70% at 60% 30%,#E9C9A8,transparent 60%),linear-gradient(150deg,#D9A98C,#8E5B7E)}
+.t2{background:radial-gradient(75% 65% at 35% 25%,#DCE6C8,transparent 62%),linear-gradient(160deg,#A9BE8E,#5E7A55)}
+.t3{background:radial-gradient(70% 60% at 65% 70%,#F0DCC0,transparent 58%),linear-gradient(145deg,#C88F6E,#7E5B4E)}
+.t4{background:radial-gradient(80% 70% at 30% 60%,#C9D4E0,transparent 60%),linear-gradient(155deg,#8FA3B5,#4E5E6E)}
+.t5{background:radial-gradient(75% 60% at 60% 30%,#E8C6CE,transparent 60%),linear-gradient(150deg,#C98FA0,#7E4E5E)}
+.t6{background:radial-gradient(70% 65% at 40% 35%,#EFE3C2,transparent 58%),linear-gradient(160deg,#CBB080,#8E7A4E)}
+
+/* proof + reviews */
+.prow2{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #F4F2ED}
+.prow2:last-child{border-bottom:none;padding-bottom:2px}
+.prow2:first-child{padding-top:2px}
+.pav{width:36px;height:36px;border-radius:11px;background:var(--avatar-bg);box-shadow:0 0 0 1px var(--avatar-ring);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-2);flex:none}
+.prow2 .pm{flex:1;min-width:0}
+.prow2 .pt{font-size:14px;font-weight:600}
+.prow2 .ps{font-size:11.5px;color:var(--text-3);margin-top:1px}
+.verif{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;color:var(--good-label)}
+.verif .dotg{width:5px;height:5px;border-radius:50%;background:var(--good-dot)}
+.review{padding:12px 0;border-bottom:1px solid #F4F2ED}
+.review:last-child{border-bottom:none;padding-bottom:2px}
+.review .rtop{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.review .stars5{color:#C9A93C;font-size:12px;letter-spacing:1px}
+.review .rwho{font-size:12px;font-weight:600}
+.review .rdeal{font-size:10.5px;color:var(--text-3)}
+.review .rtxt{font-size:13px;color:var(--text-2);line-height:1.5}
+
+/* rate card */
+.raterow{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #F4F2ED;font-size:14px}
+.raterow:last-child{border-bottom:none;padding-bottom:2px}
+.raterow:first-child{padding-top:2px}
+.raterow .rk{font-weight:500}
+.raterow .rk small{display:block;font-size:11px;color:var(--text-3);font-weight:400;margin-top:1px}
+.raterow .rv{font-weight:700;letter-spacing:-.01em}
+.brandonly{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:600;letter-spacing:.03em;
+  text-transform:uppercase;color:var(--text-3);background:var(--surface-recess);box-shadow:var(--recess-inset);
+  border-radius:var(--r-pill);padding:4px 10px}
+.ratelocked{display:none;text-align:center;padding:20px 10px;color:var(--text-3);font-size:12.5px;line-height:1.5}
+body[data-view="own"] .ratelocked{display:block}
+body[data-view="own"] .ratelist{display:none}
+
+/* own-view extras */
+.ownonly{display:none}
+body[data-view="own"] .ownonly{display:block}
+body[data-view="brand"] .brandonly-cta{display:flex}
+body[data-view="own"] .brandonly-cta{display:none}
+.nudgebanner{margin:14px 16px 0;background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-panel);padding:8px}
+.nudgebanner .lifted{background:#fff;border-radius:10px;box-shadow:var(--lift-in);padding:12px 14px;display:flex;align-items:center;gap:12px}
+.nudgebanner .nm{flex:1}
+.nudgebanner .nt{font-size:13px;font-weight:600}
+.nudgebanner .ns{font-size:11.5px;color:var(--text-2);margin-top:1px;line-height:1.4}
+.ringmini{width:44px;height:44px;position:relative;flex:none}
+.ringmini svg{transform:rotate(-90deg)}
+.ringmini .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.earnrow{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid #F4F2ED;font-size:13.5px}
+.earnrow:last-child{border-bottom:none}
+.earnrow .ev{font-weight:700}
+
+/* sticky CTA */
+.ctabar{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 28px;z-index:30;
+  background:linear-gradient(to top,var(--bg-app) 62%,transparent);display:flex;gap:10px}
+.btn{flex:1;padding:14px;border-radius:var(--r-btn);font-size:15px;font-weight:600;text-align:center;transition:transform .13s ease-out;min-height:48px;
+  display:flex;align-items:center;justify-content:center;gap:7px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--ink);color:#fff;box-shadow:var(--elev-2)}
+.btn-glass{background:var(--glass-grad);border:var(--glass-border);box-shadow:var(--glass-inset),var(--elev-1);color:var(--ink);flex:none;padding:14px 18px}
+
+/* sheet */
+.scrim2{position:absolute;inset:0;background:rgba(28,27,24,.32);opacity:0;pointer-events:none;transition:opacity .22s;z-index:40}
+.scrim2.show{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg-app);border-radius:24px 24px 0 0;
+  box-shadow:var(--elev-2);transform:translateY(105%);transition:transform .28s ease-out;z-index:50;
+  padding:10px 20px 32px;max-height:82%;overflow-y:auto}
+.sheet.show{transform:none}
+.grab{width:38px;height:4px;border-radius:2px;background:#D8D4CB;margin:4px auto 16px}
+.sheet h3{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-bottom:4px}
+.sheet .ssub2{font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.5}
+.chips{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:16px}
+.chip{padding:10px 15px;border-radius:var(--r-pill);font-size:13px;font-weight:500;background:#fff;
+  border:1px solid var(--border-hairline);color:var(--text-2);transition:all .15s}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600}
+.flabel{font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:7px}
+.finput{background:var(--surface-recess);box-shadow:var(--recess-inset);border-radius:var(--r-btn);padding:0 16px;display:flex;align-items:center;min-height:50px;margin-bottom:14px}
+.finput input,.finput textarea{flex:1;border:none;background:none;outline:none;font-size:14.5px;color:var(--ink);padding:13px 0;resize:none;line-height:1.5}
+.stpnote{display:flex;gap:9px;padding:12px 14px;border-radius:var(--r-panel);background:var(--surface-recess);
+  box-shadow:var(--recess-inset);font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:16px}
+.toast{position:absolute;left:50%;bottom:112px;transform:translate(-50%,16px);background:var(--ink);color:#fff;
+  font-size:13px;font-weight:500;padding:11px 18px;border-radius:var(--r-pill);box-shadow:var(--elev-2);
+  opacity:0;pointer-events:none;transition:all .25s ease-out;z-index:60;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:900px){
+  body{padding:0;gap:0;overflow:auto;flex-direction:column;justify-content:flex-start}
+  .rail{width:100%;max-width:392px;padding:16px 16px 8px;gap:12px}
+  .rail p,.kbd-hint,.stage-readout{display:none}
+  .phone{width:100%;max-width:440px;height:100vh;max-height:none;border-radius:0;box-shadow:none;flex:1}
+}
+</style>
+</head>
+<body data-view="brand">
+
+<div class="rail">
+  <div>
+    <div class="wordmark">inflo <span>/ media kit</span></div>
+    <p style="margin-top:8px">Devasri's profile — the page a brand lands on from Discover. Built entirely from onboarding data plus what the platform verifies on its own.</p>
+  </div>
+  <div>
+    <div class="rail-label" style="margin-bottom:8px">Viewing as</div>
+    <div class="persona-switch" id="personaSwitch">
+      <button class="on" data-v="brand" onclick="setView('brand')">Ananya<small>Brand · browsing</small></button>
+      <button data-v="own" onclick="setView('own')">Devasri<small>Own profile · You tab</small></button>
+    </div>
+  </div>
+  <div class="stage-readout">
+    <div class="rail-label">What changes per view</div>
+    <div class="big" id="railStage">Brand view</div>
+    <div class="hint" id="railHint">Rate card visible, Start-a-deal CTA live. Earnings and edit controls hidden — never public.</div>
+  </div>
+  <button class="reset-btn" onclick="location.reload()">Reset demo</button>
+  <div class="kbd-hint">Every number here is verified-or-labelled: platform stats auto-pull weekly, partnerships marked verified only when closed on Inflo, credentials stay self-declared.</div>
+</div>
+
+<div class="phone">
+  <div class="statusbar" id="sbar"><span>1:12</span><span style="letter-spacing:2px">▮▮▮</span></div>
+  <div class="scroll" id="scroll">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="photo"></div>
+      <div class="scrim"></div>
+      <div class="topbar">
+        <button class="hicon" onclick="toast('Back to Discover — next journey')" aria-label="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg></button>
+        <div style="display:flex;gap:8px">
+          <button class="hicon" onclick="toast('Share link copied — media kits are shareable outside Inflo')" aria-label="Share">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.6M8.2 13.2l7.6 4.6"/></svg></button>
+          <button class="hicon" id="saveBtn" onclick="saveShortlist()" aria-label="Save">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/></svg></button>
+        </div>
+      </div>
+      <div class="id">
+        <div class="nameline"><h1>Devasri Nair</h1>
+          <span class="vbadge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span></div>
+        <div class="metaline">Skincare · Beauty &nbsp;·&nbsp; Mumbai &nbsp;·&nbsp; EN / HI</div>
+        <div class="bioline">Honest skincare from Mumbai — real routines, zero filters, reviews you can trust.</div>
+        <div class="openchip"><span class="dotg"></span>Open to inbound &amp; outbound deals</div>
+      </div>
+    </div>
+
+    <!-- own-view nudge -->
+    <div class="ownonly nudgebanner">
+      <div class="lifted">
+        <div class="ringmini">
+          <svg width="44" height="44"><circle cx="22" cy="22" r="18" fill="none" stroke="#EFEAE2" stroke-width="4.5"/>
+          <circle cx="22" cy="22" r="18" fill="none" stroke="#0095A8" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="113" stroke-dashoffset="16"/></svg>
+          <span class="num tnum">86%</span>
+        </div>
+        <div class="nm"><div class="nt">Almost there</div>
+          <div class="ns">Add your rate card to unlock the budget filter in Discover — profiles with rates get 2.3× more inbound.</div></div>
+        <button class="btn btn-glass" style="padding:9px 13px;min-height:36px;font-size:12.5px" onclick="toast('Rate card editor — opens here')">Add</button>
+      </div>
+    </div>
+
+    <!-- TRUST STRIP -->
+    <div class="truststrip">
+      <div class="tcell"><div class="tv tnum"><span class="star">★</span> 4.9</div><div class="tk">12 reviews</div></div>
+      <div class="tcell"><div class="tv tnum">14</div><div class="tk">Deals on Inflo</div></div>
+      <div class="tcell"><div class="tv tnum">98%</div><div class="tk">On-time delivery</div></div>
+      <div class="tcell"><div class="tv tnum">&lt; 2h</div><div class="tk">Responds in</div></div>
+    </div>
+
+    <!-- PLATFORMS -->
+    <div class="section">
+      <div class="shead"><h2>Reach</h2><span class="ssub">verified · refreshed 3 d ago</span></div>
+      <div class="platgrid">
+        <div class="platcard">
+          <div class="ptop"><span class="pic" style="background:linear-gradient(140deg,#B96A83,#8E5B7E)">I</span>
+            <span class="phandle">@devasri.creates</span></div>
+          <div class="pfoll tnum">48.2K <small>followers</small></div>
+          <div class="prow"><span>Eng. rate</span><b class="tnum">4.6%</b></div>
+          <div class="prow"><span>Avg reel reach</span><b class="tnum">112K</b></div>
+          <div class="prow"><span>90-day growth</span><span class="growth">▲ 8.4%</span></div>
+        </div>
+        <div class="platcard">
+          <div class="ptop"><span class="pic" style="background:linear-gradient(140deg,#C0574B,#A4443B)">Y</span>
+            <span class="phandle">Devasri Nair</span></div>
+          <div class="pfoll tnum">12.4K <small>subs</small></div>
+          <div class="prow"><span>Eng. rate</span><b class="tnum">3.1%</b></div>
+          <div class="prow"><span>Avg views</span><b class="tnum">18K</b></div>
+          <div class="prow"><span>90-day growth</span><span class="growth">▲ 3.2%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEMOGRAPHICS -->
+    <div class="section">
+      <div class="shead"><h2>Audience</h2><span class="ssub">Instagram · auto-pulled</span></div>
+      <div class="card">
+        <div class="chartwrap">
+          <div class="cbar"><span class="bval tnum">9%</span><div class="bar" style="height:18%"></div><span class="blab">13–17</span></div>
+          <div class="cbar hero1"><span class="bval tnum">46%</span><div class="bar" style="height:88%"></div><span class="blab">18–24</span></div>
+          <div class="cbar hero2"><span class="bval tnum">31%</span><div class="bar" style="height:60%"></div><span class="blab">25–34</span></div>
+          <div class="cbar"><span class="bval tnum">10%</span><div class="bar" style="height:20%"></div><span class="blab">35–44</span></div>
+          <div class="cbar"><span class="bval tnum">4%</span><div class="bar" style="height:9%"></div><span class="blab">45+</span></div>
+        </div>
+        <div class="splitline">
+          <div class="splitpill"><div class="sv tnum">78% F</div><div class="sk">Gender</div></div>
+          <div class="splitpill"><div class="sv">Mumbai</div><div class="sk">Top city · 22%</div></div>
+          <div class="splitpill"><div class="sv">Delhi</div><div class="sk">2nd · 14%</div></div>
+          <div class="splitpill"><div class="sv tnum">91% IN</div><div class="sk">Country</div></div>
+        </div>
+        <div class="autonote">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>
+          Pulled from Instagram Business — can't be edited by the creator
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="section">
+      <div class="shead"><h2>Recent work</h2><button class="editlink" onclick="toast('Pin / reorder showcase — own view only')">Curate ›</button><span class="ssub" id="workSub">tap to preview</span></div>
+      <div class="cgrid">
+        <button class="cthumb t1" onclick="toast('Opens the reel in-app')"><span class="views">▶ 210K</span></button>
+        <button class="cthumb t2" onclick="toast('Opens the reel in-app')"><span class="views">▶ 156K</span></button>
+        <button class="cthumb t3" onclick="toast('Opens the reel in-app')"><span class="views">▶ 118K</span></button>
+        <button class="cthumb t4" onclick="toast('Opens the reel in-app')"><span class="views">▶ 96K</span></button>
+        <button class="cthumb t5" onclick="toast('Opens the reel in-app')"><span class="views">▶ 84K</span></button>
+        <button class="cthumb t6" onclick="toast('Opens the reel in-app')"><span class="views">▶ 71K</span></button>
+      </div>
+    </div>
+
+    <!-- RATE CARD -->
+    <div class="section">
+      <div class="shead"><h2>Rate card</h2><span class="brandonly">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="13" rx="2.5"/><path d="M8 7V5.5a4 4 0 0 1 8 0V7"/></svg>
+        Brands only</span></div>
+      <div class="card">
+        <div class="ratelist">
+          <div class="raterow"><span class="rk">Instagram Reel<small>up to 60s · 2 revision rounds</small></span><span class="rv tnum">₹35,000</span></div>
+          <div class="raterow"><span class="rk">Story set × 3<small>with link sticker</small></span><span class="rv tnum">₹12,000</span></div>
+          <div class="raterow"><span class="rk">Launch bundle<small>1 Reel + 3 Stories + usage 6 mo</small></span><span class="rv tnum">₹52,000</span></div>
+          <div class="raterow"><span class="rk">UGC video<small>brand-owned, no posting</small></span><span class="rv tnum">₹18,000</span></div>
+        </div>
+        <div class="ratelocked">Your rates are visible only to verified brands and agencies — never to other creators, never public. Indicative only; every deal is negotiated in chat.</div>
+      </div>
+    </div>
+
+    <!-- PARTNERSHIPS -->
+    <div class="section">
+      <div class="shead"><h2>Brand history</h2><span class="ssub">14 on Inflo · 3 imported</span></div>
+      <div class="card">
+        <div class="prow2"><span class="pav">NY</span><span class="pm"><span class="pt">Nykaa</span><br><span class="ps">Glow Reel campaign · Jul 2026 · ₹ paid promotion</span></span><span class="verif"><span class="dotg"></span>Closed on Inflo</span></div>
+        <div class="prow2"><span class="pav">PG</span><span class="pm"><span class="pt">Plum Goodness</span><br><span class="ps">Instagram Reel · 210K views · 2025</span></span><span class="verif"><span class="dotg"></span>Closed on Inflo</span></div>
+        <div class="prow2"><span class="pav">SC</span><span class="pm"><span class="pt">Sugar Cosmetics</span><br><span class="ps">3-post series · 480K reach · 2024</span></span><span class="ps" style="font-size:10.5px;color:var(--text-3)">Self-declared</span></div>
+      </div>
+    </div>
+
+    <!-- REVIEWS -->
+    <div class="section">
+      <div class="shead"><h2>What brands say</h2><span class="ssub">from closed deals only</span></div>
+      <div class="card">
+        <div class="review"><div class="rtop"><span class="stars5">★★★★★</span><span class="rwho">Ananya S. · Nykaa</span><span class="rdeal">· Jul 26</span></div>
+          <div class="rtxt">"Zero-friction delivery. First cut was nearly final, posted inside the window, invoice clean. Rebooking for the festive line."</div></div>
+        <div class="review"><div class="rtop"><span class="stars5">★★★★★</span><span class="rwho">Kabir M. · Plum</span><span class="rdeal">· Mar 26</span></div>
+          <div class="rtxt">"Audience actually trusts her — our promo code from this reel outperformed three bigger creators combined."</div></div>
+      </div>
+    </div>
+
+    <!-- OWN-VIEW: earnings, private -->
+    <div class="section ownonly">
+      <div class="shead"><h2>Earnings</h2><span class="brandonly" style="text-transform:none;letter-spacing:0">Only you can see this</span></div>
+      <div class="card">
+        <div class="earnrow"><span>This quarter</span><span class="ev tnum">₹2,41,000</span></div>
+        <div class="earnrow"><span>Awaiting payout · 1 deal</span><span class="ev tnum">₹53,100</span></div>
+        <div class="earnrow"><span>Avg deal size · 12 mo</span><span class="ev tnum">₹38,400</span></div>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+  </div>
+
+  <!-- CTA BAR -->
+  <div class="ctabar brandonly-cta">
+    <button class="btn btn-glass" onclick="saveShortlist()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/></svg>
+      Save</button>
+    <button class="btn btn-primary" onclick="openDeal()">Start a deal</button>
+  </div>
+  <div class="ctabar ownonly" style="display:none" id="ownCta">
+    <button class="btn btn-glass" onclick="toast('Edit mode — every section gets a pencil')">Edit media kit</button>
+    <button class="btn btn-primary" onclick="toast('Public link copied — share it anywhere')">Share profile</button>
+  </div>
+
+  <!-- START A DEAL SHEET -->
+  <div class="scrim2" id="scrim" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet">
+    <div class="grab"></div>
+    <h3>Start a deal with Devasri</h3>
+    <div class="ssub2">Pick a deal type — the workflow adapts. Paid deals get the full 7-stage flow; gifting and events run a lighter track.</div>
+    <div class="flabel">Deal type</div>
+    <div class="chips" id="dtChips">
+      <button class="chip on" onclick="pickType(this,'paid')">₹ Paid promotion</button>
+      <button class="chip" onclick="pickType(this,'barter')">⇄ Barter</button>
+      <button class="chip" onclick="pickType(this,'pr')">🎁 PR / gifting</button>
+      <button class="chip" onclick="pickType(this,'event')">📍 Event invite</button>
+    </div>
+    <div id="dtNote"></div>
+    <div class="flabel">Message</div>
+    <div class="finput" style="align-items:flex-start"><textarea rows="3" id="dealMsg">Hi Devasri! Loved your monsoon skincare series — we're launching the Glow Serum in July and think you'd be a perfect fit.</textarea></div>
+    <div class="flabel">Indicative budget <span style="font-weight:400;color:var(--text-3)">· optional, shown to creator</span></div>
+    <div class="finput"><input value="₹40,000 – ₹50,000" class="tnum"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="sendRequest()">Send request</button>
+  </div>
+  <div class="toast" id="toastEl"></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+function toast(t){const e=$('toastEl');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400)}
+let saved=false;
+
+function setView(v){
+  document.body.dataset.view=v;
+  document.querySelectorAll('#personaSwitch button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  $('ownCta').style.display=v==='own'?'flex':'none';
+  $('railStage').textContent=v==='brand'?'Brand view':'Own view · You tab';
+  $('railHint').textContent=v==='brand'
+    ?'Rate card visible, Start-a-deal CTA live. Earnings and edit controls hidden — never public.'
+    :'Completeness nudge, curate/edit affordances, private earnings. Rates show a privacy note instead of prices.';
+  $('workSub').textContent=v==='brand'?'tap to preview':'';
+  $('scroll').scrollTo({top:0,behavior:'smooth'});
+}
+function saveShortlist(){
+  saved=!saved;
+  toast(saved?'Saved to shortlist · Q3 launches':'Removed from shortlist');
+}
+function openDeal(){$('sheet').classList.add('show');$('scrim').classList.add('show');pickTypeNote('paid')}
+function closeSheet(){$('sheet').classList.remove('show');$('scrim').classList.remove('show')}
+let dealType='paid';
+const NOTES={
+  paid:'Full workflow — chat, AI terms summary, e-signed contract, content approval, payment tracking.',
+  barter:'Product value replaces the fee. Same contract flow, payment stage becomes fulfilment confirmation.',
+  pr:'No contract, no chat thread by default — a structured send-track-post pipeline. Devasri accepts, you dispatch, she posts (optional). Pure STP.',
+  event:'Invite → RSVP → QR check-in. Attendance confirms automatically at the venue; optional coverage terms can be attached.'
+};
+function pickType(btn,t){
+  dealType=t;
+  document.querySelectorAll('#dtChips .chip').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');pickTypeNote(t);
+}
+function pickTypeNote(t){
+  $('dtNote').innerHTML=`<div class="stpnote"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9.5"/><path d="M12 8h.01M12 11.5V16"/></svg><span>${NOTES[t]}</span></div>`;
+}
+function sendRequest(){
+  closeSheet();
+  toast(dealType==='pr'?'PR request sent — tracks in her Pending list':'Request sent — lands in Devasri\'s Chat as Pending · 1 / 7');
+}
+</script>
+</body>
+</html>

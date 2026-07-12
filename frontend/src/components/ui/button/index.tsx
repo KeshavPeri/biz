@@ -37,7 +37,8 @@ cssInterop(PrimitiveIcon, {
 });
 
 const buttonStyle = tva({
-  base: 'group/button rounded bg-primary-500 flex-row items-center justify-center data-[focus-visible=true]:web:outline-none data-[focus-visible=true]:web:ring-2 data-[disabled=true]:opacity-40 gap-2',
+  // Inflo 6.7: button radius = 16 (rounded-button token), not gluestack's default `rounded` (4px).
+  base: 'group/button rounded-button bg-primary-500 flex-row items-center justify-center data-[focus-visible=true]:web:outline-none data-[focus-visible=true]:web:ring-2 data-[disabled=true]:opacity-40 gap-2',
   variants: {
     action: {
       primary:
@@ -119,7 +120,8 @@ const buttonStyle = tva({
 });
 
 const buttonTextStyle = tva({
-  base: 'text-typography-0 font-semibold web:select-none',
+  // Inflo 6.7: button labels use Geist (font-geist-semibold = Geist_600SemiBold).
+  base: 'text-typography-0 font-geist-semibold web:select-none',
   parentVariants: {
     action: {
       primary:

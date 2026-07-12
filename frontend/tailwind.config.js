@@ -19,6 +19,61 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        /* ────────────────────────────────────────────────────────────────
+         * Inflo design tokens (task 6.7) — traceable to docs/design-tokens.md
+         * Part 2. These sit ALONGSIDE gluestack's own ramps below (no name
+         * collisions). Use these for Inflo-owned screens/components.
+         * ──────────────────────────────────────────────────────────────── */
+        // Surfaces
+        app: '#FBFAF6', // bg.app — warm near-white app base
+        dashboard: '#FAFAF8', // bg.dashboard
+        chatCanvas: '#EBE7E0', // bg.chatCanvas — deeper deal-room canvas
+        surface: {
+          card: '#FFFFFF', // surface.card
+          recess: '#EFEAE2', // surface.recess — recessed track under white-on-white lifts
+        },
+        hairline: {
+          DEFAULT: '#EAE8E2', // border.hairline
+          card: '#EFEDE8', // border.cardHairline — the "whisper" hairline on cards
+        },
+        avatar: {
+          DEFAULT: '#E8E5DF', // avatar.bg — greige
+          ring: 'rgba(28,27,24,0.09)', // avatar.ring
+        },
+        // Text (ink = primary; -2 secondary; -3 tertiary/icons only)
+        ink: {
+          DEFAULT: '#1C1B18', // text.primary — also primary button fill
+          2: '#5E574E', // text.secondary — passes AA
+          3: '#847F78', // text.tertiary — large text & icons only
+        },
+        // Status (on top only — never a chart's base)
+        status: {
+          good: '#7DB02E', // status.good.dot
+          'good-label': '#4F7A1E', // status.good.label (deep green — legible as text)
+          'good-tint': '#ECF2D6', // status.good.tint
+          neutral: '#847F78', // status.neutral
+          critical: '#C0392B', // status.critical
+          'critical-tint': '#FBF3F1', // status.critical.tint
+        },
+        // Neutral / cane scale (warmth, chart context)
+        cane: {
+          1: '#EFEBE3',
+          2: '#DFDACF',
+          3: '#D2CFC6',
+          4: '#B3AC9D',
+          5: '#8E8676',
+        },
+        // Chart emphasis — single teal family (never all-blue; max 3, rest fade to glass)
+        chart: {
+          e1: '#0095A8', // deep teal
+          'e1-top': '#1CACBE', // bar top-light
+          e2: '#63B0BE', // mid
+          'e2-top': '#7DC1CC',
+          e3: '#A9CEDB', // light steel
+          'e3-top': '#BFDBE5',
+          grid: '#F0EEE9', // chart.grid
+          axis: '#847F78', // chart.axisLabel
+        },
         primary: {
           0: 'rgb(var(--color-primary-0)/<alpha-value>)',
           50: 'rgb(var(--color-primary-50)/<alpha-value>)',
@@ -174,10 +229,30 @@ module.exports = {
           error: 'rgb(var(--color-indicator-error)/<alpha-value>)',
         },
       },
+      // Inflo radii (task 6.7) — circular corners, NOT squircle. `rounded-card`,
+      // `rounded-button`, `rounded-input`, `rounded-panel`, `rounded-pill`.
+      borderRadius: {
+        card: '14px',
+        panel: '12px',
+        button: '16px',
+        input: '16px',
+        pill: '9999px',
+      },
+      // Inflo spacing note: Tailwind's DEFAULT scale already IS our 4px grid
+      // (1=4 · 2=8 · 3=12 · 4=16 · 5=20 · 6=24 · 8=32 · 10=40 · 12=48), matching
+      // docs/design-tokens.md exactly — so we intentionally keep the defaults.
+      // Defaults: screen/card padding = p-4, stack gap = gap-3, section gap = gap-5.
       fontFamily: {
         heading: undefined,
         body: undefined,
         mono: undefined,
+        // Inflo — Geist (loaded in _layout.tsx). RN selects weight by the font
+        // FILE (family), not `fontWeight`, so each weight is its own family.
+        geist: ['Geist_400Regular'],
+        'geist-medium': ['Geist_500Medium'],
+        'geist-semibold': ['Geist_600SemiBold'],
+        'geist-bold': ['Geist_700Bold'],
+        'geist-mono': ['GeistMono_400Regular'],
         jakarta: ['var(--font-plus-jakarta-sans)'],
         roboto: ['var(--font-roboto)'],
         code: ['var(--font-source-code-pro)'],
@@ -189,8 +264,31 @@ module.exports = {
       },
       fontSize: {
         '2xs': '10px',
+        /* Inflo — the 6 type roles (docs/design-tokens.md §Typography).
+         * size + [lineHeight, letterSpacing]. Weight comes from the matching
+         * font-geist-* family class (see fontFamily above). */
+        display: ['26px', { lineHeight: '29px', letterSpacing: '-0.26px' }], // 26/700
+        title: ['20px', { lineHeight: '26px', letterSpacing: '-0.2px' }], // 20/600
+        subtitle: ['17px', { lineHeight: '23px', letterSpacing: '-0.17px' }], // 17/600
+        body: ['15px', { lineHeight: '22px', letterSpacing: '0px' }], // 15/400
+        secondary: ['13px', { lineHeight: '18px', letterSpacing: '0px' }], // 13/400
+        micro: ['11px', { lineHeight: '15px', letterSpacing: '0.22px' }], // 11/500, sentence case
       },
       boxShadow: {
+        /* Inflo elevation — warm-tinted (from ink), never cold grey.
+         * (docs/design-tokens.md §Elevation + §Material signatures.)
+         * L0 = hairline border only (no shadow) → use `border border-hairline`.
+         * Multi-layer + inset render fully on WEB; NativeWind approximates to a
+         * single shadow on native — acceptable. */
+        l1: '0 1px 2px rgba(28,27,24,.05), 0 5px 14px rgba(28,27,24,.07)',
+        l2: '0 2px 6px rgba(28,27,24,.06), 0 14px 34px rgba(28,27,24,.11)',
+        liftIn: '0 1px 2px rgba(28,27,24,.05), 0 8px 18px rgba(28,27,24,.09)', // subsection lift
+        recessInset: 'inset 0 1px 2px rgba(28,27,24,.05)', // recessed track
+        // Pillow-glass — NAV-ACTIVE ONLY (gradient + lift is the reserved signature)
+        pillowGlass:
+          'inset 0 1px 0 rgba(255,255,255,.9), 0 1px 2px rgba(28,27,24,.05), 0 5px 12px rgba(28,27,24,.09)',
+        // Glass FLUSH top-highlight — shared material (secondary button, chat bubble, bars); no outer lift
+        glassInset: 'inset 0 1px 0 rgba(255,255,255,.9)',
         'hard-1': '-2px 2px 8px 0px rgba(38, 38, 38, 0.20)',
         'hard-2': '0px 3px 10px 0px rgba(38, 38, 38, 0.20)',
         'hard-3': '2px 2px 8px 0px rgba(38, 38, 38, 0.20)',

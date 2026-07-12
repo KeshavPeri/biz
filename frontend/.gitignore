@@ -30,7 +30,8 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files — never commit real keys (task 6.6). .env.example IS tracked.
+.env
 .env*.local
 
 # typescript

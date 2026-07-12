@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inflo — Style Tile</title>
+<style>
+  :root{
+    --app:#FBFAF6; --white:#FFFFFF; --chat:#EBE7E0; --card-line:#EFEDE8; --hairline:#EAE8E2; --nav:#FBFAF7;
+    --ink:#1C1B18; --t2:#5E574E; --grey:#847F78; --avatar:#E8E5DF; --recess:#EFEAE2;
+    --green:#7DB02E; --green-d:#4F7A1E; --red:#C0392B;
+    --cane:#D2CFC6; --cane-d:#B3AC9D;
+    --e1:#0095A8; --e1l:#1CACBE; --e2:#63B0BE; --e3:#A9CEDB;
+    --glass:linear-gradient(165deg,#FFFFFF,#EAE7DF);
+    --glassV:linear-gradient(180deg,#FCFAF6,#E9E4DB);
+    --l1:0 1px 2px rgba(28,27,24,.05), 0 5px 14px rgba(28,27,24,.07);
+    --l2:0 2px 6px rgba(28,27,24,.06), 0 14px 34px rgba(28,27,24,.11);
+    font-family:'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#E8E5DF;color:var(--ink);-webkit-font-smoothing:antialiased;padding:32px 18px 60px;}
+  .wrap{max-width:920px;margin:0 auto;}
+  .hero{margin-bottom:8px;}
+  .hero .k{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--grey);}
+  .hero h1{font-size:40px;font-weight:700;letter-spacing:-.02em;margin-top:6px;}
+  .hero p{font-size:15px;color:var(--t2);margin-top:8px;line-height:1.5;max-width:60ch;}
+
+  .sec{margin-top:34px;}
+  .sec-h{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #DCD8D0;}
+  .grid{display:flex;flex-wrap:wrap;gap:16px;}
+  .card{background:var(--white);border:1px solid var(--card-line);border-radius:14px;box-shadow:var(--l1);padding:16px;}
+
+  /* palette */
+  .sw{display:flex;flex-direction:column;gap:6px;}
+  .sw .b{width:100%;height:56px;border-radius:10px;border:1px solid rgba(28,27,24,.06);}
+  .sw .n{font-size:11px;font-weight:600;}
+  .sw .h{font-size:10px;color:var(--grey);font-variant-numeric:tabular-nums;}
+  .palrow{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
+
+  /* type */
+  .type .r{padding:9px 0;border-top:1px solid var(--hairline);display:flex;align-items:baseline;justify-content:space-between;gap:16px;}
+  .type .r:first-child{border-top:none;}
+  .type .meta{font-size:11px;color:var(--grey);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .d1{font-size:26px;font-weight:700;letter-spacing:-.01em;}
+  .d2{font-size:20px;font-weight:600;} .d3{font-size:17px;font-weight:600;}
+  .d4{font-size:15px;} .d5{font-size:13px;color:var(--t2);} .d6{font-size:11px;font-weight:500;color:var(--grey);}
+
+  /* elevation */
+  .elevrow{display:flex;gap:14px;flex-wrap:wrap;}
+  .ecard{flex:1;min-width:130px;border-radius:14px;padding:16px;font-size:12px;color:var(--t2);background:var(--white);}
+  .e0{border:1px solid var(--hairline);} .e1{box-shadow:var(--l1);} .e2{box-shadow:var(--l2);}
+  .ecard b{display:block;font-size:13px;color:var(--ink);margin-bottom:3px;}
+
+  /* buttons + nav */
+  .btnrow{display:flex;gap:10px;}
+  .btn{height:46px;padding:0 20px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;}
+  .primary{background:var(--ink);color:#fff;} .secondary{color:var(--ink);background:var(--glass);border:1px solid rgba(28,27,24,.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.9);}
+  .nav{display:flex;gap:2px;margin-top:14px;padding:8px;background:var(--nav);border:1px solid var(--hairline);border-radius:22px;box-shadow:0 1px 2px rgba(28,27,24,.04),0 8px 20px rgba(28,27,24,.08);}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 4px;border-radius:16px;color:var(--grey);}
+  .tab svg{width:22px;height:22px;} .tab .c{font-size:11px;font-weight:500;}
+  .tab.on{color:var(--ink);background:var(--glass);border:1px solid rgba(28,27,24,.05);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 1px 2px rgba(28,27,24,.05),0 5px 12px rgba(28,27,24,.09);}
+  .tab.on .c{font-weight:600;}
+
+  /* chat */
+  .chat{background:var(--chat);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:9px;}
+  .inrow{display:flex;align-items:flex-end;gap:7px;max-width:86%;}
+  .iav{width:24px;height:24px;border-radius:999px;background:var(--avatar);border:1px solid rgba(28,27,24,.09);box-shadow:0 2px 5px rgba(28,27,24,.10);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex:none;}
+  .bub{padding:8px 11px 6px;border-radius:16px;}
+  .in{background:#fff;border:1px solid #E6E2DA;border-bottom-left-radius:6px;}
+  .out{align-self:flex-end;background:var(--glass);border:1px solid rgba(28,27,24,.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.9);border-bottom-right-radius:6px;}
+  .bub .nm{font-size:12px;font-weight:700;margin-bottom:1px;}
+  .bub .tx{font-size:14px;line-height:1.38;}
+  .bub .mt{font-size:10px;color:var(--grey);text-align:right;margin-top:2px;font-variant-numeric:tabular-nums;}
+
+  /* charts */
+  .chartcard{width:300px;}
+  .ct{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;}
+  .ct .a{font-size:13px;font-weight:600;} .ct .b{font-size:10.5px;color:var(--grey);}
+  .plot{position:relative;height:130px;padding-left:30px;}
+  .gl{position:absolute;left:30px;right:0;height:1px;background:#F0EEE9;}
+  .yt{position:absolute;left:0;font-size:9px;color:var(--grey);transform:translateY(-50%);}
+  .pa{position:absolute;left:30px;right:0;top:0;bottom:18px;display:flex;align-items:flex-end;gap:12px;}
+  .g{flex:1;display:flex;align-items:flex-end;justify-content:center;height:100%;}
+  .vbar{width:100%;max-width:24px;border-radius:7px 7px 3px 3px;position:relative;}
+  .vbar .v{position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .v1{background:linear-gradient(180deg,var(--e1l),var(--e1));} .v2{background:var(--e2);} .v3{background:var(--e3);}
+  .vg{background:var(--glassV);border:1px solid rgba(28,27,24,.12);}
+  .xr{position:absolute;left:30px;right:0;bottom:0;display:flex;gap:12px;} .xr .x{flex:1;text-align:center;font-size:9.5px;color:var(--grey);}
+  .hb{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+  .hb .l{width:44px;font-size:11px;color:var(--t2);text-align:right;}
+  .hb .f{height:22px;border-radius:8px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:10px;font-weight:600;color:#fff;font-variant-numeric:tabular-nums;}
+  .hg{background:var(--glassV);border:1px solid rgba(28,27,24,.12);color:var(--t2)!important;box-shadow:0 1px 2px rgba(28,27,24,.06);}
+
+  .foot{margin-top:40px;text-align:center;font-size:11px;color:var(--grey);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="k">Inflo · Design System</div>
+    <h1>Style Tile</h1>
+    <p>A calm, trusted home for creator–brand deals. Warm neutral surfaces, rationed colour, one premium glass signature, content as the star.</p>
+  </div>
+
+  <!-- PALETTE -->
+  <div class="sec">
+    <div class="sec-h">Palette</div>
+    <div class="palrow">
+      <div class="sw"><div class="b" style="background:#FBFAF6"></div><div class="n">App base</div><div class="h">#FBFAF6</div></div>
+      <div class="sw"><div class="b" style="background:#FFFFFF"></div><div class="n">Card</div><div class="h">#FFFFFF</div></div>
+      <div class="sw"><div class="b" style="background:#EBE7E0"></div><div class="n">Chat canvas</div><div class="h">#EBE7E0</div></div>
+      <div class="sw"><div class="b" style="background:#1C1B18"></div><div class="n">Ink</div><div class="h">#1C1B18</div></div>
+      <div class="sw"><div class="b" style="background:#5E574E"></div><div class="n">Secondary</div><div class="h">#5E574E</div></div>
+      <div class="sw"><div class="b" style="background:#847F78"></div><div class="n">Warm grey</div><div class="h">#847F78</div></div>
+      <div class="sw"><div class="b" style="background:#E8E5DF"></div><div class="n">Avatar</div><div class="h">#E8E5DF</div></div>
+      <div class="sw"><div class="b" style="background:#D2CFC6"></div><div class="n">Cane</div><div class="h">#D2CFC6</div></div>
+      <div class="sw"><div class="b" style="background:#7DB02E"></div><div class="n">Good</div><div class="h">#7DB02E</div></div>
+      <div class="sw"><div class="b" style="background:#C0392B"></div><div class="n">Critical</div><div class="h">#C0392B</div></div>
+      <div class="sw"><div class="b" style="background:linear-gradient(180deg,#1CACBE,#0095A8)"></div><div class="n">Teal · chart</div><div class="h">#0095A8</div></div>
+      <div class="sw"><div class="b" style="background:#A9CEDB"></div><div class="n">Light steel</div><div class="h">#A9CEDB</div></div>
+    </div>
+  </div>
+
+  <!-- TYPE -->
+  <div class="sec">
+    <div class="sec-h">Typography · Geist</div>
+    <div class="card type">
+      <div class="r"><span class="d1">Summer Glow</span><span class="meta">Display · 26 / 700</span></div>
+      <div class="r"><span class="d2">₹45,000</span><span class="meta">Title · 20 / 600</span></div>
+      <div class="r"><span class="d3">Lumio Skincare</span><span class="meta">Subtitle · 17 / 600</span></div>
+      <div class="r"><span class="d4">Two Reels and three Stories, over two weeks.</span><span class="meta">Body · 15 / 400</span></div>
+      <div class="r"><span class="d5">@aditi.raj · started 4 Jul</span><span class="meta">Secondary · 13 / 400</span></div>
+      <div class="r"><span class="d6">Content due 12 Jul</span><span class="meta">Micro · 11 / 500</span></div>
+    </div>
+  </div>
+
+  <!-- ELEVATION -->
+  <div class="sec">
+    <div class="sec-h">Elevation · Soft</div>
+    <div class="elevrow">
+      <div class="ecard e0"><b>L0 · Flat</b>Hairline only. Dense lists, settings.</div>
+      <div class="ecard e1"><b>L1 · Soft lift</b>Primary cards rest on the surface.</div>
+      <div class="ecard e2"><b>L2 · Floating</b>Modals, nudges, chat, active states.</div>
+    </div>
+  </div>
+
+  <!-- BUTTONS + NAV -->
+  <div class="sec">
+    <div class="sec-h">Buttons &amp; pillow-glass nav</div>
+    <div class="card">
+      <div class="btnrow"><div class="btn primary">Review &amp; sign</div><div class="btn secondary">Message</div></div>
+      <div class="nav">
+        <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="3"/><path d="M8.5 9h7M8.5 13h7M8.5 17h4"/></svg><span class="c">Deals</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 18 15.5h-6l-4.2 3.1V15.5H6A2.5 2.5 0 0 1 3.5 13V7A2.5 2.5 0 0 1 6 4.5Z"/></svg><span class="c">Chats</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.2"/><path d="M20 20l-4.4-4.4"/></svg><span class="c">Discover</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20v-5M12 20v-9M18 20v-13"/></svg><span class="c">Earnings</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg><span class="c">Profile</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="sec">
+    <div class="sec-h">Chat</div>
+    <div class="chat">
+      <div class="inrow"><div class="iav">L</div><div class="bub in"><div class="nm">Lumio Skincare</div><div class="tx">2 Reels + 3 Stories. Budget ₹45,000.</div><div class="mt">9:23</div></div></div>
+      <div class="bub out" style="max-width:86%"><div class="tx">Looks great — reviewing now.</div><div class="mt">9:24 ✓✓</div></div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="sec">
+    <div class="sec-h">Charts · one teal family, numbers on everything</div>
+    <div class="grid">
+      <div class="card chartcard">
+        <div class="ct"><div class="a">Top 3, rest fade</div><div class="b">emphasis</div></div>
+        <div class="plot">
+          <span class="yt" style="top:6px">80k</span><span class="yt" style="top:58px">40k</span><span class="yt" style="top:110px">0</span>
+          <div class="gl" style="top:6px"></div><div class="gl" style="top:58px"></div><div class="gl" style="top:110px"></div>
+          <div class="pa">
+            <div class="g"><div class="vbar v1" style="height:100%"><span class="v">78k</span></div></div>
+            <div class="g"><div class="vbar v2" style="height:72%"><span class="v">56k</span></div></div>
+            <div class="g"><div class="vbar v3" style="height:54%"><span class="v">42k</span></div></div>
+            <div class="g"><div class="vbar vg" style="height:36%"><span class="v">28k</span></div></div>
+            <div class="g"><div class="vbar vg" style="height:22%"><span class="v">17k</span></div></div>
+          </div>
+          <div class="xr"><span class="x">Lum</span><span class="x">Van</span><span class="x">Fri</span><span class="x">Brew</span><span class="x">Maya</span></div>
+        </div>
+      </div>
+      <div class="card chartcard">
+        <div class="ct"><div class="a">Earnings by brand</div><div class="b">no track</div></div>
+        <div style="margin-top:6px">
+          <div class="hb"><span class="l">Lumio</span><div class="f" style="width:100%;background:linear-gradient(180deg,#1CACBE,#0095A8)">₹78k</div></div>
+          <div class="hb"><span class="l">Vanya</span><div class="f hg" style="width:72%">₹56k</div></div>
+          <div class="hb"><span class="l">Frido</span><div class="f hg" style="width:54%">₹42k</div></div>
+          <div class="hb"><span class="l">Brew</span><div class="f hg" style="width:36%">₹28k</div></div>
+          <div class="hb"><span class="l">Maya</span><div class="f hg" style="width:22%">₹17k</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">Inflo Design System · locked via design workshop, task 6.7 · Geist · warm neutral · rationed colour · content is the star</div>
+</div>
+</body>
+</html>
