@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 
 import { supabase } from '@/lib/supabase';
+import { saveSignature } from '@/lib/signature';
 import { useOnboardingStore } from '@/store/onboarding-store';
 
 /**
@@ -99,6 +100,10 @@ async function submitCreator(state: OnboardingState, userId: string): Promise<vo
     const { error: shError } = await client.from('social_handles').insert(rows);
     if (shError) throw shError;
   }
+
+  // Signature (task 7.9): now that the profiles row exists (FK target), store the
+  // reusable signature. Optional-tolerant — an empty one just skips.
+  await saveSignature(userId, state.signatureType, state.signatureData);
 }
 
 async function submitBrand(state: OnboardingState, userId: string): Promise<void> {

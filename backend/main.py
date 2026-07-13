@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api import health
+from api import health, maker_checker
 from core.supabase_client import get_supabase
 
 
@@ -25,3 +25,4 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(maker_checker.router)

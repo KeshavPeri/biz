@@ -45,7 +45,7 @@ export default function CreatorAboutScreen() {
       title="The 60-second media kit."
       subtitle="Just the essentials — this is what brands filter on. The polish comes later, on your terms."
       onBack={() => router.back()}
-      progress={<OnboardingProgress total={3} current={0} />}
+      progress={<OnboardingProgress total={4} current={0} />}
       footer={
         <Button
           action="primary"

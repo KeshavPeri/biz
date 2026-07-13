@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
+import { MakerCheckerConfig } from '@/components/maker-checker-config';
 import { TabPlaceholder } from '@/components/tab-placeholder';
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
@@ -20,18 +21,23 @@ export default function AccountScreen() {
 
   return (
     <TabPlaceholder title="Account">
-      <View className="mt-6">
-        <Button
-          action="secondary"
-          variant="outline"
-          size="lg"
-          isDisabled={signingOut}
-          onPress={handleLogout}
-        >
-          {signingOut ? <ButtonSpinner color="#1C1B18" /> : null}
-          <ButtonText>Log out</ButtonText>
-        </Button>
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-32">
+        {/* Brand admins see maker-checker config here; renders nothing otherwise. */}
+        <MakerCheckerConfig />
+
+        <View className="mt-8">
+          <Button
+            action="secondary"
+            variant="outline"
+            size="lg"
+            isDisabled={signingOut}
+            onPress={handleLogout}
+          >
+            {signingOut ? <ButtonSpinner color="#1C1B18" /> : null}
+            <ButtonText>Log out</ButtonText>
+          </Button>
+        </View>
+      </ScrollView>
     </TabPlaceholder>
   );
 }

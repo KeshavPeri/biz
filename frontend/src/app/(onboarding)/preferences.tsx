@@ -51,7 +51,7 @@ export default function PreferencesScreen() {
       title="How do you want deals to find you?"
       subtitle="Both on is the default — most creators keep it that way. This shows as a badge on your profile."
       onBack={() => router.back()}
-      progress={<OnboardingProgress total={3} current={2} />}
+      progress={<OnboardingProgress total={4} current={3} />}
       footer={
         <Button
           action="primary"

@@ -16,7 +16,8 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 7 — Identity & Trust (Bucket 1). **Clusters A + B DONE.**
+- **Current phase:** Phase 7 — Identity & Trust (Bucket 1). **Clusters A + B + C DONE — all build
+  work complete; only the close-out gates (7.12 phone test / 7.13 RTM / 7.14 phase gate) remain.**
   - **Cluster A (Auth core, 7.1–7.4)** — committed `feat: auth core` (`aa07748`) on 2026-07-13.
     Sign up → email OTP (6-digit) → login → persistent session, tested web + device.
   - **Cluster B (Roles & onboarding, 7.5–7.8, 7.11)** — built + tested; committed
@@ -25,9 +26,15 @@ up exactly where the last one left off, with zero context lost.
     014 applied to dev (niche→`niches text[]` + brand first-admin bootstrap RLS).
     `test_onboarding.py` 8/8 PASS (creator writes, ≤3 niche CHECK, brand bootstrap, intruder
     blocked). Both journeys live-clicked on web; Devasri OK'd the built screens (light G3).
-  - **Next up: Cluster C — signatures (7.9) + maker-checker (7.10)** — the last cluster in Phase 7
-    (security + RBAC; ends with a `/security-review`-style pass). Then close-out 7.12–7.14.
-  - RTM Build/Test columns for all Bucket 1 features to be filled at task 7.13.
+  - **Cluster C (Signatures 7.9 + maker-checker 7.10)** — built + tested; committed
+    `feat: signatures & maker-checker` on 2026-07-13. Signature capture (draw via SVG paths / type),
+    stored inline in `signatures` under owner-only RLS; first real FastAPI feature — maker-checker
+    config UI (admin-only) + server-enforced request/decision lifecycle with segregation of duties
+    (maker ≠ checker guarded at initiation AND decision). Migration 015 (UNIQUE brand_id+action_type).
+    `test_maker_checker.py` 10/10; orchestrator security pass = no critical/high. Scope boundary held:
+    config + enforcement mechanism only; live deal-action wiring + per-deal role assignment = Phase 9.
+  - **Next up: close-out** — 7.12 (Keshav phone-tests both full journeys on device, Gate G4),
+    7.13 (fill RTM Build/Test columns for all Bucket 1 features), 7.14 (commit + phase go/no-go, G5).
   - *(Prior: Phase 6 — Frontend Foundation COMPLETE, committed 6.8 on 2026-07-13. See history below.)*
 - **Current task:** Task 6.1 done (Expo app scaffolded; **Expo SDK 54** — downgraded twice,
   56→55→54, to match the test phones' Expo Go build — see downgrade notes below — Expo
@@ -156,6 +163,25 @@ here in one line so I can review or reverse it later.*
   before finish ⇒ re-run wizard; safe via upserts). Signature (7.9) + proof/partnerships OMITTED
   (deferred, flagged); notifications toggle cosmetic (Phase 12); prefs inbound/outbound included
   (documented creator columns). Brand path is a new form (mockup only had a static brand scope list).
+- 2026-07-13 — **Signatures stored INLINE in `signatures.signature_data`** (Cluster C), not a Storage
+  bucket: drawn → SVG markup, typed → the name. Doc-compliant (security.md: RLS + at-rest encryption,
+  no client-side crypto for MVP). A Storage bucket stays available for Phase 9 file uploads. Drawn
+  capture uses PanResponder→SVG paths via existing react-native-svg — no new dep, no webview.
+- 2026-07-13 — **First real FastAPI feature (maker-checker, 7.10).** `core/auth.py` verifies the
+  caller's Supabase JWT via `auth.get_user` (no new secret); `services/maker_checker.py` runs the
+  request lifecycle on the service_role client and self-enforces RBAC + segregation of duties
+  (maker ≠ checker at BOTH initiation and decision) + writes `audit_log`. Endpoints registered in
+  `main.py` (`/maker-checker/*`), authed via `Depends(get_current_user_id)`, audit IP from
+  `request.client.host` (non-spoofable; revisit for proxy/Railway in Phase 14).
+- 2026-07-13 — **Maker-checker Phase-7 scope = config + enforcement MECHANISM only.** Live wiring
+  into real payment/contract/content actions + per-deal maker/checker assignment (deal_participants)
+  are Phase 9 (need deals). Proven now with fictional deals/participants in `test_maker_checker.py`.
+  Config changes not audit-logged in MVP (recommended follow-up). Real brands are solo (no invite
+  flow yet) so the config toggle is disabled live; the enabled path is proven by test.
+- 2026-07-13 — **Low items to revisit (Cluster C security pass, non-blocking):** `decide_request`
+  UPDATE should add `.eq('status','pending')` for race-idempotency; add a partial-unique index to
+  block duplicate pending requests per deal+action; signature save is two-step (deactivate→insert),
+  retry-safe; audit IP needs trusted-proxy handling before production.
 - 2026-07-13 — **Cluster B schema: `creator_profiles.niche` (text) → `niches text[]`** (migration
   014, applied to dev). Approved data-model amendment (Keshav) so a creator picks up to 3 niches per
   the mockup, consistent with `content_languages`; DB CHECK enforces ≤3. `docs/data-model.md` updated.
@@ -265,6 +291,31 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-07-13 — Phase 7 Cluster C: Signatures (7.9) + maker-checker (7.10) — BUILT, TESTED, COMMITTED
+- **Did:** The security + RBAC cluster; first backend/FastAPI feature.
+  - **7.9 signatures:** `signature-pad.tsx` (PanResponder→SVG paths via react-native-svg — no new
+    dep/webview, web + Expo Go), `(onboarding)/signature.tsx` (draw/type toggle + clear + shield
+    note) inserted into the creator flow (role→about→platforms→signature→preferences→done),
+    `lib/signature.ts` `saveSignature()` (deactivates prior active then inserts; respects the
+    partial-unique active-per-profile index) wired into `submitCreator`. Stored inline under
+    owner-only `signatures` RLS. Storage-bucket + per-use contract signing/IP-log deferred (Phase 9).
+  - **7.10 maker-checker:** config UI `maker-checker-config.tsx` (Account tab, admin-only, per-action
+    toggles, solo-brand disables toggle with a hint) writing `maker_checker_config` under admin-only
+    RLS; migration 015 = UNIQUE(brand_id, action_type) for clean upsert. Backend: `core/auth.py`
+    (JWT verify), `services/maker_checker.py` + `api/maker_checker.py` — request lifecycle on
+    service_role, segregation of duties enforced server-side at initiation AND decision, `audit_log`
+    on every step. Scope boundary: mechanism + config only; live deal wiring = Phase 9.
+- **Verify:** migration 015 applied to dev (constraint present); `tsc --noEmit` 0 errors; `expo
+  export --platform web` clean (`/(onboarding)/signature` present); `test_maker_checker.py` 10/10
+  (run twice, stable) — drives real endpoints with real JWTs (config gating, maker-can't-approve-own
+  403, non-checker 403, request stays pending after refusals, assigned checker approves, audit rows,
+  config-write RLS, signature RLS); `test_onboarding.py` 8/8 regression. Orchestrator security pass:
+  no critical/high (auth server-verified, maker≠checker triple-guarded, audit IP non-spoofable);
+  low notes logged in DECISIONS.
+- **Committed** `feat: signatures & maker-checker` (also folded in the `.githooks/pre-commit`
+  false-positive fix from earlier + tracked `frontend/.env.example`). **Next:** close-out — 7.12
+  (phone test both journeys, G4), 7.13 (RTM), 7.14 (phase gate, G5).
 
 ### 2026-07-13 — Phase 7 Cluster B: Roles & onboarding (7.5–7.8, 7.11) — BUILT, TESTED, COMMITTED
 - **Did:** Post-verify onboarding wizard on the themed shell, faithful to the (approved)

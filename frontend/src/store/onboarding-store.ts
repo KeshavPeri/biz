@@ -25,6 +25,9 @@ export type ConnectedPlatform = {
 /** platform_enum values we support in onboarding (data-model.md). */
 export type PlatformKey = 'instagram' | 'youtube' | 'tiktok' | 'x';
 
+/** signature_type_enum (data-model.md). */
+export type SignatureType = 'drawn' | 'typed';
+
 type OnboardingState = {
   role: OnboardingRole | null;
 
@@ -37,6 +40,10 @@ type OnboardingState = {
   platforms: Partial<Record<PlatformKey, ConnectedPlatform>>;
   inbound: boolean; // → creator_profiles.inbound_enabled
   outbound: boolean; // → creator_profiles.outbound_enabled
+  // Signature (held here; written to `signatures` at finish, after the profiles
+  // row exists, since signatures.profile_id FKs to profiles).
+  signatureType: SignatureType;
+  signatureData: string; // drawn → SVG markup; typed → the typed name
 
   // Brand
   companyName: string;
@@ -61,6 +68,8 @@ const initial = {
   platforms: {} as Partial<Record<PlatformKey, ConnectedPlatform>>,
   inbound: true,
   outbound: true,
+  signatureType: 'drawn' as SignatureType,
+  signatureData: '',
   companyName: '',
   industry: '',
   companyIdGst: '',

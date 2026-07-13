@@ -4,8 +4,12 @@ set -euo pipefail
 
 staged=$(git diff --cached --name-only)
 
-# 1) Block env/secret files by name
-if echo "$staged" | grep -E '(^|/)\.env($|\.)|(^|/)secrets/' >/dev/null; then
+# 1) Block env/secret files by name — but allow the tracked .env.example / .env.sample
+#    templates (they hold only blank placeholders; check 2 still scans them for real values).
+if echo "$staged" \
+  | grep -E '(^|/)\.env($|\.)|(^|/)secrets/' \
+  | grep -vE '(^|/)\.env\.(example|sample)$' \
+  >/dev/null; then
   echo "COMMIT BLOCKED: you're trying to commit an env/secret file."
   echo "  Unstage it:  git restore --staged <file>"
   exit 1

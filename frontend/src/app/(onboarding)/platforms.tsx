@@ -65,14 +65,14 @@ export default function PlatformsScreen() {
       title="Connect where you create."
       subtitle="We pull your followers, engagement and reach automatically — your media kit builds itself."
       onBack={() => router.back()}
-      progress={<OnboardingProgress total={3} current={1} />}
+      progress={<OnboardingProgress total={4} current={1} />}
       footer={
         <Button
           action="primary"
           size="xl"
           className="w-full"
           isDisabled={connectedCount === 0}
-          onPress={() => router.push('/(onboarding)/preferences')}
+          onPress={() => router.push('/(onboarding)/signature')}
         >
           <ButtonText>Continue</ButtonText>
         </Button>
