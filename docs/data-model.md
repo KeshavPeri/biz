@@ -107,7 +107,7 @@ Creator-specific fields. 1:1 with `profiles` where account_type = creator.
 |---|---|---|
 | id | uuid (PK) | |
 | profile_id | uuid (FK → profiles) | |
-| niche | text | with emoji |
+| niches | text[] | up to 3 (migration 014; was single `niche`). App + DB CHECK cap at 3 |
 | content_category | text | |
 | bio | text | |
 | content_languages | text[] | |

@@ -16,12 +16,18 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 7 — Identity & Trust (Bucket 1). **Cluster A (Auth core, 7.1–7.4)
-  BUILT + PHONE-TESTED + committed** `feat: auth core` on 2026-07-13. Full loop works end-to-end
-  on web + device: sign up (email+password) → email OTP (6-digit) → land in app → log out → log
-  back in → session persists across restart. Security-reviewed (no critical/high). **Next up:
-  Cluster B — roles & onboarding (7.5–7.8, 7.11).** RTM Build columns for Bucket 1 to be filled
-  at task 7.13 (per the Phase 7 handoff plan).
+- **Current phase:** Phase 7 — Identity & Trust (Bucket 1). **Clusters A + B DONE.**
+  - **Cluster A (Auth core, 7.1–7.4)** — committed `feat: auth core` (`aa07748`) on 2026-07-13.
+    Sign up → email OTP (6-digit) → login → persistent session, tested web + device.
+  - **Cluster B (Roles & onboarding, 7.5–7.8, 7.11)** — built + tested; committed
+    `feat: roles & onboarding` on 2026-07-13. Post-verify onboarding gate → role fork
+    (Creator/Brand) → role-specific wizard → profile written at finish → land in app. Migration
+    014 applied to dev (niche→`niches text[]` + brand first-admin bootstrap RLS).
+    `test_onboarding.py` 8/8 PASS (creator writes, ≤3 niche CHECK, brand bootstrap, intruder
+    blocked). Both journeys live-clicked on web; Devasri OK'd the built screens (light G3).
+  - **Next up: Cluster C — signatures (7.9) + maker-checker (7.10)** — the last cluster in Phase 7
+    (security + RBAC; ends with a `/security-review`-style pass). Then close-out 7.12–7.14.
+  - RTM Build/Test columns for all Bucket 1 features to be filled at task 7.13.
   - *(Prior: Phase 6 — Frontend Foundation COMPLETE, committed 6.8 on 2026-07-13. See history below.)*
 - **Current task:** Task 6.1 done (Expo app scaffolded; **Expo SDK 54** — downgraded twice,
   56→55→54, to match the test phones' Expo Go build — see downgrade notes below — Expo
@@ -134,6 +140,38 @@ do not proceed. I'll resolve these at the start of my next session.*
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
 
+- 2026-07-13 — **Cluster B schema (migration 014) — WRITTEN, NOT YET APPLIED.** (1) `creator_profiles.niche`
+  (text) → `niches` (text[]) + CHECK ≤3 (approved amendment; empty dev DB). (2) Brand first-admin
+  **bootstrap RLS** (`brand_has_members()` SECURITY DEFINER + `brand_members_insert_self_bootstrap`
+  policy) — the existing `brand_members_insert_admin` needs you to already be an admin, blocking the
+  first one; approved to keep 7.7 Supabase-direct. `data-model.md` updated (niches row). **⚠ BLOCKER:
+  couldn't apply — `SUPABASE_ACCESS_TOKEN` in `.env` returns 401 (expired/revoked; fails even on
+  `/v1/projects`). Regenerate it (Supabase → Account → Access Tokens), then run
+  `backend/.venv/bin/python backend/migrations/apply_migration.py 014_onboarding.sql`.** Until then the
+  onboarding writes can't be live-tested.
+- 2026-07-13 — **Onboarding writes at FINISH, not per-step (Cluster B).** All wizard answers held in a
+  Zustand `onboarding-store`; committed once in `lib/onboarding.ts` `submitOnboarding()` (idempotent
+  upserts + membership check). Gate = `profiles.profile_completeness > 0`, set as the LAST write, so the
+  route flips to (tabs) only when the whole profile succeeded. No mid-wizard resume for MVP (drop-off
+  before finish ⇒ re-run wizard; safe via upserts). Signature (7.9) + proof/partnerships OMITTED
+  (deferred, flagged); notifications toggle cosmetic (Phase 12); prefs inbound/outbound included
+  (documented creator columns). Brand path is a new form (mockup only had a static brand scope list).
+- 2026-07-13 — **Cluster B schema: `creator_profiles.niche` (text) → `niches text[]`** (migration
+  014, applied to dev). Approved data-model amendment (Keshav) so a creator picks up to 3 niches per
+  the mockup, consistent with `content_languages`; DB CHECK enforces ≤3. `docs/data-model.md` updated.
+- 2026-07-13 — **Brand first-admin bootstrap RLS** (migration 014): the existing
+  `brand_members_insert_admin` requires you to *already* be an admin — impossible for the very first
+  member. Added `brand_members_insert_self_bootstrap` (+ SECURITY DEFINER `brand_has_members()`):
+  a user may self-insert an admin+active row **only while the brand has zero members**. Narrow —
+  can't self-promote into an existing brand (verified by `test_onboarding.py` intruder case).
+- 2026-07-13 — **Onboarding gate keyed on `profiles.profile_completeness > 0`.** The finish-write
+  sets completeness LAST, so the gate (auth → onboarding → tabs) flips exactly once, only after every
+  profile write succeeds; partial failures leave it 0 and the idempotent wizard safely re-finishes.
+- 2026-07-13 — **Known Postgres gotcha (test-only, app unaffected):** RLS + `RETURNING` — asking for
+  an inserted row back (`Prefer: return=representation`) runs the SELECT policy on the new row, which
+  the `brand_members` read policy can't pass on the bootstrapping insert (→ spurious 42501). App is
+  safe: `submitBrand()` doesn't `.select()` after that insert (supabase-js defaults to
+  `return=minimal`). Documented in `test_onboarding.py`.
 - 2026-07-13 — **G2 email delivery RESOLVED (Cluster A): custom SMTP via Brevo (free tier) for dev.**
   Supabase's built-in email sender can no longer edit templates on new 2026 free projects — it only
   sends the default *link-based* confirmation, but our OTP UX needs a *6-digit code*. So we wired
@@ -227,6 +265,37 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-07-13 — Phase 7 Cluster B: Roles & onboarding (7.5–7.8, 7.11) — BUILT, TESTED, COMMITTED
+- **Did:** Post-verify onboarding wizard on the themed shell, faithful to the (approved)
+  `inflo-onboarding.html`. **Migration 014** (`niche`→`niches text[]` +≤3 CHECK; brand first-admin
+  bootstrap RLS `brand_members_insert_self_bootstrap` + `brand_has_members()`), applied to dev;
+  `data-model.md` updated.
+  - **7.5 routing:** `_layout.tsx` now a three-way `Stack.Protected` gate — no session→`(auth)`,
+    session+not-onboarded→`(onboarding)`, session+onboarded→`(tabs)`; keyed on
+    `profiles.profile_completeness > 0` (`auth-store.onboarded` + `use-auth-session` query +
+    `refreshOnboarded()`). New `(onboarding)` group, 6 screens; role fork = Creator/Brand only
+    (agency out per scope).
+  - **Wizard:** answers in `store/onboarding-store.ts`, committed once at finish via
+    `lib/onboarding.ts` (`submitOnboarding` + `computeCompleteness`, idempotent upserts, completeness
+    written LAST). 7.6 creator-about (display_name/city→profiles; niches/content_languages/bio→
+    creator_profiles), 7.8 platforms→`social_handles` (mock stats), prefs→inbound/outbound,
+    7.7 brand-details→brands + brand_members(admin,active) + profiles(brand), 7.11 done()→ring +
+    `profile_completeness`. New shared UI: Chip, Toggle, OnboardingProgress; AuthShell +progress slot.
+  - **Deviations (all flagged):** agency removed (scope); AI "write my bio" omitted (Phase 10
+    ai_service); `content_category` not captured; platform gradients→solid; notifications toggle
+    cosmetic (Phase 12); signature step deferred (7.9, Cluster C); proof()/partnerships deferred;
+    ring static; brand form newly designed (mockup only had a static brand capture list).
+- **Verify:** `tsc --noEmit` 0 errors; `expo export --platform web` clean (all 6 onboarding routes).
+  **`backend/tests/test_onboarding.py` 8/8 PASS** against live dev DB (creator writes, ≤3 niche CHECK
+  rejects a 4th, `social_handles`, brand bootstrap allowed on memberless brand, intruder blocked).
+  Both journeys live-clicked on web; Devasri OK'd built screens (light G3 — mockup pre-approved).
+  Orchestrator review: brand path sound (`brands_insert_authenticated` + narrow bootstrap policy),
+  gate has no wrong-screen flash + fails safe to onboarding. Low notes logged (orphan-brand on
+  partial failure; onboarded-user transient-error reroute; SECURITY DEFINER `search_path` — pre-
+  existing across 012 helpers).
+- **Committed** `feat: roles & onboarding`. **Next:** Cluster C — 7.9 signature capture + 7.10
+  maker-checker (security + RBAC), then close-out 7.12 (phone test, G4) / 7.13 (RTM) / 7.14 (G5).
 
 ### 2026-07-13 — Phase 7 Cluster A: Auth core (tasks 7.1–7.4) — BUILT, TESTED, COMMITTED
 - **Did:** Built the full auth loop. New `(auth)` route group (renders outside the 5-tab shell):

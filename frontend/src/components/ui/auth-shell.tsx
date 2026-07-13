@@ -26,6 +26,8 @@ type AuthShellProps = {
   footer: ReactNode;
   /** Optional back affordance (mockup `.backbtn`). */
   onBack?: () => void;
+  /** Optional progress bar shown in the top chrome (mockup `.progress`). */
+  progress?: ReactNode;
 };
 
 /**
@@ -41,6 +43,7 @@ export function AuthShell({
   children,
   footer,
   onBack,
+  progress,
 }: AuthShellProps) {
   return (
     <SafeAreaView className="flex-1 bg-app" edges={['top', 'bottom']}>
@@ -48,17 +51,21 @@ export function AuthShell({
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {onBack ? (
-          <View className="px-[10px] pt-1.5">
-            <Pressable
-              onPress={onBack}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-              className="h-9 w-9 items-center justify-center rounded-panel"
-            >
-              <BackIcon width={22} height={22} color={INK} />
-            </Pressable>
+        {onBack || progress ? (
+          // Top chrome (mockup `.obhead`): back button + progress bar.
+          <View className="flex-row items-center gap-3 px-[10px] pt-1.5">
+            {onBack ? (
+              <Pressable
+                onPress={onBack}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                className="h-9 w-9 items-center justify-center rounded-panel"
+              >
+                <BackIcon width={22} height={22} color={INK} />
+              </Pressable>
+            ) : null}
+            {progress}
           </View>
         ) : null}
 

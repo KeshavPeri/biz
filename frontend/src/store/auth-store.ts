@@ -13,13 +13,22 @@ type AuthState = {
   session: Session | null;
   /** True until the initial getSession() has resolved. */
   isLoading: boolean;
+  /**
+   * Whether the signed-in user has finished onboarding (Cluster B). `null` = not
+   * checked yet (we've a session but haven't queried the profile). The root
+   * layout routes on this: false → (onboarding), true → (tabs).
+   */
+  onboarded: boolean | null;
   setSession: (session: Session | null) => void;
   setLoading: (isLoading: boolean) => void;
+  setOnboarded: (onboarded: boolean | null) => void;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
   session: null,
   isLoading: true,
+  onboarded: null,
   setSession: (session) => set({ session }),
   setLoading: (isLoading) => set({ isLoading }),
+  setOnboarded: (onboarded) => set({ onboarded }),
 }));
