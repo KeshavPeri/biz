@@ -16,9 +16,13 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 6 — Frontend Foundation — **COMPLETE** (foundation 6.1–6.7 built, 6.6
-  live-verified; committed at task 6.8 on 2026-07-13). **Next up: Phase 7 — Identity & Trust**
-  (Bucket 1, first feature-level build; start filling RTM Build columns).
+- **Current phase:** Phase 7 — Identity & Trust (Bucket 1). **Cluster A (Auth core, 7.1–7.4)
+  BUILT + PHONE-TESTED + committed** `feat: auth core` on 2026-07-13. Full loop works end-to-end
+  on web + device: sign up (email+password) → email OTP (6-digit) → land in app → log out → log
+  back in → session persists across restart. Security-reviewed (no critical/high). **Next up:
+  Cluster B — roles & onboarding (7.5–7.8, 7.11).** RTM Build columns for Bucket 1 to be filled
+  at task 7.13 (per the Phase 7 handoff plan).
+  - *(Prior: Phase 6 — Frontend Foundation COMPLETE, committed 6.8 on 2026-07-13. See history below.)*
 - **Current task:** Task 6.1 done (Expo app scaffolded; **Expo SDK 54** — downgraded twice,
   56→55→54, to match the test phones' Expo Go build — see downgrade notes below — Expo
   Router + TS). Icon library placed at `frontend/assets/icons/` (119 SVGs, line-style,
@@ -130,6 +134,22 @@ do not proceed. I'll resolve these at the start of my next session.*
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
 
+- 2026-07-13 — **G2 email delivery RESOLVED (Cluster A): custom SMTP via Brevo (free tier) for dev.**
+  Supabase's built-in email sender can no longer edit templates on new 2026 free projects — it only
+  sends the default *link-based* confirmation, but our OTP UX needs a *6-digit code*. So we wired
+  Brevo as custom SMTP (Authentication → Emails → SMTP), which unlocks template editing. Keshav
+  created the Brevo account + SMTP key himself (secret stays with him); sender = his Gmail for dev
+  (may hit spam; real domain deferred to Phase 14 per stack — Resend is still the production choice).
+  Also: **Email OTP length set to 6** (matches the app's 6-box screen) and the **Confirm-signup
+  template** replaced with an on-brand HTML version showing `{{ .Token }}`.
+- 2026-07-13 — **Profiles row deferred to role selection (7.5), not created at sign-up (7.2).**
+  `profiles.account_type` + `display_name` are NOT NULL and the role isn't known until 7.5, so
+  sign-up creates only the Supabase auth user. No schema change/trigger — the existing
+  `profiles_insert_own` RLS policy covers the later authenticated-client insert (proven in
+  `test_auth_session.py`). The post-verify → onboarding gate that creates the profile is built in 7.5.
+- 2026-07-13 — **`.claude/settings.local.json` gitignored** (per-machine Claude Code permissions;
+  local only). `/security-review` slash command does NOT exist in `.claude/commands/` (only `ship`,
+  `wrap`) — Cluster A's security review was run by the Cowork orchestrator directly instead.
 - 2026-06-16 — **UI library = gluestack-ui v3 + NativeWind (task 6.4), NOT NativeBase.**
   NativeBase is deprecated/unmaintained; gluestack-ui is its successor from the same team. Picked
   gluestack v3 because it's a copy-in/own-your-components model (lives in `src/components/ui/`)
@@ -207,6 +227,32 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-07-13 — Phase 7 Cluster A: Auth core (tasks 7.1–7.4) — BUILT, TESTED, COMMITTED
+- **Did:** Built the full auth loop. New `(auth)` route group (renders outside the 5-tab shell):
+  `sign-up.tsx`, `verify-otp.tsx`, `login.tsx` + `(auth)/_layout.tsx`. Shared UI: `text-field.tsx`
+  (recess input + show/hide + inline errors), `auth-shell.tsx` (onboarding chrome), plus
+  `lib/validation.ts` + `lib/auth-errors.ts` (friendly, never-raw copy).
+  - **7.1/7.2 Sign-up:** email+password with client validation → `supabase.auth.signUp`. Profiles
+    row intentionally NOT created here (deferred to 7.5 — see DECISIONS).
+  - **7.3 OTP:** 6-box code screen → `verifyOtp({type:'email'})`; resend with cooldown. (Supabase
+    OTP length set to 6 in dashboard; on-brand email template with `{{ .Token }}`.)
+  - **7.4 Session:** `lib/storage.ts` = chunking `expo-secure-store` adapter (keychain on native,
+    localStorage on web), `supabase.ts` now `persistSession:true`+`autoRefreshToken:true`,
+    `store/auth-store.ts` (Zustand — installed ^5.0.14, was missing) + `hooks/use-auth-session.ts`
+    (getSession + onAuthStateChange + AppState refresh). `_layout.tsx` uses `Stack.Protected` to
+    gate `(tabs)` vs `(auth)`; splash held until fonts AND session resolve (no wrong-screen flash).
+    Temporary Log-out on the Account tab for testing.
+- **Deps added:** `zustand@^5.0.14`, `expo-secure-store@~15.0.8` (SDK54-compatible).
+- **G1 dashboard (done by Keshav):** email provider on, Confirm email on, OTP length 6, Site URL
+  `localhost:8081`, brand template. **G2 resolved** → Brevo custom SMTP (see DECISIONS).
+- **Verify:** `tsc --noEmit` = 0 errors; `expo export --platform web` clean; `test_auth_session.py`
+  5/5 PASS (real Supabase: verified user → sign-in → authed own-profile insert → RLS blocks foreign
+  insert → RLS scopes deals). **Keshav phone-tested the full loop on web + Expo Go — all working,
+  session persists across app restart.** Security review (orchestrator-run): no critical/high; low
+  notes = web localStorage tokens (accepted for MVP), client-side routing guard (RLS is real lock).
+- **Committed** `feat: auth core`. **Next:** Cluster B — roles & onboarding (7.5–7.8, 7.11); first
+  task 7.5 adds the post-verify → onboarding gate that creates the profile row + sets role.
 
 ### 2026-07-13 — Phase 6: connect Supabase JS client in the frontend (task 6.6)
 - **Did:** Installed `@supabase/supabase-js` (2.110.2) in `frontend/`. New

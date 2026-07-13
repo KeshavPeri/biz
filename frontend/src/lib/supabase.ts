@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
+import { authStorage } from './storage';
+
 /**
  * Supabase client — the frontend's ONLY door to Supabase (task 6.6).
  *
@@ -22,13 +24,20 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
  * The shared client, or `null` when env vars are missing — so a misconfigured
  * environment degrades gracefully instead of throwing at import time.
  *
- * Auth session persistence is intentionally OFF for now: this is the connect +
- * smoke-test step. Real auth (Phase 7) will wire a platform storage adapter
- * (AsyncStorage / SecureStore) and turn persistence back on.
+ * Session persistence is ON (Phase 7.4): the session is kept in the OS keychain
+ * on native (chunked SecureStore, see ./storage) and localStorage on web, so a
+ * user stays logged in across restarts. `autoRefreshToken` keeps the access
+ * token fresh; the root layout pauses/resumes refresh on AppState changes.
+ * `detectSessionInUrl` is off — we verify via OTP, not magic-link redirects.
  */
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(supabaseUrl as string, supabaseAnonKey as string, {
-      auth: { persistSession: false, autoRefreshToken: false },
+      auth: {
+        storage: authStorage,
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+      },
     })
   : null;
 

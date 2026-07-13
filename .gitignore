@@ -56,6 +56,10 @@ Thumbs.db
 *.sublime-project
 *.sublime-workspace
 
+# ── Claude / local agent ──────────────────────────────────────────────────────
+# Per-machine Claude Code permissions — local only, never shared.
+.claude/settings.local.json
+
 # ── Misc ─────────────────────────────────────────────────────────────────────
 *.sqlite
 *.db
