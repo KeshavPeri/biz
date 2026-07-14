@@ -292,6 +292,26 @@ here in one line so I can review or reverse it later.*
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
 
+### 2026-07-13 — Phase 7 Cluster C follow-up: signature screen bug fix (device)
+- **Symptoms (Expo Go, G4 test):** draw pad only captured one broken stroke (lost strokes, unresponsive);
+  switching to Type crashed with a RENDER ERROR "Couldn't find a navigation context…" from
+  @react-navigation NavigationStateContext.
+- **Root causes + fixes:**
+  1. **Draw:** PanResponder lived inside AuthShell's `<ScrollView>`, which stole the vertical drag →
+     `signature-pad.tsx` now captures + holds the gesture (`on*ShouldSetPanResponderCapture`,
+     `onPanResponderTerminationRequest: () => false`, and an `onPanResponderTerminate` that commits the
+     in-progress stroke). Multi-stroke accumulation works.
+  2. **Type crash = a NativeWind native-only bug** (nativewind#1536/1557/1711): a conditionally-toggled
+     `shadow-*` className races React Navigation's context init and throws the nav-context error. Fixed
+     everywhere the pattern appeared — signature.tsx, verify-otp.tsx (OTP boxes), platforms.tsx
+     (threshold), and glass-surface.tsx (pillow mounts/unmounts on tab switch — the likely trigger) —
+     by moving those shadows to inline `style` instead of a toggled class.
+- **Also:** added `@expo-google-fonts/marck-script` (script font for the typed-signature preview only).
+  Orchestrator reverted two incidental debug artifacts (`npm run ios/android` had drifted to `expo run:`;
+  kept Expo Go's `expo start`). `app.json` bundleIdentifier left (harmless, Expo Go ignores it).
+- **Verify:** `tsc --noEmit` 0 errors. Keshav re-tested on device — signature draw + type + full creator
+  journey work; both journeys pass. Cluster C CLOSED. (Fix committed on top of `13175c1`.)
+
 ### 2026-07-13 — Phase 7 Cluster C: Signatures (7.9) + maker-checker (7.10) — BUILT, TESTED, COMMITTED
 - **Did:** The security + RBAC cluster; first backend/FastAPI feature.
   - **7.9 signatures:** `signature-pad.tsx` (PanResponder→SVG paths via react-native-svg — no new

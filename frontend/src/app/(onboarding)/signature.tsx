@@ -23,6 +23,9 @@ export default function SignatureScreen() {
   const [mode, setMode] = useState<SignatureType>('drawn');
   const [drawnSvg, setDrawnSvg] = useState('');
   const [typedName, setTypedName] = useState('');
+  // While true, a finger is down on the pad — disables the ScrollView so it
+  // can't steal the drag (see SignaturePad's onDragActiveChange doc comment).
+  const [drawing, setDrawing] = useState(false);
 
   const hasSignature = mode === 'drawn' ? drawnSvg.length > 0 : typedName.trim().length > 0;
 
@@ -39,6 +42,7 @@ export default function SignatureScreen() {
       subtitle="Every deal on Inflo ends in a real e-signed contract. Store yours now and future signings are one tap."
       onBack={() => router.back()}
       progress={<OnboardingProgress total={4} current={2} />}
+      scrollEnabled={!drawing}
       footer={
         <Button
           action="primary"
@@ -61,7 +65,28 @@ export default function SignatureScreen() {
               onPress={() => setMode(m)}
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
-              className={`flex-1 items-center rounded-panel py-2.5 ${on ? 'bg-surface-card shadow-liftIn' : ''}`}
+              // Shadow applied via inline style, NOT a conditionally-toggled
+              // `shadow-*` className — that pattern is a documented NativeWind
+              // bug on native (nativewind/nativewind#1536, #1557, #1711):
+              // toggling a shadow-* class triggers runtime CSS parsing that
+              // races React Navigation's context init, throwing "Couldn't
+              // find a navigation context." Inline style bypasses NativeWind's
+              // interop layer entirely, so the race can't happen. Values
+              // approximate the shadow-liftIn token (single-layer, matching
+              // how NativeWind itself already approximates multi-layer
+              // box-shadows to one shadow on native).
+              className={`flex-1 items-center rounded-panel py-2.5 ${on ? 'bg-surface-card' : ''}`}
+              style={
+                on
+                  ? {
+                      shadowColor: '#1C1B18',
+                      shadowOffset: { width: 0, height: 8 },
+                      shadowOpacity: 0.09,
+                      shadowRadius: 9,
+                      elevation: 3,
+                    }
+                  : undefined
+              }
             >
               <Text
                 className={`text-secondary ${on ? 'font-geist-semibold text-ink' : 'font-geist-medium text-ink-2'}`}
@@ -74,15 +99,19 @@ export default function SignatureScreen() {
       </View>
 
       {mode === 'drawn' ? (
-        <SignaturePad onChange={setDrawnSvg} />
+        <SignaturePad onChange={setDrawnSvg} onDragActiveChange={setDrawing} />
       ) : (
         <View>
-          {/* Typed preview (mockup `.typed`) — italic script, slight tilt. */}
+          {/* Typed preview (mockup `.typed`) — deviates from the mockup's
+              italicised-Geist treatment: a real script typeface reads as an
+              actual signature the way DocuSign/Adobe Sign render a typed
+              name, rather than slanted body text. No added rotation — the
+              script's own strokes already carry the handwritten feel. */}
           <View className="h-[170px] items-center justify-center rounded-card border-[1.5px] border-dashed border-cane-3 bg-surface-card">
             {typedName.trim() ? (
               <Text
-                className="font-geist-medium text-ink"
-                style={{ fontSize: 34, fontStyle: 'italic', transform: [{ rotate: '-3deg' }] }}
+                className="text-ink"
+                style={{ fontFamily: 'MarckScript_400Regular', fontSize: 46 }}
               >
                 {typedName.trim()}
               </Text>

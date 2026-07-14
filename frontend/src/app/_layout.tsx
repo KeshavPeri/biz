@@ -15,6 +15,11 @@ import { Geist_500Medium } from '@expo-google-fonts/geist/500Medium';
 import { Geist_600SemiBold } from '@expo-google-fonts/geist/600SemiBold';
 import { Geist_700Bold } from '@expo-google-fonts/geist/700Bold';
 import { GeistMono_400Regular } from '@expo-google-fonts/geist-mono/400Regular';
+// Marck Script — the ONE deliberate exception to Geist, used only for the
+// typed-signature preview (task 7.9 follow-up). A script font reads as a real
+// signature; it balances "personal handwritten" with "business document"
+// per design-direction.md's brand personality (Trustworthy + Personal/warm).
+import { MarckScript_400Regular } from '@expo-google-fonts/marck-script/400Regular';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthSession } from '@/hooks/use-auth-session';
@@ -47,6 +52,7 @@ export default function RootLayout() {
     Geist_600SemiBold,
     Geist_700Bold,
     GeistMono_400Regular,
+    MarckScript_400Regular,
   });
 
   // Hold the splash until fonts + auth are ready AND — when signed in — the

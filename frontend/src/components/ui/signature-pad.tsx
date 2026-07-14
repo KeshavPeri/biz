@@ -1,4 +1,4 @@
-import { useMemo, useReducer, useRef, useState } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { PanResponder, Pressable, Text, View, type GestureResponderEvent } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
@@ -26,6 +26,16 @@ function buildSvg(strokes: string[], width: number, height: number): string {
 type SignaturePadProps = {
   /** Fires with the full SVG markup after each stroke, or '' when cleared/empty. */
   onChange: (svg: string) => void;
+  /**
+   * Fires true when a touch starts on the pad, false when it ends. Plain
+   * PanResponder capture flags are a JS-thread-only signal — a real native
+   * ScrollView's own gesture recognizer can still win a drag before that
+   * signal lands (a well-known RN limitation, distinct from web, where
+   * "ScrollView" is just a scrolling div with no competing native
+   * recognizer). The parent uses this to disable its ScrollView's
+   * `scrollEnabled` for the duration of the touch — the reliable fix.
+   */
+  onDragActiveChange?: (active: boolean) => void;
   height?: number;
 };
 
@@ -35,7 +45,7 @@ type SignaturePadProps = {
  * webview) into SVG paths rendered live via react-native-svg. Self-contained:
  * owns its strokes + a Clear control, and emits the composed SVG to the parent.
  */
-export function SignaturePad({ onChange, height = 170 }: SignaturePadProps) {
+export function SignaturePad({ onChange, onDragActiveChange, height = 170 }: SignaturePadProps) {
   const [strokes, setStrokes] = useState<string[]>([]);
   // In-progress stroke lives in a ref (no stale closures in the responder), with
   // a forced re-render so it draws live as the finger moves.
@@ -43,42 +53,93 @@ export function SignaturePad({ onChange, height = 170 }: SignaturePadProps) {
   const [, redraw] = useReducer((n: number) => n + 1, 0);
   const size = useRef({ w: 0, h: height });
 
+  // Guards PanResponder callbacks that can fire after (or during) unmount —
+  // e.g. a release/terminate landing just as the Draw↔Type toggle swaps this
+  // component out. Without this, a stray callback can still touch refs on a
+  // torn-down instance.
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  // Notify the parent from an EFFECT, never synchronously inside our own
+  // setStrokes updater. Calling a parent's setState from inside a child's
+  // state-updater can fire mid-render of a DIFFERENT component (React:
+  // "Cannot update a component while rendering a different component") —
+  // exactly what happened when toggling Draw→Type mid-stroke unmounted this
+  // component while onPanResponderRelease's updater tried to call onChange.
+  // Effects always run after commit, so this ordering issue can't recur.
+  useEffect(() => {
+    onChange(buildSvg(strokes, size.current.w, size.current.h));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onChange is a
+    // stable setState setter; size is a ref read at commit time, not a dep.
+  }, [strokes]);
+
   const point = (e: GestureResponderEvent) => {
     const { locationX, locationY } = e.nativeEvent;
     return `${locationX.toFixed(1)} ${locationY.toFixed(1)}`;
   };
 
+  // Shared by release AND terminate so an interrupted stroke (e.g. the
+  // ScrollView briefly winning the gesture, or an unmount mid-draw) is
+  // committed exactly like a normal release — never silently dropped.
+  const commitStroke = () => {
+    // Always tell the parent the drag ended — even on a forced terminate from
+    // unmounting — or its scrollEnabled=false would get stuck forever. This
+    // calls the PARENT's setState, not this component's own, so it's safe
+    // regardless of isMounted.
+    onDragActiveChange?.(false);
+    if (!isMounted.current) return;
+    // Capture into a plain local BEFORE clearing the ref. setStrokes's updater
+    // isn't guaranteed to run before the next line under React's batching — if
+    // it read inProgress.current directly, a deferred updater could see the
+    // already-cleared '' instead of the finished stroke (produced empty paths
+    // in testing: the <path> committed, but with d="").
+    const finished = inProgress.current;
+    inProgress.current = '';
+    if (finished) {
+      setStrokes((prev) => [...prev, finished]);
+    }
+  };
+
   const pan = useMemo(
     () =>
       PanResponder.create({
+        // Capture (not just "should set") so this view claims the gesture
+        // BEFORE an ancestor ScrollView (AuthShell wraps every onboarding
+        // screen's body in one) can steal a vertical drag.
+        onStartShouldSetPanResponderCapture: () => true,
+        onMoveShouldSetPanResponderCapture: () => true,
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
+        // Refuse to yield the gesture once claimed — the whole point of a
+        // signature pad is that a drag never scrolls the page instead.
+        onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: (e) => {
+          onDragActiveChange?.(true);
+          if (!isMounted.current) return;
           inProgress.current = `M ${point(e)}`;
           redraw();
         },
         onPanResponderMove: (e) => {
+          if (!isMounted.current) return;
           inProgress.current += ` L ${point(e)}`;
           redraw();
         },
-        onPanResponderRelease: () => {
-          if (inProgress.current) {
-            setStrokes((prev) => {
-              const next = [...prev, inProgress.current];
-              onChange(buildSvg(next, size.current.w, size.current.h));
-              return next;
-            });
-          }
-          inProgress.current = '';
-        },
+        onPanResponderRelease: commitStroke,
+        // Forced termination (e.g. unmount) must commit too, or the stroke is
+        // silently lost and the next gesture starts from stale state.
+        onPanResponderTerminate: commitStroke,
       }),
-    [onChange],
+    [],
   );
 
   const clear = () => {
     setStrokes([]);
     inProgress.current = '';
-    onChange('');
     redraw();
   };
 

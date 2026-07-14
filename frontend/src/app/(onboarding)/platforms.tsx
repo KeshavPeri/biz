@@ -125,10 +125,13 @@ export default function PlatformsScreen() {
         );
       })}
 
-      {/* Threshold readout — UI only (mockup `.threshold`). */}
+      {/* Threshold readout — UI only (mockup `.threshold`). No conditional
+          shadow-* class (documented NativeWind native-only bug, see
+          signature.tsx) — recessInset is inset-only anyway, no native RN
+          equivalent, so dropping it costs nothing visually on native. */}
       <View
         className={`mt-1.5 flex-row items-center gap-2 rounded-panel p-3 ${
-          clearsThreshold ? 'bg-status-good-tint' : 'bg-surface-recess shadow-recessInset'
+          clearsThreshold ? 'bg-status-good-tint' : 'bg-surface-recess'
         }`}
       >
         {clearsThreshold ? (

@@ -115,9 +115,27 @@ export default function VerifyOtpScreen() {
             return (
               <View
                 key={i}
+                // Shadow via inline style, not a conditionally-toggled
+                // shadow-* className — documented NativeWind native-only bug
+                // (nativewind/nativewind#1536/#1557/#1711): toggling a
+                // shadow-* class races React Navigation's context init and
+                // throws "Couldn't find a navigation context." recessInset is
+                // an inset shadow (no native RN equivalent anyway, so nothing
+                // is lost by dropping it there).
                 className={`h-[60px] flex-1 items-center justify-center rounded-[13px] ${
-                  filled ? 'bg-surface-card shadow-liftIn' : 'bg-surface-recess shadow-recessInset'
+                  filled ? 'bg-surface-card' : 'bg-surface-recess'
                 }`}
+                style={
+                  filled
+                    ? {
+                        shadowColor: '#1C1B18',
+                        shadowOffset: { width: 0, height: 8 },
+                        shadowOpacity: 0.09,
+                        shadowRadius: 9,
+                        elevation: 3,
+                      }
+                    : undefined
+                }
               >
                 <Text className="font-geist-semibold text-ink" style={{ fontSize: 24 }}>
                   {char}

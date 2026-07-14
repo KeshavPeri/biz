@@ -28,6 +28,14 @@ type AuthShellProps = {
   onBack?: () => void;
   /** Optional progress bar shown in the top chrome (mockup `.progress`). */
   progress?: ReactNode;
+  /**
+   * Disables the body ScrollView — used by the signature step while a finger
+   * is down on the drawing pad. PanResponder capture flags alone are a
+   * JS-thread-only signal that a native ScrollView's own gesture recognizer
+   * can still win a drag before it lands; disabling scroll for the duration
+   * of the touch is the reliable fix. Defaults to true (normal scrolling).
+   */
+  scrollEnabled?: boolean;
 };
 
 /**
@@ -44,6 +52,7 @@ export function AuthShell({
   footer,
   onBack,
   progress,
+  scrollEnabled = true,
 }: AuthShellProps) {
   return (
     <SafeAreaView className="flex-1 bg-app" edges={['top', 'bottom']}>
@@ -74,6 +83,7 @@ export function AuthShell({
           contentContainerClassName="px-[22px] pt-2 pb-4"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          scrollEnabled={scrollEnabled}
         >
           <Text className="mb-2 font-geist-semibold text-micro uppercase tracking-[0.7px] text-ink-3">
             {eyebrow}

@@ -8,7 +8,8 @@
     "scheme": "biz",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.biz"
     },
     "android": {
       "adaptiveIcon": {
