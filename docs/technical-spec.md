@@ -1168,6 +1168,7 @@ each other; these are deliberately deferred decisions, not unresolved conflicts.
 | 5 | **Railway scheduled worker (free tier)** | Time-driven notifications (reminders, expiry alerts, digests) need a cron-style background worker; confirm the free tier supports one at deploy. | notifications.md, api-architecture.md |
 | 6 | **UI library (RESOLVED 6.4)** | Re-evaluated at task 6.4 as planned: NativeBase is deprecated, so switched to its maintained successor **gluestack-ui v3 + NativeWind** (Expo SDK 54-compatible, design-token theming). No longer an open decision. | stack-decisions.md |
 | 7 | **Account-deletion vs retention** | How deal history is handled on account deletion interacts with retention obligations; basic for MVP, needs the same legal review as #1/#3. | security.md |
+| 8 | **Privacy-toggle server enforcement (Phase 8)** | `privacy_settings.rate_card_visible` is truly enforced (RLS on `rate_cards`), but `contact_visible` and `handles_visible` are **client-honoured only** — no RLS/column filtering hides those fields from other authenticated users. Harmless on Phase-8 mock data; before real user data / production these toggles must be enforced server-side (conditional RLS or a FastAPI read filter). | security.md, data-model.md (Phase 8 Cluster A) |
 
 ---
 

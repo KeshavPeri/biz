@@ -16,10 +16,19 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 8 — Discovery (Bucket 2, placeholder on mock data). **Task 8.1 DONE:**
-  `backend/seeds/seed_discovery.py` seeds 15 fictional creators + 10 fictional brands into the
-  dev Supabase project (idempotent, re-run verified). Data only — no UI/endpoints built yet; see
-  SESSION HISTORY 2026-07-14 for full detail. **Next: 8.2+ (Discovery browse/filter screens).**
+- **Current phase:** Phase 8 — Discovery (Bucket 2, placeholder on mock data).
+  - **Task 8.1 DONE:** `backend/seeds/seed_discovery.py` seeds 15 fictional creators + 10 brands
+    (idempotent). Data only.
+  - **Cluster A part 1 DONE (editable creator media kit):** the "You" tab is now the creator's
+    editable media kit + a "Preview as brand" toggle; brands get a compact profile editor. Built
+    B2-030 (reusable read view), B2-032, B2-034, B2-035, B2-036, B2-037, and B1-012 (affiliations,
+    deferred from Phase 7). All owned-record CRUD is Supabase-direct under RLS (no FastAPI). The
+    read view is ONE props-driven component (`media-kit-view.tsx`) re-used by the own view, the
+    brand preview, and — next — the brand-facing detail screen (8.3). `test_media_kit_rls.py`
+    **10/10 PASS**; `tsc --noEmit` clean; web bundle exports cleanly. RTM: Bucket 2 = 6/13,
+    Bucket 1 = 12/18. See SESSION HISTORY 2026-07-14 (media kit).
+  - **Next:** 8.2/8.3 — Discovery browse/filter screens (B2-001/B2-005) and the brand-facing
+    creator detail screen (B2-002/B2-006), which will re-use `media-kit-view.tsx`.
 - *(Prior phase: Phase 7 — Identity & Trust (Bucket 1). Clusters A + B + C DONE — all build
   work complete; only the close-out gates (7.12 phone test / 7.13 RTM / 7.14 phase gate) remain.)*
   - **Cluster A (Auth core, 7.1–7.4)** — committed `feat: auth core` (`aa07748`) on 2026-07-13.
@@ -160,6 +169,23 @@ do not proceed. I'll resolve these at the start of my next session.*
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
 
+- 2026-07-14 — **Media kit (Cluster A part 1) — scope omissions & decisions.**
+  - The mockup's **"What brands say" (testimonials)** section is **deferred, not dropped**: the
+    `ratings` table exists but is populated **post-deal in Phase 9+**. It renders once real ratings
+    exist — we must **NEVER seed fake ratings**.
+  - **DO render** the seeded trust fields: `creator_profiles.trust_score` + `deal_completion_rate`
+    (+ `response_time_hours`); brand `trust_rating` + `deal_completion_rate`. **Only omitted** from
+    the trust strip: the **review-count** cell (needs `ratings`, Phase 9+).
+  - Omitted for lack of any MVP table: **Audience/demographics chart**, **Recent work** reel grid,
+    **Earnings**, and the per-platform **90-day growth** trend. No tables invented.
+  - **Photo carousel (B2-031) / Storage** intentionally NOT built here — hero uses a placeholder
+    avatar; `photo_carousel`/`avatar_url` untouched (migration 016 still WRITTEN/UNAPPLIED).
+  - **"Start a deal" CTA** rendered as a disabled placeholder (Phase 9 seam) — no connect logic.
+  - Editing UX = **bottom-sheet editors** (new `components/ui/edit-sheet.tsx`, RN `Modal`) matching
+    the mockup's `.sheet`, rather than new nav routes — keeps everything in the You-tab world.
+  - Privacy: `rate_card_visible` is enforced **server-side by RLS** (proven by TEST-MK-RLS);
+    `contact_visible`/`handles_visible` are **client-honoured for now** (no dedicated RLS columns) —
+    revisit if/when those fields become brand-facing on a real detail screen.
 - 2026-07-14 — **Task 8.1 seed script — assumptions.** Follower/engagement/rate tiers are
   hand-rolled distributions (nano→mega, weighted toward nano/micro/mid) rather than pulled
   from any real benchmark source — good enough for believable Discovery browsing, not a
@@ -319,6 +345,31 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-07-14 — Phase 8 Cluster A (part 1): editable creator media kit
+- **Did:** Built the "You" tab into the creator's editable media kit (+ brand profile editor).
+  Features: **B2-030** (read view), **B2-032** (platform stats), **B2-034** (rate card, brands-only),
+  **B2-035** (preview-as-brand), **B2-036** (edit profile, creator + brand), **B2-037** (privacy),
+  **B1-012** (affiliations, deferred from Phase 7).
+- **Key architecture:** ONE reusable read component `components/media-kit/media-kit-view.tsx`
+  (props-driven, `viewerMode: own | brand | public`, no data-fetching inside) — the own view, the
+  brand preview, and the future brand-facing detail screen (8.3) all render it. Data layer
+  `lib/media-kit.ts` (fetch + owned-record write helpers, house-style Result returns), enum maps
+  `lib/media-kit-enums.ts`, formatters `lib/format.ts`, DB-shape completeness `lib/completeness.ts`.
+  New bottom-sheet primitive `components/ui/edit-sheet.tsx` (RN Modal) + five editors under
+  `components/media-kit/editors/`. Container `components/media-kit/media-kit-screen.tsx`; `you.tsx`
+  is now a thin wrapper.
+- **Security:** everything is owned-record CRUD → Supabase-direct under RLS (no FastAPI, per
+  api-architecture.md). Existing 012 policies verified correct and NOT modified. The preview's
+  visibility logic is a **client-side simulation** — code comments flag RLS as the real boundary.
+- **Tests/verify:** new `backend/tests/test_media_kit_rls.py` — **10/10 PASS** (brand sees enabled
+  rate cards only; owner sees own enabled/disabled; other creator sees neither; cross-user
+  creator_profiles UPDATE blocked). `npx tsc --noEmit` clean. `npx expo export --platform web`
+  bundles all routes incl. `/(tabs)/you` with no errors.
+- **Scope:** testimonials deferred (ratings is Phase 9+, never seed fake); demographics/recent-work/
+  earnings/90-day-growth omitted (no MVP table); photo carousel (B2-031) + Storage left for later.
+  See ASSUMPTIONS LOG for the full list.
+- **Next:** 8.2/8.3 Discovery browse + brand-facing creator detail (re-uses media-kit-view).
 
 ### 2026-07-14 — Task 8.1: Discovery mock data seed script
 - **Did:** Built `backend/seeds/seed_discovery.py` — idempotent seed script populating the

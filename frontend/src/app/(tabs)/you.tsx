@@ -1,6 +1,7 @@
-import { TabPlaceholder } from '@/components/tab-placeholder';
+import { MediaKitScreen } from '@/components/media-kit/media-kit-screen';
 
-// You — placeholder shell (task 6.5); profile lands in Phase 7.
+// You — the signed-in user's own profile home (Phase 8, Cluster A). Creators get
+// the editable media kit + "Preview as brand"; brands get their profile editor.
 export default function YouScreen() {
-  return <TabPlaceholder title="You" />;
+  return <MediaKitScreen />;
 }
