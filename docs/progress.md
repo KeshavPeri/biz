@@ -33,8 +33,17 @@ up exactly where the last one left off, with zero context lost.
     (maker ≠ checker guarded at initiation AND decision). Migration 015 (UNIQUE brand_id+action_type).
     `test_maker_checker.py` 10/10; orchestrator security pass = no critical/high. Scope boundary held:
     config + enforcement mechanism only; live deal-action wiring + per-deal role assignment = Phase 9.
-  - **Next up: close-out** — 7.12 (Keshav phone-tests both full journeys on device, Gate G4),
-    7.13 (fill RTM Build/Test columns for all Bucket 1 features), 7.14 (commit + phase go/no-go, G5).
+  - **Close-out status:** 7.12 (G4) ✅ both journeys phone-tested on device; 7.13 ✅ RTM Bucket 1
+    filled = **11 / 18 features Built** (see rtm.md). 7.14 (G5) — **Keshav HELD the gate: not
+    proceeding to Phase 9 yet.** He declined a Phase-7 top-up for now and has a couple of admin
+    tasks to do first (in a fresh chat), then Phase 8 (Discovery). A Phase-8 handoff file (like
+    `HANDOFF_phase7_orchestrator.md`) to be generated on request.
+  - **Deferred Bucket-1 features (7 of 18) — NOT built this phase:** B1-012 affiliations,
+    B1-015 brand invite, B1-019 brand signatory signature, B1-020 signature management/OTP re-verify,
+    B1-021 account settings, B1-023 notification prefs (Phase 12), B1-027 completeness nudge worker
+    (Phase 14). **⚠ Early Phase-9 dependencies:** B1-015 (brand needs ≥2 members for maker-checker)
+    and B1-019 (brand signatory signature for contract signing) — build these first when Phase 9
+    needs live maker-checker + contract signing.
   - *(Prior: Phase 6 — Frontend Foundation COMPLETE, committed 6.8 on 2026-07-13. See history below.)*
 - **Current task:** Task 6.1 done (Expo app scaffolded; **Expo SDK 54** — downgraded twice,
   56→55→54, to match the test phones' Expo Go build — see downgrade notes below — Expo
