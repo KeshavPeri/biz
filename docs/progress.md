@@ -16,8 +16,12 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 7 — Identity & Trust (Bucket 1). **Clusters A + B + C DONE — all build
-  work complete; only the close-out gates (7.12 phone test / 7.13 RTM / 7.14 phase gate) remain.**
+- **Current phase:** Phase 8 — Discovery (Bucket 2, placeholder on mock data). **Task 8.1 DONE:**
+  `backend/seeds/seed_discovery.py` seeds 15 fictional creators + 10 fictional brands into the
+  dev Supabase project (idempotent, re-run verified). Data only — no UI/endpoints built yet; see
+  SESSION HISTORY 2026-07-14 for full detail. **Next: 8.2+ (Discovery browse/filter screens).**
+- *(Prior phase: Phase 7 — Identity & Trust (Bucket 1). Clusters A + B + C DONE — all build
+  work complete; only the close-out gates (7.12 phone test / 7.13 RTM / 7.14 phase gate) remain.)*
   - **Cluster A (Auth core, 7.1–7.4)** — committed `feat: auth core` (`aa07748`) on 2026-07-13.
     Sign up → email OTP (6-digit) → login → persistent session, tested web + device.
   - **Cluster B (Roles & onboarding, 7.5–7.8, 7.11)** — built + tested; committed
@@ -156,6 +160,21 @@ do not proceed. I'll resolve these at the start of my next session.*
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
 
+- 2026-07-14 — **Task 8.1 seed script — assumptions.** Follower/engagement/rate tiers are
+  hand-rolled distributions (nano→mega, weighted toward nano/micro/mid) rather than pulled
+  from any real benchmark source — good enough for believable Discovery browsing, not a
+  claim about real Indian creator-economy rates. Passwords use one fixed dev-only value
+  (`SEED_PASSWORD`) since these are throwaway seed accounts, not real users. Cleanup matches
+  on the `@seed.inflo.test` email suffix (not the fixed-email-list pattern `test_onboarding.py`
+  uses), since the seed set is large/generated rather than 2–3 named fixtures.
+- 2026-07-14 — **Phase 8 start / G1 storage (migration 016) — WRITTEN, NOT YET APPLIED.**
+  `profile-photos` bucket set **private** with **public-read via an explicit RLS SELECT policy**
+  (not a `public=true` bucket) + **owner-only write** keyed on the top-level folder = `auth.uid()`
+  (path convention `{profile_id}/{file}`). Chosen per HANDOFF G1 ("private bucket, owner-write /
+  public-read per RLS"). Apply with
+  `backend/.venv/bin/python backend/migrations/apply_migration.py 016_storage_profile_photos.sql`
+  — **expect a 401 (the `SUPABASE_ACCESS_TOKEN` has expired every phase); if so, G1 STOP →
+  regenerate the token and re-run.**
 - 2026-07-13 — **Cluster B schema (migration 014) — WRITTEN, NOT YET APPLIED.** (1) `creator_profiles.niche`
   (text) → `niches` (text[]) + CHECK ≤3 (approved amendment; empty dev DB). (2) Brand first-admin
   **bootstrap RLS** (`brand_has_members()` SECURITY DEFINER + `brand_members_insert_self_bootstrap`
@@ -300,6 +319,33 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-07-14 — Task 8.1: Discovery mock data seed script
+- **Did:** Built `backend/seeds/seed_discovery.py` — idempotent seed script populating the
+  dev Supabase project with 15 fictional Indian creators + 10 fictional brands for Discovery
+  to browse. Follows `test_onboarding.py`'s admin-client auth pattern (service_role,
+  `auth.admin.create_user(email_confirm=True)`). No new tables/columns — uses only
+  `002_identity_profile.sql` (as amended by `014_onboarding.sql`'s `niches text[]`).
+- **What's seeded per creator:** profile + creator_profile (niches ≤3, languages, bio,
+  privacy_settings), 1–3 social_handles (one `is_primary`, follower/engagement/reach scaled
+  together across a nano→mega tier distribution weighted toward nano/micro/mid), one
+  rate_card (~2/3 enabled) + 2–4 rate_card_items priced off the same tier, 0–2 affiliations,
+  0–3 brand_partnerships. Per brand: one admin profile + `brands` row + `brand_members`
+  (admin/active).
+- **Idempotency:** cleanup matches users by the `@seed.inflo.test` email suffix (paginated
+  `list_users`, since 25 seed accounts can exceed the default single-page limit), deletes
+  their `brands` rows (cascades `brand_members`) then the auth users (cascades
+  profiles/creator_profiles/social_handles/rate_cards/affiliations/brand_partnerships).
+  Verified by running the script twice back-to-back — identical summary counts both times.
+- **Verified against live dev DB:** 0 rows with >3 niches; every creator has exactly 1
+  `is_primary` social handle; rate_cards split 13 enabled / 2 disabled (both RLS paths
+  provable); all enum columns hold only valid enum values.
+- **Explicitly not done (per task scope):** no UI, no FastAPI endpoints, no Storage upload —
+  `photo_carousel`/`avatar_url` left null (Storage lands separately, see migration 016 note
+  below). Migration 016 (`profile-photos` bucket) is still WRITTEN but NOT YET APPLIED — not
+  needed for this task since no photos are seeded.
+- **Next:** Phase 8 Discovery UI/endpoints (B2-001 browse/filter, B2-002 full profile, etc. —
+  all currently "Not started" in the RTM; this task only supplies the data they'll render).
 
 ### 2026-07-13 — Phase 7 Cluster C follow-up: signature screen bug fix (device)
 - **Symptoms (Expo Go, G4 test):** draw pad only captured one broken stroke (lost strokes, unresponsive);
