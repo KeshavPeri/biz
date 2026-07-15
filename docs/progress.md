@@ -16,7 +16,79 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 8 — Discovery (Bucket 2, placeholder on mock data).
+- **Current phase:** Phase 9 — Deal Engine (Bucket 3). **Cluster 1 DONE + task 9.8 (the engine) DONE.**
+  - **9.8 DONE (Stage Transition Engine, B3-015) — the server-side state machine the product rides on.**
+    New `backend/services/stage_engine.py`: a `(from_stage,to_stage)` **REGISTRY** is the single source
+    of truth for legal moves (all 6 forward transitions from deal-engine.md's guard table + the two
+    terminal off-ramps). **`request_transition`** is the ONE path for every stage change, running the
+    "Server-side enforcement" checks in order (participant → legal-move lookup → role/recipient → guard),
+    first failure wins with clean errors. **Forward-only** is enforced by the lookup — backward/skip/
+    undefined all reject (a classifier gives precise 409/422 messages). Guards for later stages
+    (9.10/9.12/9.13/9.14/9.15-17) are **stubs returning "not available yet"** — each owning task fills the
+    guard body without touching the engine.
+  - **Atomicity (folded in both FOLD-INTO-9.8 notes):** **migration 018** adds Postgres RPC
+    `apply_stage_transition` — a **conditional** `UPDATE deals … WHERE stage = <from>` + the
+    transition-log INSERT + the audit INSERT, all in ONE transaction. So a stage change can never lack a
+    log row, and two concurrent transitions can't both apply (2nd sees 0 rows → engine returns 409). The
+    RPC is **locked to `service_role`** (REVOKE'd from anon/authenticated — verified; else a signed-in
+    user could force stage changes). Migration was FLAGGED in the plan and applied to dev after approval.
+  - **accept/decline refactored** into 1-line wrappers over `request_transition` (no parallel transition
+    path remains); response shapes + status codes unchanged. **Endpoint contract documented** at the top
+    of `api/deals.py` for the 9.7 sticky action bar (accept/decline live; approve-summary/cancel/
+    submit-live/confirm-posts/close wired but stub-guarded → clean 409 until their task). approval→creating
+    is **system-auto** (no endpoint; fired internally by 9.12).
+  - **Verify:** `test_stage_engine.py` **23/23** (structural forward-only + legal + each illegal reason
+    independently + atomicity/no-double-apply + accept/decline regression). Full backend suite green:
+    accept_decline 18/18, connect 13/13, maker_checker 10/10, onboarding 8/8, discovery 7/7, media_kit
+    10/10, storage 3/3, rls 4/4, auth_session 5/5, connection PASS. No frontend changes. **NOT committed** —
+    user reads the diff + runs the security pass, then /ship. RTM: B3-015 = Built.
+- *(Earlier this phase:* **Cluster 1 DONE — tasks 9.1/9.2/9.3/9.4/9.5.***)*
+  - **9.4 DONE (Realtime delivery, B3-003):** new messages appear live in an open thread with no
+    refetch. **Migration 017** adds `messages` to the `supabase_realtime` publication (it shipped
+    empty — postgres_changes delivered nothing before). `subscribeToDealMessages` (lib/deals.ts)
+    opens a `postgres_changes` INSERT channel filtered by `deal_id`; RLS gates delivery to
+    participants. Dedupe in the handler = **id-exists guard + skip own sender_id** (closes the
+    optimistic-reconcile-vs-echo race). Cleanup unsubscribes + removeChannel on unmount; re-stamps
+    last_read on incoming. Verified live via a Node subscribe+insert check (message delivered).
+    **2-device live check deferred to the G4 phone test.**
+  - **9.5 DONE (Pending accept/decline, B3-016):** the FIRST real server-side stage transition,
+    built to the engine so 9.8 absorbs it. `POST /deals/{id}/accept` + `/decline` (FastAPI,
+    service_role) in api/deals.py → `accept_deal`/`decline_deal` in services/deals.py. Guards:
+    participant + recipient (≠ created_by) + not checker + stage==pending + within 72h. Accept →
+    chatting (clears expires_at); decline → declined (terminal); both log a `gated`
+    `deal_stage_transitions` row + an `audit_log` row (via shared `_advance_stage`/`_audit`).
+    Exclusivity fired at accept = **warn-only** (returns `requires_acknowledgement` → re-confirm;
+    ack logged in the audit metadata). Clean errors 403/409/410. Frontend: `acceptDeal`/`declineDeal`
+    (lib/deals.ts, Bearer token) + a minimal Pending inline control in deal/[id].tsx (recipient sees
+    Accept/Decline + the warn-only banner; initiator sees "Waiting for response · expires in {Xh}").
+    **72h auto-expiry worker + accept/decline notifications still deferred** (needs the Railway worker,
+    Phase 14). `test_accept_decline.py` **18/18 PASS**.
+  - **Verify:** `tsc` clean; web export clean; `test_accept_decline.py` 18/18; Realtime Node check PASS.
+    **NOT committed** — user runs /ship. RTM: B3-001/002/003/016 = Built. Bucket 3 = 4 built.
+- **Current phase (earlier this cluster):** **Cluster 1 chat DONE — tasks 9.1/9.2/9.3.**
+  - **9.1 VERIFIED (no migration):** live-checked the dev DB — `messages`, `deal_participants`
+    (incl. `last_read_at`), `message_attachments` all match data-model.md, and RLS is in place
+    (`messages_read_participant` / `messages_insert_participant`, `deal_participants_update_own`
+    for last_read_at, `deals_read_participant`). Nothing missing.
+  - **9.2 DONE (chat list, B3-001):** `chat.tsx` replaced the placeholder — one preview card per deal
+    I'm on (Supabase-direct under RLS): other-party avatar/initials, deal name, stage pill, last-msg
+    preview, unread badge (msgs after my `last_read_at`, from others), next-action line, I/O tag.
+    Empty state + pull-to-refresh + refetch-on-focus. New: `components/chat/deal-preview-card.tsx`,
+    `lib/deals.ts` (`fetchMyDealPreviews`/`stagePill`/`nextActionPrompt`), `lib/format.ts` relative-time.
+  - **9.3 DONE (deal room, B3-002):** new route `app/deal/[id].tsx` (root-stack sibling above tabs,
+    registered in `_layout.tsx`). History oldest→newest + auto-scroll; mine/theirs bubbles; composer
+    inserts Supabase-direct (RLS: sender=me + participant) with optimistic append + rollback; stamps my
+    `last_read_at` on open (clears the badge). **Reserved empty layout slots** for the stage progress bar
+    (9.6) and sticky action bar (9.7). `lib/deals.ts` (`fetchDealThread`/`sendMessage`/`markDealRead`).
+  - **Verify:** `tsc` clean; web export clean (incl. `/deal/[id]`). Data layer verified against 3
+    seeded dev deals for the test brand admin (Peri/Abc) — stage pills (pending/chatting/creating),
+    other-party names, and unread counts all correct. Live RN render NOT click-driven (no login creds
+    to hand); covered by tsc + export + query verification. **NOT committed** — user runs /ship.
+  - RTM: B3-001 + B3-002 = Built. Bucket 3 = 2/? started.
+  - **Dev seed added:** 3 deals for Peri (Abc admin) ↔ Ananya Rao / Vikram Malhotra / Priya Nair via
+    the real `connect_deal` service, plus a few messages; two had stage bumped (chatting/creating)
+    directly for pill variety — see ASSUMPTIONS. Soft-deletable dev data.
+- *(Prior phase: Phase 8 — Discovery (Bucket 2, placeholder on mock data).)*
   - **Task 8.1 DONE:** `backend/seeds/seed_discovery.py` seeds 15 fictional creators + 10 brands
     (idempotent). Data only.
   - **Cluster A part 1 DONE (editable creator media kit):** the "You" tab is now the creator's
@@ -193,6 +265,72 @@ do not proceed. I'll resolve these at the start of my next session.*
 
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
+
+- 2026-07-15 — **Migration 018 applied to dev (stage-transition RPC) — FLAGGED + approved.** Adds
+  `apply_stage_transition(...)` (SECURITY INVOKER): conditional stage UPDATE + transition-log + audit in
+  one txn; `REVOKE`d from PUBLIC/anon/authenticated, `GRANT`ed to service_role only (013's default-privs
+  auto-grant made this REVOKE mandatory — verified anon/authenticated cannot execute). Non-destructive.
+- 2026-07-15 — **9.8 engine design decisions.** (1) `request_transition` is **target-stage-based**; the
+  `(from,to)` registry lookup makes forward-only structural (no separate backward/skip code — an illegal
+  pair simply isn't a key; a classifier phrases the 409/422). (2) **Audit ALL** stage transitions (every
+  registry entry has an `audit_action`), the stricter reading of deal-engine.md "sensitive" + rbac.md
+  "stage advances are audited". (3) Shared primitives (`DealError`, `_exclusivity_warning`,
+  `_load_deal_for_transition`, `_participant_role`, `_is_expired`) **moved down** into stage_engine.py;
+  deals.py imports them (one-way dep, no import cycle). (4) All semantic transition endpoints exposed now
+  (stub-guarded ones return a clean 409 "not available yet") so 9.7 has a complete, stable contract.
+  (5) Notification hook = minimal best-effort in-app insert to other participants, OUTSIDE the atomic RPC
+  (a notify failure must not roll back a committed transition); full catalogue is Phase 12.
+- 2026-07-15 — **FOLD INTO 9.8 — RESOLVED in 9.8.** Both hardening items below are now handled by the
+  migration-018 RPC (single-txn apply + conditional `UPDATE … WHERE stage=<from>`); `_advance_stage` and
+  the read-then-write pending guard were deleted. (Original note kept for history.)
+- 2026-07-15 — **FOLD INTO 9.8 (orchestrator verification note, Cluster 1).** Two hardening items
+  found reviewing the 9.5 accept/decline transition, to absorb when the real engine is built in 9.8
+  (consistent with the Cluster-C connect-hardening notes): (1) `_advance_stage` does the stage UPDATE
+  then the transition INSERT as two non-transactional calls — a failed insert would leave a stage
+  change with no log row; 9.8 should wrap stage-mutate + transition-log + audit in one transaction/RPC.
+  (2) The pending guard is read-then-write, so it isn't atomic — 9.8 should use a conditional
+  `UPDATE ... WHERE stage = <expected>` and check the row count so concurrent transitions can't both
+  pass. Low risk at Pending (single recipient); real concern for mutual/auto gates later.
+- 2026-07-15 — **Migration 017 applied to dev (Realtime).** `ALTER PUBLICATION supabase_realtime ADD
+  TABLE messages` — non-destructive, required for 9.4 (the publication shipped empty so postgres_changes
+  delivered nothing). Only `messages` added; `deals` deliberately left out (live stage updates are a
+  later task). Applied via apply_migration.py + confirmed via SQL.
+- 2026-07-15 — **Realtime dedupe = id-guard + skip-own-sender.** The task asked for an id-exists guard;
+  I also skip events where `sender_id === me` because my own sends already render via optimistic+reconcile,
+  and skipping the echo closes the race where the echo (real id) arrives before the insert response
+  reconciles the temp id (which the id-guard alone would miss). Both together = no self-duplicate.
+- 2026-07-15 — **Accept exclusivity flow = one extra round-trip, no error-code abuse.** When the creator
+  accepts and has an active exclusivity clause, the accept endpoint returns HTTP 200 with
+  `requires_acknowledgement:true` and NO state change; the client shows an inline warn-only banner and
+  re-calls with `acknowledge_exclusivity:true` to proceed. Faithful to "shown before finalised / warn
+  only, never block"; the acknowledgement is logged in the `deal_accept` audit metadata.
+- 2026-07-15 — **Accept/decline audited via a local `_audit` in services/deals.py** (mirrors
+  services/maker_checker._audit) rather than importing across service modules — keeps deals.py
+  self-contained, consistent with connect_deal. Transition itself is logged in `deal_stage_transitions`.
+- 2026-07-15 — **72h auto-decline + accept/decline notifications NOT built.** deal-engine.md §1 specifies
+  a 72h auto-expiry (scheduled worker) and outcome notifications; both need the deferred Railway worker
+  (Phase 14 open decision). 9.5 enforces the 72h window on accept (410 if expired) but nothing auto-flips
+  an expired Pending deal to Declined yet.
+- 2026-07-15 — **Pending inline control is deliberately minimal.** The recipient's Accept/Decline and the
+  initiator's "Waiting…" line live in a small block at the top of the thread; the full stage-aware sticky
+  action bar (all stages × roles) is task 9.7 (Cluster 2). The composer stays visible in Pending.
+
+- 2026-07-15 — **Phase 9 chat: Realtime deferred within Cluster 1.** api-architecture lists live
+  message/unread updates as Supabase Realtime (SB), but B3-003 is its own task — 9.2/9.3 use
+  fetch-on-focus + optimistic send. Realtime subscription lands later in Phase 9 (B3-003).
+- 2026-07-15 — **Chat attachments read-tolerant, no picker.** `message_attachments` exists and RLS
+  is verified, but sending/rendering media (B3-007) is a separate task; the thread renders text
+  bodies only for now (attachment-only messages show an empty body). No file picker built.
+- 2026-07-15 — **Deal-preview "other party" = other participant profile(s), not the brand company.**
+  The brand company already appears in `deal_name` ("Company × Creator"); the card avatar/name uses
+  the other participant profile(s). Fine for MVP; revisit if group deals need company branding.
+- 2026-07-15 — **"mine" bubble styling** uses a warm off-white tint (`#F3EFE7`) + right alignment
+  rather than the mockup's glass-gradient (gradients are awkward in RN); "theirs" is white + hairline.
+  Token-faithful and legible; swap to a gradient fill later if desired.
+- 2026-07-15 — **Dev seed for chat testing.** Seeded 3 deals for Peri (Abc admin) ↔ 3 creators via the
+  real `connect_deal` service + a few messages. Two deals had `stage` bumped directly (chatting/creating)
+  purely for stage-pill/next-action visual variety — this bypasses the (Phase-9) server engine and is
+  dev-data-only. Remove or reset if it clutters testing.
 
 - 2026-07-14 — **Cluster C connect — orchestrator security pass PASSED, with 4 non-blocking
   hardening notes for Phase 9/12** (MVP-acceptable as-is): (1) no DB-level uniqueness on a live

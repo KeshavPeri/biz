@@ -22,3 +22,30 @@ export function formatPercent(n: number | null | undefined): string {
   if (n === null || n === undefined) return '—';
   return `${n}%`;
 }
+
+/**
+ * A compact relative-time label for chat timestamps: "now", "5m", "3h",
+ * "2d", else a short date. Kept coarse — chat previews don't need seconds.
+ */
+export function formatRelativeTime(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return '';
+  const diffMs = Date.now() - then;
+  const min = Math.floor(diffMs / 60_000);
+  if (min < 1) return 'now';
+  if (min < 60) return `${min}m`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}d`;
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+/** A clock time for message bubbles, e.g. "11:42 AM". */
+export function formatClockTime(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+}

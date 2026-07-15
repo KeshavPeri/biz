@@ -84,6 +84,9 @@ export default function RootLayout() {
                 mounted underneath and its filters survive the round trip. */}
             <Stack.Screen name="creator/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="brand/[id]" options={{ headerShown: false }} />
+            {/* Deal room (Phase 9) — root-stack sibling above the tabs; opened from
+                the chat list, so the tab shell stays mounted underneath. */}
+            <Stack.Screen name="deal/[id]" options={{ headerShown: false }} />
           </Stack.Protected>
           <Stack.Protected guard={!!session && onboarded === false}>
             <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />

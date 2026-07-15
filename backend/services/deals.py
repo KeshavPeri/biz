@@ -10,25 +10,20 @@ this module enforces every rule itself and never trusts the caller's identity,
 which is verified upstream by core.auth.get_current_user_id.
 """
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
 from supabase import Client
 
 from core.supabase_client import get_supabase
 
+# DealError + the shared transition primitives live in the engine now; connect and
+# the accept/decline wrappers below route through it (no parallel transition path).
+from services.stage_engine import DealError, _exclusivity_warning, request_transition
+
 # Stages that mean "no live deal" — a new connect may be created past these.
 TERMINAL_STAGES = ("declined", "cancelled", "closed")
 PENDING_WINDOW_HOURS = 72  # deal-engine.md §1; auto-decline enforcement is Phase 9.
-
-
-class DealError(Exception):
-    """Raised for a rule/precondition failure; carries the HTTP status to return."""
-
-    def __init__(self, status_code: int, detail: str) -> None:
-        super().__init__(detail)
-        self.status_code = status_code
-        self.detail = detail
 
 
 def _account_type(client: Client, profile_id: str) -> str | None:
@@ -46,30 +41,6 @@ def _active_brand_id(client: Client, profile_id: str) -> str | None:
         .execute()
     )
     return resp.data[0]["brand_id"] if resp.data else None
-
-
-def _exclusivity_warning(client: Client, creator_id: str) -> str | None:
-    """Non-blocking: does this creator have an ACTIVE exclusivity from any of their
-    deals? At Pending there are no terms for THIS deal to compare categories
-    against, so we only WARN — real category-conflict enforcement is Phase 9."""
-    deals = client.table("deals").select("id").eq("creator_id", creator_id).execute()
-    deal_ids = [d["id"] for d in deals.data]
-    if not deal_ids:
-        return None
-    clauses = (
-        client.table("exclusivity_clauses")
-        .select("category, end_date")
-        .in_("deal_id", deal_ids)
-        .eq("has_exclusivity", True)
-        .execute()
-    )
-    today = date.today().isoformat()
-    for c in clauses.data:
-        # Active = open-ended, or not yet ended.
-        if c["end_date"] is None or c["end_date"] >= today:
-            category = c.get("category") or "unspecified category"
-            return f"This creator has an active exclusivity arrangement ({category})."
-    return None
 
 
 def _find_live_deal(client: Client, creator_id: str, brand_id: str) -> dict[str, Any] | None:
@@ -206,3 +177,34 @@ def _brand_admin_profile(client: Client, brand_id: str) -> str | None:
         .execute()
     )
     return resp.data[0]["profile_id"] if resp.data else None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pending accept / decline — B3-016 (task 9.5), now THIN WRAPPERS over the engine.
+#
+# All transition logic (guards, role/stage/recipient checks, atomic apply, audit,
+# notifications) lives in services/stage_engine.request_transition — the single
+# path for every stage change (task 9.8). These wrappers just name the target
+# stage and pass the accept-only exclusivity-ack param.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def accept_deal(
+    user_id: str,
+    deal_id: str,
+    ip_address: str,
+    acknowledge_exclusivity: bool = False,
+) -> dict[str, Any]:
+    """Recipient accepts a Pending connection → CHATTING (via the engine)."""
+    return request_transition(
+        deal_id,
+        user_id,
+        "chatting",
+        ip_address,
+        params={"acknowledge_exclusivity": acknowledge_exclusivity},
+    )
+
+
+def decline_deal(user_id: str, deal_id: str, ip_address: str) -> dict[str, Any]:
+    """Recipient declines a Pending connection → DECLINED, terminal (via the engine)."""
+    return request_transition(deal_id, user_id, "declined", ip_address)

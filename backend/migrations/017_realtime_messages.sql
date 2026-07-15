@@ -1,0 +1,22 @@
+-- ============================================================
+-- 017_realtime_messages.sql
+-- Phase 9 (Deal Engine) — task 9.4 / B3-003: enable live chat delivery.
+--
+-- Supabase Realtime's `postgres_changes` only streams a table's row changes if
+-- that table is a member of the `supabase_realtime` publication. The publication
+-- exists but ships empty, so INSERTs on `messages` were never broadcast. Adding
+-- the table here is what makes a new message appear live in an open deal thread
+-- without a refetch.
+--
+-- Scope: `messages` only. Live stage-progress updates (the deal-room stepper) are
+-- a later task; we don't add `deals` yet to keep the broadcast surface minimal.
+--
+-- Security note: Realtime applies the table's RLS policies to each subscriber's
+-- JWT, so a client only receives INSERTs for deals it participates in
+-- (`messages_read_participant`). This publication membership does NOT widen access.
+--
+-- Replica identity: `messages` stays at the default identity — fine here because
+-- we subscribe to INSERT only (the full NEW row is always sent for INSERTs).
+-- ============================================================
+
+ALTER PUBLICATION supabase_realtime ADD TABLE messages;
