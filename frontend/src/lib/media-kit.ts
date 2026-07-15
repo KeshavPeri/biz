@@ -1,3 +1,8 @@
+import { Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as Crypto from 'expo-crypto';
+import type { ImagePickerAsset } from 'expo-image-picker';
+
 import { supabase } from '@/lib/supabase';
 import {
   computeBrandCompleteness,
@@ -86,6 +91,8 @@ export type CreatorMediaKit = {
   niches: string[];
   contentCategory: string | null;
   bio: string | null;
+  /** Ordered storage paths (NOT URLs) — index 0 is primary; resolve via StorageImage. */
+  photoCarousel: string[];
   contentLanguages: string[];
   inboundEnabled: boolean;
   outboundEnabled: boolean;
@@ -183,7 +190,7 @@ async function fetchCreatorMediaKit(
   const { data: cp } = await client
     .from('creator_profiles')
     .select(
-      'id, niches, content_category, bio, content_languages, inbound_enabled, outbound_enabled, trust_score, deal_completion_rate, response_time_hours, privacy_settings',
+      'id, niches, content_category, bio, content_languages, photo_carousel, inbound_enabled, outbound_enabled, trust_score, deal_completion_rate, response_time_hours, privacy_settings',
     )
     .eq('profile_id', userId)
     .maybeSingle();
@@ -211,47 +218,129 @@ async function fetchCreatorMediaKit(
         .eq('creator_id', creatorId),
     ]);
 
-  // One rate card per creator (data-model); take the first if present.
-  const rawCard = (rateCards ?? [])[0];
+  return buildCreatorMediaKit(userId, creatorId, cp, profile, handles, rateCards, affiliations, partnerships);
+}
+
+/**
+ * Shared mapper from the raw creator_profiles row + its children into the
+ * CreatorMediaKit shape. Used by both the own-profile fetch (by profile_id) and
+ * the by-id fetch (Discovery detail), so the two can never drift.
+ */
+function buildCreatorMediaKit(
+  profileId: string,
+  creatorId: string,
+  cp: Record<string, unknown>,
+  profile: { display_name: string; city: string | null; avatar_url: string | null },
+  handles: unknown,
+  rateCards: unknown,
+  affiliations: unknown,
+  partnerships: unknown,
+): CreatorMediaKit {
+  // One rate card per creator (data-model); take the first RLS returned. For a
+  // non-brand, non-owner viewer RLS returns none — so the card is simply absent.
+  const rawCard = ((rateCards as { id: string; is_enabled: boolean; rate_card_items?: RateCardItem[] }[]) ?? [])[0];
   const rateCard: RateCard | null = rawCard
     ? {
         id: rawCard.id,
         is_enabled: rawCard.is_enabled,
-        items: ((rawCard.rate_card_items as RateCardItem[]) ?? []).sort((a, b) =>
-          a.title.localeCompare(b.title),
-        ),
+        items: (rawCard.rate_card_items ?? []).sort((a, b) => a.title.localeCompare(b.title)),
       }
     : null;
 
   const privacy = { ...DEFAULT_PRIVACY, ...((cp.privacy_settings as Partial<PrivacySettings>) ?? {}) };
 
   // Primary handle first, then by follower_count desc.
-  const sortedHandles = ((handles as SocialHandle[]) ?? []).sort((a, b) => {
+  const sortedHandles = ((handles as SocialHandle[]) ?? []).slice().sort((a, b) => {
     if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
     return (b.follower_count ?? 0) - (a.follower_count ?? 0);
   });
 
   return {
     kind: 'creator',
-    profileId: userId,
+    profileId,
     creatorId,
     displayName: profile.display_name,
     city: profile.city,
     avatarUrl: profile.avatar_url,
     niches: (cp.niches as string[]) ?? [],
-    contentCategory: cp.content_category,
-    bio: cp.bio,
+    contentCategory: (cp.content_category as string | null) ?? null,
+    bio: (cp.bio as string | null) ?? null,
+    photoCarousel: (cp.photo_carousel as string[]) ?? [],
     contentLanguages: (cp.content_languages as string[]) ?? [],
-    inboundEnabled: cp.inbound_enabled,
-    outboundEnabled: cp.outbound_enabled,
-    trustScore: cp.trust_score,
-    dealCompletionRate: cp.deal_completion_rate,
-    responseTimeHours: cp.response_time_hours,
+    inboundEnabled: cp.inbound_enabled as boolean,
+    outboundEnabled: cp.outbound_enabled as boolean,
+    trustScore: (cp.trust_score as number | null) ?? null,
+    dealCompletionRate: (cp.deal_completion_rate as number | null) ?? null,
+    responseTimeHours: (cp.response_time_hours as number | null) ?? null,
     privacy,
     handles: sortedHandles,
     rateCard,
     affiliations: (affiliations as Affiliation[]) ?? [],
     partnerships: (partnerships as BrandPartnership[]) ?? [],
+  };
+}
+
+const CREATOR_KIT_SELECT =
+  'id, profile_id, niches, content_category, bio, content_languages, photo_carousel, inbound_enabled, outbound_enabled, trust_score, deal_completion_rate, response_time_hours, privacy_settings, ' +
+  'profiles(display_name, city, avatar_url), ' +
+  'social_handles(id, platform, handle, follower_count, engagement_rate, weekly_reach, is_primary, verification_status), ' +
+  'rate_cards(id, is_enabled, rate_card_items(id, platform, content_format, base_price, currency, title, description, add_ons)), ' +
+  'affiliations(id, type, name, year, description), ' +
+  'brand_partnerships(id, brand_name, platform, views_reach, year, description)';
+
+/**
+ * Fetch any creator's media kit by their creator_profiles.id (Discovery detail,
+ * B2-002). Works for ANY authenticated caller — creator_profiles/profiles/handles
+ * are public reads; the rate card is returned by RLS ONLY to brand accounts (and
+ * the owner). The client never gates this; it renders exactly what RLS returned.
+ */
+export async function fetchCreatorMediaKitById(creatorId: string): Promise<CreatorMediaKit | null> {
+  if (!supabase) return null;
+  const { data: row, error } = await supabase
+    .from('creator_profiles')
+    .select(CREATOR_KIT_SELECT)
+    .eq('id', creatorId)
+    .maybeSingle();
+  if (error || !row) return null;
+
+  // supabase-js can't infer the shape of an embedded select — treat the row loosely.
+  const r = row as unknown as Record<string, unknown>;
+  const profile = (r.profiles as { display_name: string; city: string | null; avatar_url: string | null } | null) ?? {
+    display_name: 'Creator',
+    city: null,
+    avatar_url: null,
+  };
+  return buildCreatorMediaKit(
+    r.profile_id as string,
+    r.id as string,
+    r,
+    profile,
+    r.social_handles,
+    r.rate_cards,
+    r.affiliations,
+    r.brand_partnerships,
+  );
+}
+
+/** Fetch any brand's public profile by id (Discovery detail, B2-006/B2-038). */
+export async function fetchBrandProfileById(brandId: string): Promise<BrandProfile | null> {
+  if (!supabase) return null;
+  const { data: brand, error } = await supabase
+    .from('brands')
+    .select('id, company_name, industry, domain, verified, trust_rating, deal_completion_rate, profile_attributes')
+    .eq('id', brandId)
+    .maybeSingle();
+  if (error || !brand) return null;
+  return {
+    kind: 'brand',
+    brandId: brand.id,
+    companyName: brand.company_name,
+    industry: brand.industry,
+    domain: brand.domain,
+    verified: brand.verified,
+    trustRating: brand.trust_rating,
+    dealCompletionRate: brand.deal_completion_rate,
+    profileAttributes: (brand.profile_attributes as Record<string, unknown> | null) ?? null,
   };
 }
 
@@ -269,6 +358,7 @@ async function refreshCreatorCompleteness(userId: string): Promise<void> {
     handleCount: kit.handles.length,
     rateCardEnabledWithItems: Boolean(kit.rateCard?.is_enabled && kit.rateCard.items.length > 0),
     hasAffiliationOrPartnership: kit.affiliations.length > 0 || kit.partnerships.length > 0,
+    hasPhotos: kit.photoCarousel.length > 0,
   });
   await supabase!.from('profiles').update({ profile_completeness: pct }).eq('id', userId);
 }
@@ -530,6 +620,127 @@ export async function deleteAffiliation(affiliationId: string, userId: string): 
   try {
     const { error } = await supabase.from('affiliations').delete().eq('id', affiliationId);
     if (error) throw error;
+    await refreshCreatorCompleteness(userId);
+    return { ok: true };
+  } catch {
+    return { ok: false, message: GENERIC_ERROR };
+  }
+}
+
+// ── B2-031: Profile photos (private Storage bucket, signed-URL serving) ────────
+
+export const PROFILE_PHOTOS_BUCKET = 'profile-photos';
+export const MAX_PHOTOS = 5;
+const SIGNED_URL_TTL = 60 * 60 * 24 * 7; // 7 days
+// Re-sign a bit before expiry so an in-flight render never gets a dead URL.
+const SIGNED_URL_REFRESH_BUFFER_MS = 60 * 60 * 1000; // 1 hour
+
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+
+/**
+ * Resolve a storage PATH to a temporary signed URL (the bucket is private, so
+ * getPublicUrl does not apply). Cached in memory keyed by the stable path; the
+ * DB only ever stores the path, never a URL. Returns null on failure so the
+ * caller can show a placeholder.
+ */
+export async function getSignedProfilePhotoUrl(path: string): Promise<string | null> {
+  if (!supabase || !path) return null;
+  const cached = signedUrlCache.get(path);
+  if (cached && cached.expiresAt - SIGNED_URL_REFRESH_BUFFER_MS > Date.now()) {
+    return cached.url;
+  }
+  const { data, error } = await supabase.storage
+    .from(PROFILE_PHOTOS_BUCKET)
+    .createSignedUrl(path, SIGNED_URL_TTL);
+  if (error || !data?.signedUrl) return null;
+  signedUrlCache.set(path, { url: data.signedUrl, expiresAt: Date.now() + SIGNED_URL_TTL * 1000 });
+  return data.signedUrl;
+}
+
+/**
+ * Read a picked image's bytes for upload. Expo SDK 54's FileSystem is class-based
+ * (legacy readAsStringAsync throws), so native uses `new File(uri).bytes()`; web
+ * has no File API, so it fetches the (blob:/data:) uri to an ArrayBuffer. Both
+ * types are accepted by supabase-js upload().
+ */
+async function readImageBytes(uri: string): Promise<Uint8Array | ArrayBuffer> {
+  if (Platform.OS === 'web') {
+    const res = await fetch(uri);
+    return res.arrayBuffer();
+  }
+  return new FileSystem.File(uri).bytes();
+}
+
+function extAndType(asset: ImagePickerAsset): { ext: string; contentType: string } {
+  const mime = asset.mimeType ?? 'image/jpeg';
+  const fromName = asset.fileName?.split('.').pop()?.toLowerCase();
+  const fromMime = mime.split('/').pop()?.toLowerCase();
+  let ext = fromName || fromMime || 'jpg';
+  if (ext === 'jpeg') ext = 'jpg';
+  return { ext, contentType: mime };
+}
+
+/**
+ * Upload one picked photo to the caller's OWN folder. Path is EXACTLY
+ * `${userId}/${uuid}.${ext}` — the top folder equals auth.uid(), which the 016
+ * owner-write policy requires. Returns the storage path (to persist), or an error.
+ */
+export async function uploadProfilePhoto(
+  userId: string,
+  asset: ImagePickerAsset,
+): Promise<{ ok: true; path: string } | { ok: false; message: string }> {
+  if (!supabase) return { ok: false, message: GENERIC_ERROR };
+  try {
+    const { ext, contentType } = extAndType(asset);
+    const path = `${userId}/${Crypto.randomUUID()}.${ext}`;
+    const bytes = await readImageBytes(asset.uri);
+    const { error } = await supabase.storage
+      .from(PROFILE_PHOTOS_BUCKET)
+      .upload(path, bytes, { contentType, upsert: false });
+    if (error) throw error;
+    return { ok: true, path };
+  } catch {
+    return { ok: false, message: "Couldn't upload that photo. Please try again." };
+  }
+}
+
+/** Delete a storage object (owner-delete policy). Best-effort — logs nothing to the user. */
+export async function removeProfilePhoto(path: string): Promise<void> {
+  if (!supabase) return;
+  try {
+    await supabase.storage.from(PROFILE_PHOTOS_BUCKET).remove([path]);
+    signedUrlCache.delete(path);
+  } catch {
+    // A dangling object is harmless (owner-scoped, re-cleanable); don't block the UI.
+  }
+}
+
+/**
+ * Persist the ordered carousel. Writes creator_profiles.photo_carousel (jsonb array
+ * of PATHS, order = display order) and profiles.avatar_url = the primary (index 0).
+ * NOTE: avatar_url stores a STORAGE PATH, not a URL — it is only ever turned into a
+ * picture via StorageImage/getSignedProfilePhotoUrl. Refreshes completeness.
+ */
+export async function savePhotoCarousel(
+  userId: string,
+  paths: string[],
+): Promise<Result> {
+  if (!supabase) return NO_CLIENT;
+  try {
+    const capped = paths.slice(0, MAX_PHOTOS);
+    const { error: cErr } = await supabase
+      .from('creator_profiles')
+      .update({ photo_carousel: capped })
+      .eq('profile_id', userId);
+    if (cErr) throw cErr;
+
+    const { error: pErr } = await supabase
+      .from('profiles')
+      // Stores the primary photo's STORAGE PATH (not a URL); resolved via StorageImage.
+      .update({ avatar_url: capped[0] ?? null })
+      .eq('id', userId);
+    if (pErr) throw pErr;
+
     await refreshCreatorCompleteness(userId);
     return { ok: true };
   } catch {

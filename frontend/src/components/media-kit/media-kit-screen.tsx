@@ -9,10 +9,11 @@ import { EditHandleSheet } from '@/components/media-kit/editors/edit-handle-shee
 import { RateCardEditor } from '@/components/media-kit/editors/rate-card-editor';
 import { PrivacySheet } from '@/components/media-kit/editors/privacy-sheet';
 import { AffiliationsEditor } from '@/components/media-kit/editors/affiliations-editor';
+import { PhotosEditor } from '@/components/media-kit/editors/photos-editor';
 import { fetchOwnMediaKit, type MediaKitData, type SocialHandle } from '@/lib/media-kit';
 import { useAuthStore } from '@/store/auth-store';
 
-type Editor = 'profile' | 'handle' | 'rate' | 'privacy' | 'affiliations' | null;
+type Editor = 'profile' | 'handle' | 'rate' | 'privacy' | 'affiliations' | 'photos' | null;
 
 /**
  * The "You" tab container (Phase 8, Cluster A). Fetches the signed-in user's own
@@ -119,6 +120,7 @@ export function MediaKitScreen() {
                   onEditRateCard: () => setEditor('rate'),
                   onEditPrivacy: () => setEditor('privacy'),
                   onEditAffiliations: () => setEditor('affiliations'),
+                  onEditPhotos: () => setEditor('photos'),
                 }
           }
         />
@@ -150,6 +152,13 @@ export function MediaKitScreen() {
         creatorId={data.creatorId}
         profileId={data.profileId}
         affiliations={data.affiliations}
+      />
+      <PhotosEditor
+        visible={editor === 'photos'}
+        onClose={() => setEditor(null)}
+        onChanged={afterChange}
+        userId={data.profileId}
+        photoCarousel={data.photoCarousel}
       />
     </SafeAreaView>
   );

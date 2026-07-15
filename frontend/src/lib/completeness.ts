@@ -17,6 +17,7 @@ export type CreatorCompletenessInput = {
   handleCount: number;
   rateCardEnabledWithItems: boolean;
   hasAffiliationOrPartnership: boolean;
+  hasPhotos: boolean;
 };
 
 /** 0–100. Additive weights; each block is independent enrichment. */
@@ -26,10 +27,11 @@ export function computeCreatorCompleteness(input: CreatorCompletenessInput): num
   if (input.niches?.length) pct += 8;
   if (input.contentLanguages?.length) pct += 6;
   if (input.bio?.trim()) pct += 6;
-  if (input.contentCategory?.trim()) pct += 6;
+  if (input.contentCategory?.trim()) pct += 4;
   if (input.handleCount > 0) pct += 10;
   if (input.rateCardEnabledWithItems) pct += 12;
   if (input.hasAffiliationOrPartnership) pct += 6;
+  if (input.hasPhotos) pct += 8;
   return Math.min(pct, 100);
 }
 

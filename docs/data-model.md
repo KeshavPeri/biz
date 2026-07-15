@@ -95,7 +95,7 @@ Extends Supabase `auth.users` (1:1). Base profile for every user.
 | email | text | |
 | phone | text | nullable (no SMS use in MVP) |
 | city | text | |
-| avatar_url | text | primary photo; storage path |
+| avatar_url | text | primary photo — a **Storage PATH in the private `profile-photos` bucket, NOT a URL**. Mirrors `creator_profiles.photo_carousel[0]`. Rendered only via signed URLs (frontend `StorageImage`/`getSignedProfilePhotoUrl`, B2-031); never `getPublicUrl` |
 | profile_completeness | int | 0–100, computed |
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
@@ -111,7 +111,7 @@ Creator-specific fields. 1:1 with `profiles` where account_type = creator.
 | content_category | text | |
 | bio | text | |
 | content_languages | text[] | |
-| photo_carousel | jsonb | array of up to 5 storage paths, ordered |
+| photo_carousel | jsonb | ordered array of up to 5 **Storage paths** (not URLs), index 0 = primary = `profiles.avatar_url`; served via signed URLs (B2-031) |
 | inbound_enabled | bool | accept inbound outreach |
 | outbound_enabled | bool | initiate outreach |
 | trust_score | numeric | computed (placeholder logic for MVP) |

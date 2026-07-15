@@ -25,10 +25,35 @@ up exactly where the last one left off, with zero context lost.
     deferred from Phase 7). All owned-record CRUD is Supabase-direct under RLS (no FastAPI). The
     read view is ONE props-driven component (`media-kit-view.tsx`) re-used by the own view, the
     brand preview, and — next — the brand-facing detail screen (8.3). `test_media_kit_rls.py`
-    **10/10 PASS**; `tsc --noEmit` clean; web bundle exports cleanly. RTM: Bucket 2 = 6/13,
-    Bucket 1 = 12/18. See SESSION HISTORY 2026-07-14 (media kit).
-  - **Next:** 8.2/8.3 — Discovery browse/filter screens (B2-001/B2-005) and the brand-facing
-    creator detail screen (B2-002/B2-006), which will re-use `media-kit-view.tsx`.
+    **10/10 PASS**.
+  - **Cluster A part 2 DONE (B2-031 photo carousel):** the hero now shows real creator photos
+    (swipeable) or a gradient fallback; primary photo (index 0) → `profiles.avatar_url`. PRIVATE
+    `profile-photos` bucket (migration 016 — **confirmed applied** by the storage test) served via
+    signed URLs (7-day TTL, cached by the stable path; `avatar_url`/`photo_carousel` store PATHS,
+    not URLs). Upload via expo-image-picker + SDK-54 File API (`new File(uri).bytes()` native /
+    `fetch→arrayBuffer` web). `StorageImage` is the ONE path→picture resolver (cacheKey = path).
+    Add/remove/reorder/set-primary in a bottom-sheet editor. New deps: expo-image-picker,
+    expo-file-system, expo-crypto. `test_storage_rls.py` **3/3 PASS** (owner-write allowed,
+    cross-folder write blocked, public-read returns bytes). `tsc` clean; web export clean.
+    RTM: Bucket 2 = 7/13, Bucket 1 = 12/18. See SESSION HISTORY 2026-07-14 (photos).
+  - **Cluster B DONE (browse + profile detail, 8.2/8.3):** the Discover tab is live — a brand
+    browses creators (grid, B2-001), a creator browses brands (list, B2-005), with search + facet
+    filters (client-side over the RLS-governed set). Tapping a card opens a detail route:
+    `/creator/[id]` **reuses `MediaKitView` (viewerMode='brand')** fed by `fetchCreatorMediaKitById`
+    (B2-002 — NOT rebuilt); `/brand/[id]` renders the new read-only `BrandProfileView`
+    (B2-006/B2-038). Detail routes are root-stack siblings above the tabs, so Discover stays mounted
+    and filters survive the back trip. All Supabase-direct reads under RLS. `test_discovery_rls.py`
+    **7/7 PASS** (browse reads + by-id detail: brand sees enabled rate card, other creator sees
+    public fields but no card). `tsc` clean; web export clean (incl. the two detail routes).
+    RTM: Bucket 2 = 12/13 (only B2-004 connect left — Phase 9), Bucket 1 = 12/18.
+  - **Cluster C DONE (B2-004 basic connect):** the detail-screen "Start a deal" CTA is now live —
+    the first frontend→FastAPI call. `POST /deals/connect` (FastAPI + service_role) seeds a Pending
+    deal + 2 participants + a logged NULL→pending transition + a chat-thread stub, enforcing RBAC
+    (active brand membership), a duplicate guard (reuses a live deal), and a non-blocking exclusivity
+    warning — all server-side. `test_connect.py` **13/13 PASS**; `tsc` clean; web export clean.
+    **RTM: Bucket 2 = 13/13 — Phase 8 Discovery feature-complete.** Bucket 1 = 12/18.
+  - **Next:** Phase 8 close-out gate (RTM/phone test), then Phase 9 (Deal Engine) — accept/decline,
+    proposal/terms, AI parser, the deal room. Connect is the seam that feeds it.
 - *(Prior phase: Phase 7 — Identity & Trust (Bucket 1). Clusters A + B + C DONE — all build
   work complete; only the close-out gates (7.12 phone test / 7.13 RTM / 7.14 phase gate) remain.)*
   - **Cluster A (Auth core, 7.1–7.4)** — committed `feat: auth core` (`aa07748`) on 2026-07-13.
@@ -169,6 +194,15 @@ do not proceed. I'll resolve these at the start of my next session.*
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
 
+- 2026-07-14 — **Cluster C connect — orchestrator security pass PASSED, with 4 non-blocking
+  hardening notes for Phase 9/12** (MVP-acceptable as-is): (1) no DB-level uniqueness on a live
+  `(creator_id, brand_id)` deal — the app-level duplicate guard isn't atomic, so two simultaneous
+  connects could race into two deals; a partial unique index would harden it. (2) The connect
+  inserts (deals → participants → transition → message) aren't wrapped in a transaction — a
+  mid-sequence failure could orphan a deal. (3) `ip_address` is captured but unused — connect isn't
+  written to the immutable `audit_log` (the `deal_stage_transitions` row is the deal's audit trail;
+  formalise audit coverage in Phase 12). (4) `target_id` isn't UUID-validated (harmless — queries
+  are parameterised; bad input → clean 404/500). None block Phase 8.
 - 2026-07-14 — **Media kit (Cluster A part 1) — scope omissions & decisions.**
   - The mockup's **"What brands say" (testimonials)** section is **deferred, not dropped**: the
     `ratings` table exists but is populated **post-deal in Phase 9+**. It renders once real ratings
@@ -345,6 +379,81 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-07-15 — Phase 8 Cluster C: B2-004 "basic connect" (Phase-9 seam)
+- **Did:** Wired the minimal connect action behind the detail-screen "Start a deal" CTA.
+  `POST /deals/connect` (FastAPI + service_role, mirrors `services/maker_checker.py`): resolves
+  parties + direction from the caller's account_type (brand→creator = `inbound`, creator→brand =
+  `outbound` — creator-centric per data-model.md), enforces RBAC, dup-guards, seeds the deal, and
+  runs a non-blocking exclusivity check.
+- **Seeds (ordered):** `deals`(stage=pending, deal_type=campaign, currency=INR, direction, created_by,
+  expires_at=now+72h) → `deal_participants` ×2 (creator + brand_admin) → `deal_stage_transitions`
+  (NULL→pending, 'auto') → one `messages` chat stub.
+- **Frontend:** first-ever frontend→FastAPI call — new `lib/api.ts` (Bearer-token client, base URL
+  from `EXPO_PUBLIC_API_URL`, default localhost:8000) + `lib/deals.ts` (`connectDeal`). `ConnectSheet`
+  confirm modal (reuses `EditSheet`) surfaces success + exclusivity warning. `MediaKitView` +
+  `BrandProfileView` gained an optional `onConnect` — the CTA is enabled only when supplied (the
+  You-tab "Preview as brand" passes none, so it stays disabled). Creator detail passes the creator's
+  **profiles.id** (not creator_profiles.id — account_type lives on profiles).
+- **Verify:** `test_connect.py` **13/13 PASS** (create + direction + 2 participants + 1 logged
+  transition + chat stub + exclusivity warning + duplicate guard + RBAC 403 + participant/non-
+  participant RLS reads). `npx tsc --noEmit` clean; `npx expo export --platform web` clean.
+- **Design decisions logged:** (1) `brand_id` is DERIVED server-side from the caller's active
+  `brand_members` row — NOT a client input — so a caller can only ever act for their own brand; the
+  enforceable RBAC path is "no active membership → 403" (stronger than the plan's "not a member of
+  brand_id", which isn't even expressible). (2) Exclusivity is a WARNING, never a block — at Pending
+  there are no terms for THIS deal to compare categories against; real conflict enforcement is Phase 9.
+  (3) `expires_at` is set (72h Pending window) but auto-decline enforcement is Phase 9.
+- **Scope:** minimal seam only — no proposal/cap/AI/terms/accept-decline, no deal-room nav, no chat UI.
+- **Next:** Phase 8 close-out; Phase 9 wires accept/decline + the deal room onto this seam.
+
+### 2026-07-14 — Phase 8 Cluster B: Discovery browse + profile detail (8.2/8.3)
+- **Did:** Built the Discover tab + detail screens. Direction keys off `account_type`: brand→creator
+  grid (B2-001), creator→brand list (B2-005). Search + facet filters (niche/platform/city for
+  creators; industry/city for brands) run client-side over the fetched (RLS-governed) set. Tapping a
+  card → `/creator/[id]` or `/brand/[id]`.
+- **Key reuse (the point of the cluster):** the creator detail (B2-002) mounts the **existing
+  `MediaKitView` with `viewerMode='brand'`** — no fork — fed by a new `fetchCreatorMediaKitById`
+  (refactored a shared `buildCreatorMediaKit` mapper so own-fetch and by-id-fetch can't drift). The
+  brand detail (B2-006/B2-038) uses a new read-only `BrandProfileView`, fed by `fetchBrandProfileById`.
+- **Files:** new `lib/discovery.ts` (browse queries + card types), `components/discovery/*`
+  (discover-screen, creator-card, brand-card, filter-chips, brand-profile-view), routes
+  `app/{creator,brand}/[id].tsx` (root-stack siblings above tabs, registered in `_layout.tsx`),
+  `(tabs)/index.tsx` now a thin wrapper. Photos via the Cluster-A `StorageImage`.
+- **Security:** all Supabase-direct reads under existing RLS (`*_read_any` + rate_cards brand-only);
+  policies verified, NOT modified. The detail rate card appears purely because RLS returns it to
+  brand accounts — the client `rateCardRevealed` is presentation-only (commented in MediaKitView).
+- **Verify:** `test_discovery_rls.py` **7/7 PASS** (browse: brand reads creators+handles, creator
+  reads brands; detail by-id: brand gets enabled rate card + items, other creator gets public fields
+  but NO card). `npx tsc --noEmit` clean; `npx expo export --platform web` clean incl. `/creator/[id]`
+  + `/brand/[id]`.
+- **Scope omissions (per plan):** NO campaign/opportunity cards (Apply/Claim/Pitch/RSVP, STP
+  pipeline, QR pass, featured "Curated" hero, outbound pitch) — briefs are Phase 9, no Phase-8 table
+  backs them. NO "deal type" filter (no column). Brand cards show trust_rating + deal_completion_rate
+  only (no "active campaigns"/"pays in ~Nd" — unbacked). Creator cards show reach + ER, not a rate
+  (rate lives on the detail media kit). "Start a deal"/"Connect" on both detail views stays a
+  DISABLED placeholder (Phase 9 seam).
+- **Next:** Phase 8 close-out; then Phase 9 wires connect (B2-004).
+
+### 2026-07-14 — Phase 8 Cluster A (part 2): B2-031 profile photo carousel
+- **Did:** Replaced the placeholder avatar with a real photo carousel. The media-kit hero renders
+  up to 5 swipeable photos (or the gradient fallback); primary = index 0 = `profiles.avatar_url`.
+- **Serving model:** PRIVATE `profile-photos` bucket (016), so NO public URLs — a centralized
+  `getSignedProfilePhotoUrl(path)` mints 7-day signed URLs, cached in memory by the STABLE path.
+  DB stores only PATHS (`creator_profiles.photo_carousel` jsonb + `profiles.avatar_url`), never
+  URLs — documented at the write site + in data-model.md. `StorageImage` is the ONE path→picture
+  resolver (expo-image, `cachePolicy=disk`, source `cacheKey=path` so re-signed URLs still hit cache).
+- **Upload:** expo-image-picker → SDK-54 class-based FileSystem `new File(uri).bytes()` on native,
+  `fetch→arrayBuffer` on web (legacy `readAsStringAsync` throws in SDK 54). Path EXACTLY
+  `${userId}/${uuid}.${ext}` so the top folder = auth.uid() (016 owner-write requires it). Editor
+  supports add/remove (also deletes the object), reorder, set-primary; caps at 5.
+- **New deps:** expo-image-picker, expo-file-system, expo-crypto (expo-image already present).
+- **Verify:** `test_storage_rls.py` **3/3 PASS** — A can write its own folder, A CANNOT write B's
+  folder (016 blocks), object is public-readable. This also **confirms migration 016 is applied**
+  (owner upload succeeded). `npx tsc --noEmit` clean; `npx expo export --platform web` clean.
+- **Scope:** photos only — no other media-kit sections touched, no browse/detail (Cluster B),
+  "Start a deal" still a disabled placeholder.
+- **Next:** 8.2/8.3 browse + brand-facing detail (re-use media-kit-view + StorageImage).
 
 ### 2026-07-14 — Phase 8 Cluster A (part 1): editable creator media kit
 - **Did:** Built the "You" tab into the creator's editable media kit (+ brand profile editor).

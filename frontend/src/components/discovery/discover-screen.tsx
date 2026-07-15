@@ -1,0 +1,156 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, type Href } from 'expo-router';
+
+import { CreatorCard } from '@/components/discovery/creator-card';
+import { BrandCard } from '@/components/discovery/brand-card';
+import { FilterChips } from '@/components/discovery/filter-chips';
+import {
+  fetchBrandsForBrowse,
+  fetchCreatorsForBrowse,
+  getMyAccountType,
+  type BrandCardData,
+  type CreatorCardData,
+} from '@/lib/discovery';
+import { platformLabel } from '@/lib/media-kit-enums';
+import { useAuthStore } from '@/store/auth-store';
+
+const cap = (s: string) => (s.length ? s[0].toUpperCase() + s.slice(1) : s);
+const uniqSorted = (xs: (string | null | undefined)[]) =>
+  [...new Set(xs.filter((x): x is string => Boolean(x && x.trim())))].sort((a, b) => a.localeCompare(b));
+
+/**
+ * Discover — the marketplace front door (8.2). Direction depends on the signed-in
+ * account type: a BRAND browses creators (B2-001), a CREATOR browses brands
+ * (B2-005). Search + facet filters are client-side over the fetched (RLS-governed)
+ * set. Tapping a card opens the detail route, which keeps this screen mounted so
+ * filters survive the round trip.
+ */
+export function DiscoverScreen() {
+  const session = useAuthStore((s) => s.session);
+  const [accountType, setAccountType] = useState<'creator' | 'brand' | null>(null);
+  const [creators, setCreators] = useState<CreatorCardData[]>([]);
+  const [brands, setBrands] = useState<BrandCardData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [search, setSearch] = useState('');
+  const [niche, setNiche] = useState<string | null>(null);
+  const [platform, setPlatform] = useState<string | null>(null);
+  const [city, setCity] = useState<string | null>(null);
+  const [industry, setIndustry] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!session) {
+      setLoading(false);
+      return;
+    }
+    const type = await getMyAccountType(session.user.id);
+    setAccountType(type);
+    if (type === 'brand') setCreators(await fetchCreatorsForBrowse());
+    else if (type === 'creator') setBrands(await fetchBrandsForBrowse());
+    setLoading(false);
+  }, [session]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  // Facet options derived from the fetched set.
+  const creatorNiches = useMemo(
+    () => uniqSorted(creators.flatMap((c) => c.niches.map(cap))),
+    [creators],
+  );
+  const creatorPlatforms = useMemo(
+    () => uniqSorted(creators.flatMap((c) => c.platforms.map(platformLabel))),
+    [creators],
+  );
+  const creatorCities = useMemo(() => uniqSorted(creators.map((c) => c.city)), [creators]);
+  const brandIndustries = useMemo(() => uniqSorted(brands.map((b) => b.industry)), [brands]);
+  const brandCities = useMemo(() => uniqSorted(brands.map((b) => b.hqCity)), [brands]);
+
+  const filteredCreators = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return creators.filter((c) => {
+      if (q && !c.displayName.toLowerCase().includes(q)) return false;
+      if (niche && !c.niches.some((n) => n.toLowerCase() === niche.toLowerCase())) return false;
+      if (platform && !c.platforms.some((p) => platformLabel(p) === platform)) return false;
+      if (city && c.city !== city) return false;
+      return true;
+    });
+  }, [creators, search, niche, platform, city]);
+
+  const filteredBrands = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return brands.filter((b) => {
+      if (q && !b.companyName.toLowerCase().includes(q)) return false;
+      if (industry && b.industry !== industry) return false;
+      if (city && b.hqCity !== city) return false;
+      return true;
+    });
+  }, [brands, search, industry, city]);
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-app" edges={['top']}>
+        <ActivityIndicator color="#847F78" />
+      </SafeAreaView>
+    );
+  }
+
+  const isBrand = accountType === 'brand';
+  const count = isBrand ? filteredCreators.length : filteredBrands.length;
+
+  return (
+    <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+      <View className="px-4 pt-2">
+        <Text className="font-geist-bold text-display text-ink">Discover</Text>
+        <View className="mt-3 rounded-input bg-surface-recess px-4 py-3 shadow-recessInset">
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder={isBrand ? 'Creators by name' : 'Brands by name'}
+            placeholderTextColor="#847F78"
+            className="font-geist text-body text-ink"
+            autoCapitalize="none"
+          />
+        </View>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="px-4 pb-32 pt-3">
+        {isBrand ? (
+          <>
+            <FilterChips label="Niche" options={creatorNiches} selected={niche} onSelect={setNiche} />
+            <FilterChips label="Platform" options={creatorPlatforms} selected={platform} onSelect={setPlatform} />
+            <FilterChips label="City" options={creatorCities} selected={city} onSelect={setCity} />
+          </>
+        ) : (
+          <>
+            <FilterChips label="Industry" options={brandIndustries} selected={industry} onSelect={setIndustry} />
+            <FilterChips label="City" options={brandCities} selected={city} onSelect={setCity} />
+          </>
+        )}
+
+        <Text className="mb-3 mt-2 font-geist-semibold text-subtitle text-ink">
+          {count} {isBrand ? (count === 1 ? 'creator' : 'creators') : count === 1 ? 'brand' : 'brands'}
+        </Text>
+
+        {count === 0 ? (
+          <Text className="font-geist text-body text-ink-3">Nothing matches those filters yet.</Text>
+        ) : isBrand ? (
+          <View className="flex-row flex-wrap justify-between gap-y-3">
+            {filteredCreators.map((c) => (
+              <View key={c.creatorId} className="w-[48.5%]">
+                <CreatorCard creator={c} onPress={() => router.push(`/creator/${c.creatorId}` as Href)} />
+              </View>
+            ))}
+          </View>
+        ) : (
+          filteredBrands.map((b) => (
+            <BrandCard key={b.brandId} brand={b} onPress={() => router.push(`/brand/${b.brandId}` as Href)} />
+          ))
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}

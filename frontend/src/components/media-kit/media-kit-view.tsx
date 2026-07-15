@@ -12,9 +12,13 @@ import {
 import { affiliationTypeLabel, platformLabel } from '@/lib/media-kit-enums';
 import { formatCount, formatINR } from '@/lib/format';
 import { PlatformStatCard } from '@/components/media-kit/platform-stat-card';
+import { PhotoCarousel } from '@/components/media-kit/photo-carousel';
 
 import CheckIcon from '@/assets/icons/check.svg';
 import LockIcon from '@/assets/icons/lock.svg';
+import EditIcon from '@/assets/icons/edit.svg';
+
+const HERO_H = 300;
 
 /**
  * Who is looking. Drives what's shown vs locked.
@@ -33,6 +37,7 @@ export type MediaKitEditHandlers = {
   onEditRateCard: () => void;
   onEditPrivacy: () => void;
   onEditAffiliations: () => void;
+  onEditPhotos: () => void;
 };
 
 /** Whether prices should be revealed to this viewer (client-side preview only). */
@@ -47,58 +52,96 @@ export function MediaKitView({
   data,
   viewerMode,
   edit,
+  onConnect,
 }: {
   data: CreatorMediaKit;
   viewerMode: ViewerMode;
   /** Section edit callbacks — supplied only in the owner's own view. */
   edit?: MediaKitEditHandlers;
+  /** When set (real brand detail), the "Start a deal" CTA is enabled (B2-004). */
+  onConnect?: () => void;
 }) {
   const isOwn = viewerMode === 'own';
+  const hasPhotos = data.photoCarousel.length > 0;
   const meta = [data.niches.slice(0, 2).map(cap).join(' · '), data.city, data.contentLanguages.join(' / ')]
     .filter((s) => s && s.length > 0)
     .join('  ·  ');
 
   return (
     <View className="pb-4">
-      {/* HERO — warm placeholder band (no photo this task; Storage lands in B2-031). */}
-      <LinearGradient
-        colors={['#D9C7B4', '#9C7E86', '#6E5A78']}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-        className="overflow-hidden rounded-b-[26px] px-5 pb-5 pt-6"
-      >
-        <View className="h-16 w-16 items-center justify-center rounded-2xl bg-[rgba(251,250,246,0.22)]">
-          <Text className="font-geist-bold text-[22px] text-white">
-            {data.displayName.trim()[0]?.toUpperCase() ?? '·'}
-          </Text>
-        </View>
-        <View className="mt-3 flex-row items-center gap-2">
-          <Text className="font-geist-bold text-[26px] tracking-tight text-white">
-            {data.displayName}
-          </Text>
-          <View className="h-5 w-5 items-center justify-center rounded-full bg-[rgba(251,250,246,0.22)]">
-            <CheckIcon width={12} height={12} color="#FFFFFF" />
-          </View>
-        </View>
-        {meta ? (
-          <Text className="mt-1 font-geist-medium text-[13px] text-[rgba(251,250,246,0.85)]">
-            {meta}
-          </Text>
-        ) : null}
-        {data.bio ? (
-          <Text className="mt-1.5 max-w-[300px] font-geist text-[13px] leading-[19px] text-[rgba(251,250,246,0.72)]">
-            {data.bio}
-          </Text>
-        ) : null}
-        {(data.inboundEnabled || data.outboundEnabled) && (
-          <View className="mt-3 flex-row items-center gap-1.5 self-start rounded-pill border border-[rgba(251,250,246,0.22)] bg-[rgba(251,250,246,0.16)] px-3 py-1.5">
-            <View className="h-1.5 w-1.5 rounded-full bg-status-good" />
-            <Text className="font-geist-semibold text-[11.5px] text-white">
-              {openToLabel(data.inboundEnabled, data.outboundEnabled)}
-            </Text>
-          </View>
+      {/* HERO — real photos (B2-031) behind a scrim, or a warm gradient placeholder
+          when the creator has none. The identity block overlays the bottom. */}
+      <View className="relative overflow-hidden rounded-b-[26px]" style={{ minHeight: HERO_H }}>
+        {hasPhotos ? (
+          <PhotoCarousel paths={data.photoCarousel} height={HERO_H} />
+        ) : (
+          <LinearGradient
+            colors={['#D9C7B4', '#9C7E86', '#6E5A78']}
+            start={{ x: 0.1, y: 0 }}
+            end={{ x: 0.9, y: 1 }}
+            style={{ position: 'absolute', inset: 0 }}
+          />
         )}
-      </LinearGradient>
+
+        {/* Bottom scrim for text legibility over any photo. */}
+        <LinearGradient
+          colors={['transparent', 'rgba(28,27,24,0.72)']}
+          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: Math.round(HERO_H * 0.7) }}
+          pointerEvents="none"
+        />
+
+        {/* Own-view: edit-photos affordance. */}
+        {isOwn && edit ? (
+          <Pressable
+            className="absolute right-3 top-6 flex-row items-center gap-1.5 rounded-pill bg-[rgba(28,27,24,0.4)] px-3 py-2"
+            onPress={edit.onEditPhotos}
+            accessibilityRole="button"
+            accessibilityLabel="Edit photos"
+          >
+            <EditIcon width={14} height={14} color="#FBFAF6" />
+            <Text className="font-geist-semibold text-[12px] text-white">
+              {hasPhotos ? 'Edit photos' : 'Add photos'}
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {/* Identity overlay. */}
+        <View className="absolute inset-x-0 bottom-0 px-5 pb-5">
+          {!hasPhotos ? (
+            <View className="mb-3 h-14 w-14 items-center justify-center rounded-2xl bg-[rgba(251,250,246,0.22)]">
+              <Text className="font-geist-bold text-[20px] text-white">
+                {data.displayName.trim()[0]?.toUpperCase() ?? '·'}
+              </Text>
+            </View>
+          ) : null}
+          <View className="flex-row items-center gap-2">
+            <Text className="font-geist-bold text-[26px] tracking-tight text-white">
+              {data.displayName}
+            </Text>
+            <View className="h-5 w-5 items-center justify-center rounded-full bg-[rgba(251,250,246,0.22)]">
+              <CheckIcon width={12} height={12} color="#FFFFFF" />
+            </View>
+          </View>
+          {meta ? (
+            <Text className="mt-1 font-geist-medium text-[13px] text-[rgba(251,250,246,0.85)]">
+              {meta}
+            </Text>
+          ) : null}
+          {data.bio ? (
+            <Text className="mt-1.5 max-w-[300px] font-geist text-[13px] leading-[19px] text-[rgba(251,250,246,0.82)]">
+              {data.bio}
+            </Text>
+          ) : null}
+          {(data.inboundEnabled || data.outboundEnabled) && (
+            <View className="mt-3 flex-row items-center gap-1.5 self-start rounded-pill border border-[rgba(251,250,246,0.22)] bg-[rgba(251,250,246,0.16)] px-3 py-1.5">
+              <View className="h-1.5 w-1.5 rounded-full bg-status-good" />
+              <Text className="font-geist-semibold text-[11.5px] text-white">
+                {openToLabel(data.inboundEnabled, data.outboundEnabled)}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
 
       {/* TRUST STRIP — only the seeded, real columns (no review count: ratings is
           populated post-deal in Phase 9+). */}
@@ -187,15 +230,29 @@ export function MediaKitView({
         </View>
       </Section>
 
-      {/* Disabled placeholder CTA — brand/preview only. Wiring is Phase 9. */}
+      {/* CTA — brand/preview only. ENABLED only when onConnect is supplied (the
+          real brand-facing detail screen, B2-004); the You-tab "Preview as brand"
+          passes no onConnect, so it stays a disabled placeholder. */}
       {!isOwn ? (
         <View className="mx-4 mt-5">
-          <View className="items-center justify-center rounded-button bg-cane-3 py-3.5 opacity-60">
-            <Text className="font-geist-semibold text-body text-ink-2">Start a deal (coming soon)</Text>
-          </View>
-          <Text className="mt-1.5 text-center font-geist text-[11px] text-ink-3">
-            Connect flow lands with the deal engine.
-          </Text>
+          {onConnect ? (
+            <Pressable
+              className="items-center justify-center rounded-button bg-ink py-3.5"
+              onPress={onConnect}
+              accessibilityRole="button"
+            >
+              <Text className="font-geist-semibold text-body text-white">Start a deal</Text>
+            </Pressable>
+          ) : (
+            <>
+              <View className="items-center justify-center rounded-button bg-cane-3 py-3.5 opacity-60">
+                <Text className="font-geist-semibold text-body text-ink-2">Start a deal (coming soon)</Text>
+              </View>
+              <Text className="mt-1.5 text-center font-geist text-[11px] text-ink-3">
+                Connect flow lands with the deal engine.
+              </Text>
+            </>
+          )}
         </View>
       ) : null}
 
