@@ -16,7 +16,30 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — Deal Engine (Bucket 3). **Cluster 1 DONE + task 9.8 (the engine) DONE.**
+- **Current phase:** Phase 9 — Deal Engine (Bucket 3). **Cluster 2 DONE — the deal room (9.6/9.7) on the engine (9.8).**
+  - **9.6 DONE (Stage progress bar, B3-013):** reusable `components/deal/stage-progress-bar.tsx` — a
+    7-node stepper (Pending→Closed) driven by `stage` + `is_disputed`, pinned under the deal-room header.
+    done/current = ink, current in a soft ink-token ring, upcoming = cane-2. **Disputed** = a critical
+    overlay on the Payment node (flag, not a stage); **declined/cancelled** render their own muted
+    end-state strip; **closed** completes the line. Tokens only (the ring uses the exact `rgba(28,27,24,.12)`
+    design-tokens §185 names via the proven `bg-[rgba(...)]` pattern — no new invented hex).
+  - **9.7 DONE (Sticky action bar, B3-014):** `components/deal/sticky-action-bar.tsx` — stage- AND
+    role-aware buttons per deal-engine.md's per-stage tables + rbac.md. Buttons only **request** a
+    transition → the documented FastAPI endpoints via `postJson` (`requestDealTransition` +
+    `acceptDeal`/`declineDeal`). Pending accept/decline (incl. warn-only exclusivity re-confirm) is LIVE;
+    approve-summary/cancel/submit-live/confirm-posts/close hit their **stub-guarded** endpoints and return
+    the engine's clean **409 "not available yet"**, surfaced inline (no crash). On success → thread refetch
+    so the stepper + bar update immediately on the **acting** client. The throwaway 9.5 inline pending
+    control was **removed/absorbed**.
+  - **Data + screen:** `fetchDealThread` now also returns **`myRole`** (this user's `participant_role`);
+    the bar decides visibility from `myRole` + `createdBy` (initiator) + `is_disputed` + `stage`. deal-room
+    header dropped its stage pill (the stepper conveys stage); composer is read-only in terminal stages.
+    Both reserved slots filled — no reflow.
+  - **Verify:** `tsc` clean; web export clean (all routes incl. `/deal/[id]`); new components have **no
+    hardcoded hex**; transition endpoints already proven by 9.8 (`test_stage_engine` 23/23) +
+    `test_accept_decline` 18/18. **NOT committed** — user reads the diff, then the cluster /ship (9.6–9.8).
+    RTM: B3-013 + B3-014 = Built.
+- *(Earlier this phase:* **Cluster 1 DONE — 9.1–9.5**; **task 9.8 (engine) DONE**.*)*
   - **9.8 DONE (Stage Transition Engine, B3-015) — the server-side state machine the product rides on.**
     New `backend/services/stage_engine.py`: a `(from_stage,to_stage)` **REGISTRY** is the single source
     of truth for legal moves (all 6 forward transitions from deal-engine.md's guard table + the two
@@ -265,6 +288,35 @@ do not proceed. I'll resolve these at the start of my next session.*
 
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
+
+- 2026-07-15 — **FOLD INTO 9.10 (orchestrator note, Cluster 2).** The Chatting "Request terms
+  summary" button in the sticky action bar is currently wired straight to the `approve-summary`
+  (chatting→approval) endpoint as a placeholder — safe today because that guard is a stub returning
+  409. When 9.10 is built, do NOT just fill the stub guard: rework this into the real multi-gate flow
+  from deal-engine.md §2 (either party requests → OTHER party confirms the request → AI summary runs
+  via ai_service → ALL parties approve → only then chatting→approval). The one-shot button + its label
+  must be replaced by that request/confirm/approve sequence, not merely activated.
+- 2026-07-15 — **9.7 action bar: Approval "Sign" is NOT wired.** Signing (approval→creating) is
+  SYSTEM-AUTO in the engine, fired internally when all signatures land (task 9.12) — it has no user
+  transition endpoint. So the Approval bar shows the prompt + the pre-signature Cancel off-ramp only;
+  the Sign affordance arrives with 9.12. Same for brand content-review in Creating (9.13) and payment
+  status/confirm/dispute in Payment (9.15-17) — the bar shows the wired transition button (submit-live /
+  confirm-posts / close) + prompt; the intra-stage actions land with their tasks.
+- 2026-07-15 — **Button visibility mirrors the engine's `allowed_roles`** so the bar never shows a button
+  the server would 403 (checker sees no accept/decline/cancel/close; only creator sees submit-live; only
+  brand admin/maker sees confirm-posts). A role/stage the user can't act in shows a read-only "waiting" box.
+- 2026-07-15 — **Deal-room stage pill removed from the header** — the new 7-node stepper conveys stage, so
+  the header pill was redundant (matches the mockup, whose header has no pill). `stagePill` is still used
+  by the chat-list card.
+- 2026-07-15 — **Composer goes read-only in terminal stages** (closed/declined/cancelled) per deal-engine.md
+  ("Closed = read-only thread"). Minor fidelity touch beyond the strict 9.7 DoD.
+- 2026-07-15 — **KNOWN GAP (G4 phone test): the OTHER participant's stage/action bar won't live-update** on a
+  transition — migration 017 put only `messages` (not `deals`) on the Realtime publication. Acceptable for
+  MVP: the acting client refetches immediately, and the deal room reloads on open (push/pop). NOT adding
+  `deals` to Realtime now (out of scope; flagged for the 2-device phone test).
+- 2026-07-15 — **Visual fidelity not device-verified.** tsc + web export are clean and the logic matches the
+  spec tables, but the rendered stepper/bar weren't screenshotted here (no headless Expo-web+auth run).
+  Devasri's design review on device is the remaining fidelity pass (consistent with the deferred G4 test).
 
 - 2026-07-15 — **Migration 018 applied to dev (stage-transition RPC) — FLAGGED + approved.** Adds
   `apply_stage_transition(...)` (SECURITY INVOKER): conditional stage UPDATE + transition-log + audit in

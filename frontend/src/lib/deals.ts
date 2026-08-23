@@ -106,6 +106,27 @@ export async function declineDeal(
   return { ok: true };
 }
 
+/**
+ * The remaining stage-transition requests the sticky action bar wires (9.7). Each
+ * maps 1:1 to a documented endpoint in backend/api/deals.py. accept/decline stay
+ * separate above (accept has the exclusivity-ack two-step). Downstream guards are
+ * stub-built today, so these often return the engine's clean 409 "not available
+ * yet" — the caller surfaces `message` rather than crashing.
+ */
+export type TransitionAction = 'approve-summary' | 'cancel' | 'submit-live' | 'confirm-posts' | 'close';
+
+export async function requestDealTransition(
+  dealId: string,
+  action: TransitionAction,
+): Promise<{ ok: true; stage?: string } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+
+  const res = await postJson<{ transitioned: boolean; stage?: string }>(`/deals/${dealId}/${action}`, {}, token);
+  if (!res.ok) return { ok: false, message: res.message };
+  return { ok: true, stage: res.data.stage };
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
  * Chat / deal-room reads (Phase 9 Cluster 1 — tasks 9.2 / 9.3).
  *
@@ -165,6 +186,8 @@ export type DealThread = {
   otherNames: string[];
   /** deals.created_by — the initiator; the OTHER participant is the recipient. */
   createdBy: string | null;
+  /** THIS user's per-deal role — drives which action-bar buttons show (9.7). */
+  myRole: ParticipantRole | null;
   /** Pending connection-request expiry (null once accepted). */
   expiresAt: string | null;
   /** profile_id → display name, so a raw Realtime row can render a sender name. */
@@ -294,15 +317,20 @@ export async function fetchDealThread(dealId: string, userId: string): Promise<D
 
   const { data: parts } = await supabase
     .from('deal_participants')
-    .select('profile_id, profiles(display_name)')
+    .select('profile_id, participant_role, profiles(display_name)')
     .eq('deal_id', dealId);
   const nameById = new Map<string, string>();
   const otherNames: string[] = [];
+  let myRole: ParticipantRole | null = null;
   for (const row of parts ?? []) {
     const name =
       (row.profiles as unknown as { display_name: string | null } | null)?.display_name ?? 'Someone';
     nameById.set(row.profile_id as string, name);
-    if (row.profile_id !== userId) otherNames.push(name);
+    if (row.profile_id === userId) {
+      myRole = (row.participant_role as ParticipantRole | null) ?? null;
+    } else {
+      otherNames.push(name);
+    }
   }
 
   const { data: msgs, error: eMsgs } = await supabase
@@ -329,6 +357,7 @@ export async function fetchDealThread(dealId: string, userId: string): Promise<D
     isDisputed: Boolean(deal.is_disputed),
     otherNames,
     createdBy: (deal.created_by as string | null) ?? null,
+    myRole,
     expiresAt: (deal.expires_at as string | null) ?? null,
     namesById: Object.fromEntries(nameById),
     messages,
