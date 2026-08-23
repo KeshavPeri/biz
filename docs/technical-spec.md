@@ -11,7 +11,7 @@
 
 > This document **consolidates** ten locked design docs into one buildable specification. It is the
 > single source of truth for the MVP build. The underlying decisions — the stack, the 7-stage deal
-> engine, the 42-table data model, the role model, and the MVP scope — are **locked**; this spec
+> engine, the 43-table data model, the role model, and the MVP scope — are **locked**; this spec
 > presents them as one coherent reference. Where the source docs flag an item as needing a decision
 > before production, it is carried into **§13 Open decisions** rather than silently resolved.
 >
@@ -159,7 +159,7 @@ flowchart TB
     end
 
     subgraph Supa["🗄️ Supabase (managed Postgres)"]
-        DB[("PostgreSQL<br/>42 tables + RLS")]
+        DB[("PostgreSQL<br/>43 tables + RLS")]
         AUTH["Auth (email OTP, JWT, bcrypt)"]
         RT["Realtime (websockets)"]
         ST["Storage (RLS buckets, signed URLs)"]
@@ -282,7 +282,7 @@ Six principles shape the schema:
 
 ### 6.2 Entity overview — the deal-centric ERD
 
-The schema is **42 tables across nine domains**, but the shape is simple: `deals` is the hub, and
+The schema is **43 tables across nine domains**, but the shape is simple: `deals` is the hub, and
 `deal_participants` is the access anchor everything else hangs off.
 
 ```mermaid
@@ -322,7 +322,7 @@ erDiagram
     profiles ||--o{ audit_log : "acts in"
 ```
 
-*(ERD shows the deal-centric hubs and the principal relationships, not every one of the 42 tables —
+*(ERD shows the deal-centric hubs and the principal relationships, not every one of the 43 tables —
 the full domain list and key columns follow.)*
 
 ### 6.3 The nine domains
@@ -330,7 +330,7 @@ the full domain list and key columns follow.)*
 | Domain | Tables | Purpose |
 |---|---|---|
 | 1 — Identity & Profile | 10 | Who the users are |
-| 2 — Deal Core | 7 | The deal, participants, chat, deliverables |
+| 2 — Deal Core | 8 | The deal, participants, chat, deliverables, Gate-A state |
 | 3 — Terms & Contracts | 8 | What was agreed; the contract; signatures |
 | 4 — Rights | 5 | Exclusivity, usage, whitelisting, blackout, disclosure |
 | 5 — Payments | 3 | Payment tracking + captured invoicing details (no processing) |
@@ -338,12 +338,12 @@ the full domain list and key columns follow.)*
 | 7 — Maker-Checker | 2 | Brand approval workflow |
 | 8 — Private Annotations | 1 | Per-user private labels |
 | 9 — Cross-cutting | 3 | Notifications, preferences, audit log |
-| **Total** | **42** | |
+| **Total** | **43** | |
 
-**The full 42 tables, by domain** (row-by-row columns in `docs/data-model.md`):
+**The full 43 tables, by domain** (row-by-row columns in `docs/data-model.md`):
 
 1. **Identity & Profile (10)** — `profiles` · `creator_profiles` · `brands` · `brand_members` · `social_handles` · `signatures` · `rate_cards` · `rate_card_items` · `affiliations` · `brand_partnerships`
-2. **Deal Core (7)** — `deals` · `deal_participants` · `deal_stage_transitions` · `participant_add_requests` · `messages` · `message_attachments` · `deliverables`
+2. **Deal Core (8)** — `deals` · `deal_participants` · `deal_stage_transitions` · `participant_add_requests` · `messages` · `message_attachments` · `deliverables` · `deal_summary_gates`
 3. **Terms & Contracts (8)** — `deal_terms` · `ai_summaries` · `extracted_terms` · `term_approvals` · `contracts` · `contract_signatures` · `briefs` · `revisions`
 4. **Rights (5)** — `exclusivity_clauses` · `usage_rights` · `whitelisting_arrangements` · `blackout_windows` · `disclosure_requirements`
 5. **Payments (3)** — `payments` · `payment_milestones` · `deal_payment_details`
@@ -354,7 +354,7 @@ the full domain list and key columns follow.)*
 
 ### 6.4 Key tables (summarised)
 
-The full 42-table schema lives in `docs/data-model.md`. The tables an engineer touches first:
+The full 43-table schema lives in `docs/data-model.md`. The tables an engineer touches first:
 
 **`deals`** — the central entity, created on Connect. Key columns: `creator_id`, `brand_id`,
 `deal_name`, `deal_type` (campaign default for MVP), `stage` (pending · chatting · approval ·
@@ -807,7 +807,7 @@ flowchart LR
         A6["Audit-log writes"]
     end
 
-    DB[("PostgreSQL<br/>42 tables + RLS")]
+        DB[("PostgreSQL<br/>43 tables + RLS")]
 
     FE --> SB
     FE --> API
@@ -1380,11 +1380,9 @@ This spec consolidates ten locked Phase-3 design docs in `docs/`:
 `stack-decisions.md` · `scope.md` · `feature-inventory.md` · `data-model.md` · `deal-engine.md` ·
 `rbac.md` · `api-architecture.md` · `ai-parser.md` · `notifications.md` · `security.md`.
 
-Where this spec summarises (e.g. the 42-table schema, the full event catalogue), the named source doc
+Where this spec summarises (e.g. the 43-table schema, the full event catalogue), the named source doc
 remains the row-by-row reference.
 
 ---
 
 *End of Biz MVP Technical Specification v1.0 — Locked.*
-
-

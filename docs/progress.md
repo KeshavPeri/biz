@@ -16,7 +16,20 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — Deal Engine (Bucket 3). **Cluster 2 DONE — the deal room (9.6/9.7) on the engine (9.8).**
+- **Current phase:** Phase 9 — Deal Engine (Bucket 3). **Tasks 9.9 + 9.10 DONE; do not start 9.11.**
+  - **9.9 DONE (B3-018):** server-owned exact-12 minimum-field checklist in
+    `backend/services/summary_gate.py`, with documented `found` / `not_discussed` /
+    `ambiguous` statuses and conditional children when a yes/no parent is yes. Phase 10 owns
+    real parsing; its `ai_service` seam deliberately returns `not_discussed` today rather than
+    pretending it read chat. A two-side, audit-logged manual override can clear one missing item.
+  - **9.10 DONE (B3-019):** a creator, brand admin, or maker can request only after the checklist
+    is complete; an eligible opposite side confirms or says Not yet. The row-locked Gate-A RPC
+    makes duplicate taps idempotent and calls the Phase-10 `ai_service` generation seam once.
+    State honestly stays **ready for generation / parser pending**: no `ai_summaries`, no
+    `term_approvals`, and no Chatting → Approval transition.
+  - **Schema correction:** additive migration `019_summary_gate.sql` adds the service-only
+    `deal_summary_gates` state row (43 tables total) because the specified Gate-A/override state
+    was omitted. It does not misuse `term_approvals` or create a placeholder AI summary.
   - **9.6 DONE (Stage progress bar, B3-013):** reusable `components/deal/stage-progress-bar.tsx` — a
     7-node stepper (Pending→Closed) driven by `stage` + `is_disputed`, pinned under the deal-room header.
     done/current = ink, current in a soft ink-token ring, upcoming = cane-2. **Disputed** = a critical
@@ -27,7 +40,7 @@ up exactly where the last one left off, with zero context lost.
     role-aware buttons per deal-engine.md's per-stage tables + rbac.md. Buttons only **request** a
     transition → the documented FastAPI endpoints via `postJson` (`requestDealTransition` +
     `acceptDeal`/`declineDeal`). Pending accept/decline (incl. warn-only exclusivity re-confirm) is LIVE;
-    approve-summary/cancel/submit-live/confirm-posts/close hit their **stub-guarded** endpoints and return
+    cancel/submit-live/confirm-posts/close hit their **stub-guarded** endpoints and return
     the engine's clean **409 "not available yet"**, surfaced inline (no crash). On success → thread refetch
     so the stepper + bar update immediately on the **acting** client. The throwaway 9.5 inline pending
     control was **removed/absorbed**.
@@ -37,7 +50,7 @@ up exactly where the last one left off, with zero context lost.
     Both reserved slots filled — no reflow.
   - **Verify:** `tsc` clean; web export clean (all routes incl. `/deal/[id]`); new components have **no
     hardcoded hex**; transition endpoints already proven by 9.8 (`test_stage_engine` 23/23) +
-    `test_accept_decline` 18/18. **NOT committed** — user reads the diff, then the cluster /ship (9.6–9.8).
+    `test_accept_decline` 18/18. Shipped in `39f9caa`.
     RTM: B3-013 + B3-014 = Built.
 - *(Earlier this phase:* **Cluster 1 DONE — 9.1–9.5**; **task 9.8 (engine) DONE**.*)*
   - **9.8 DONE (Stage Transition Engine, B3-015) — the server-side state machine the product rides on.**
@@ -203,9 +216,10 @@ up exactly where the last one left off, with zero context lost.
 - **Built so far:** Local environment + monorepo scaffolded. Private GitHub repo connected.
   `CLAUDE.md` written. All Phase 3 design docs locked (`technical-spec.md` v1.0 + 9 source docs).
   `docs/rtm.md` built — 93 features, 13 columns, pre-populated Explore + Design sections.
-  **`backend/migrations/` — 13 SQL files** covering all 42 tables, 27 enums, ~60 indexes,
-  full RLS policies, and role grants (001–013, see SESSION HISTORY). Migrations 001–013
-  applied to the live dev Supabase project. **`backend/tests/test_rls.py`** — RLS smoke test
+  **`backend/migrations/` — 19 SQL files** defining 43 tables, 27 enums, ~60 indexes,
+  full RLS policies, role grants, the stage-transition RPC, and the Gate-A state RPCs (001–019,
+  see SESSION HISTORY). Migrations 001–018 applied to the development Supabase project; 019 is
+  intentionally kept pending while that project is paused. **`backend/tests/test_rls.py`** — RLS smoke test
   (4/4 PASS). **`backend/migrations/apply_migration.py`** — applies a migration file to the
   dev project via the Supabase Management API (workaround for broken `DATABASE_URL`, see
   below).
@@ -257,12 +271,11 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **Phase 6 — Frontend Foundation:** 6.5 nav/screen structure, 6.6 Supabase JS client + Zustand
-   store wiring, 6.7 theme tokens (co-founder, derived from `design-direction.md`), 6.8 commit.
-   (Done: 6.1 scaffold, 6.2 dev server, 6.3 SDK 54, **6.4 UI library = gluestack-ui v3 + NativeWind**.)
-2. **Phase 5 (carry-forward):** real API endpoints/routers get built as features need them
-   (Phase 7+); flesh out `ai_service` in Phase 10.
-3. After 6: Phase 7 (Identity & Trust — first real features, Bucket 1).
+1. **Phase 9 — 9.11 All-party sign-off gate (B3-020):** build only after Phase 10 has real parser
+   output; use `term_approvals` then, not Gate-A state.
+2. **Phase 10 — AI parser:** replace the parser-pending seam with the validated 22-field contract
+   and persist a real `ai_summaries` row only after output exists.
+3. **Phase 9 follow-ons:** contract/signature, content and payment gates remain as documented stubs.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
 
@@ -289,13 +302,14 @@ do not proceed. I'll resolve these at the start of my next session.*
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
 
-- 2026-07-15 — **FOLD INTO 9.10 (orchestrator note, Cluster 2).** The Chatting "Request terms
-  summary" button in the sticky action bar is currently wired straight to the `approve-summary`
-  (chatting→approval) endpoint as a placeholder — safe today because that guard is a stub returning
-  409. When 9.10 is built, do NOT just fill the stub guard: rework this into the real multi-gate flow
-  from deal-engine.md §2 (either party requests → OTHER party confirms the request → AI summary runs
-  via ai_service → ALL parties approve → only then chatting→approval). The one-shot button + its label
-  must be replaced by that request/confirm/approve sequence, not merely activated.
+- 2026-08-23 — **Gate-A state correction (9.9/9.10).** The specified checklist overrides and
+  request/confirmation state had no schema home. Added one service-only `deal_summary_gates` row per
+  deal plus row-locked RPCs and immutable audit history; this changes the schema count 42 → 43.
+  Gate A stays separate from later `term_approvals` (Gate B) and from real `ai_summaries` output.
+- 2026-08-23 — **Parser honesty boundary.** Until Phase 10 supplies validated field statuses,
+  `ai_service.get_minimum_field_statuses` returns all 12 as `not_discussed`; manual overrides remain
+  available for genuinely discussed fields. Confirming Gate A calls the generation seam once and
+  persists parser-pending state, without fabricating output or advancing the stage.
 - 2026-07-15 — **9.7 action bar: Approval "Sign" is NOT wired.** Signing (approval→creating) is
   SYSTEM-AUTO in the engine, fired internally when all signatures land (task 9.12) — it has no user
   transition endpoint. So the Approval bar shows the prompt + the pre-signature Cancel off-ramp only;
@@ -569,6 +583,23 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-23 — Phase 9: minimum fields + two-side summary trigger (9.9/9.10)
+- **Did:** Replaced Chatting's incorrect direct `approve-summary` action with a server-owned
+  12-item checklist and Gate-A request/other-side-confirmation workflow. The deal room now shows
+  exact missing or ambiguous fields inline, proposes/accepts two-side manual overrides, and
+  displays request waiting / Not yet / parser-pending states.
+- **Security + concurrency:** FastAPI verifies participant, Chatting stage, role, and party side;
+  Checkers can view but cannot request, confirm, or override. Migration 019 uses a locked state row
+  and service-role-only RPCs so duplicate request/confirmation taps are idempotent; every override
+  and Gate-A action goes to immutable `audit_log`.
+- **Honest Phase-10 boundary:** the `ai_service` parser seam currently does no extraction and no
+  fake `ai_summaries` row is created. The confirmation calls its generation seam once, leaves the
+  deal in Chatting, and records ready-for-generation/parser-pending state for Phase 10.
+- **Verify:** TypeScript and the focused pure 12-field/conditional checklist test pass. The dev
+  Supabase Management API returned 544 connection timeouts while applying/verifying migration 019;
+  rerun `python backend/migrations/apply_migration.py 019_summary_gate.sql` and the focused dev test
+  when it is reachable.
 
 ### 2026-07-15 — Phase 8 Cluster C: B2-004 "basic connect" (Phase-9 seam)
 - **Did:** Wired the minimal connect action behind the detail-screen "Start a deal" CTA.

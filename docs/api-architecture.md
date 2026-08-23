@@ -151,10 +151,13 @@ Both then surface live to clients through the same Realtime subscriptions.
 client → Supabase insert into `messages` (anon key) → RLS checks participant → row saved →
 Realtime pushes it to the other participants. No backend involved.
 
-**Advancing Chatting → Approval (API):**
-client → `POST /deals/{id}/approve-summary` (FastAPI) → server verifies caller is a participant,
-all approvals are in, deal is in Chatting → updates stage, logs the transition, generates the
-contract PDF, emits notifications, writes audit → returns → clients see the new stage via Realtime.
+**Requesting a Chatting summary (API):**
+client → `GET /deals/{id}/summary-checklist` (FastAPI) → server verifies participation and returns
+the 12-field status. An eligible creator/admin/maker then calls `POST /request-summary`; only an
+eligible participant on the opposite side may call `POST /confirm-summary-request`. The row-locked
+Gate-A state is audit-logged and invokes `ai_service` once. Until Phase 10 provides output, it stays
+parser-pending: no `ai_summaries` row and no stage change. The later `POST /approve-summary` is the
+separate all-party Gate B that advances Chatting → Approval.
 
 ---
 

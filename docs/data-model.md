@@ -1,12 +1,23 @@
 # Data Model — Biz MVP
 
-> **Version:** 1.2 (revised after v5 cross-check + RBAC design) — 2026-06-04
+> **Version:** 1.3 (Phase 9 Gate-A state correction) — 2026-08-23
 > **Status:** Awaiting approval at task 3.4. Do not write migrations until locked.
 > Everything downstream (RLS, API, trackers) depends on this. Review carefully.
 
 ---
 
 ## Revision log
+
+**v1.2 → v1.3 (Phase 9, tasks 9.9–9.10):**
+- **+ `deal_summary_gates` table** — the locked workflow requires persisted
+  checklist-override proposals/confirmations and the two-sided Gate-A summary
+  request, but the original 42-table schema had no home for either. This is one
+  cohesive, service-only state row per deal; its `manual_overrides` JSON keeps
+  the short-lived proposal/confirmation state while immutable `audit_log` records
+  every action. It deliberately does **not** reuse `term_approvals` (Gate B) or
+  pre-create an `ai_summaries` row before Phase 10 produces real parser output.
+
+Net: 42 → 43 tables.
 
 **v1.1 → v1.2 (RBAC design, task 3.6):**
 - **`brand_members.brand_role` changed from `admin|maker|checker` to `admin|member`.** Maker and
@@ -70,7 +81,7 @@ Net: 39 → 42 tables, plus the field additions above.
 | Domain | Tables | Purpose |
 |---|---|---|
 | Identity & Profile | 10 | Who the users are |
-| Deal Core | 7 | The deal, its participants, chat, deliverables |
+| Deal Core | 8 | The deal, its participants, chat, deliverables, Gate-A state |
 | Terms & Contracts | 8 | What was agreed, the contract, signatures |
 | Rights | 5 | Exclusivity, usage, whitelisting, blackout, disclosure |
 | Payments | 3 | Payment tracking + captured invoicing details (no processing) |
@@ -769,4 +780,3 @@ tax tool · document hub browsing · agency entities · multiple social handles 
 don't have to migrate later. But no full tables for deferred features.)
 
 ---
-

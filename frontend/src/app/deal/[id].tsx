@@ -35,10 +35,8 @@ import SendIcon from '@/assets/icons/send.svg';
  * messages Supabase-direct (RLS enforces participant), and stamps my last_read_at
  * on open so the chat-list unread badge clears.
  *
- * Two layout slots are deliberately RESERVED but EMPTY for Cluster 2:
- *   • the stage progress bar  → task 9.6 (below the header)
- *   • the sticky action bar    → task 9.7 (above the input)
- * They are marked below so they drop in without reflowing this screen.
+ * The header includes the stage progress bar and the composer includes the
+ * role-aware action bar, including the Chatting checklist / Gate-A workflow.
  */
 export default function DealRoomScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

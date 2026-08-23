@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { postJson } from '@/lib/api';
+import { getJson, postJson } from '@/lib/api';
 
 /**
  * Deal actions that change deal state → routed through FastAPI (service_role),
@@ -113,7 +113,7 @@ export async function declineDeal(
  * stub-built today, so these often return the engine's clean 409 "not available
  * yet" — the caller surfaces `message` rather than crashing.
  */
-export type TransitionAction = 'approve-summary' | 'cancel' | 'submit-live' | 'confirm-posts' | 'close';
+export type TransitionAction = 'cancel' | 'submit-live' | 'confirm-posts' | 'close';
 
 export async function requestDealTransition(
   dealId: string,
@@ -126,6 +126,57 @@ export async function requestDealTransition(
   if (!res.ok) return { ok: false, message: res.message };
   return { ok: true, stage: res.data.stage };
 }
+
+/* ── Chatting Gate A — 9.9 checklist + 9.10 two-side request ───────────── */
+
+export type ChecklistStatus = 'found' | 'not_discussed' | 'ambiguous';
+export type SummaryRequestStatus = 'idle' | 'awaiting_confirmation' | 'ready_for_generation';
+
+export type SummaryChecklistItem = {
+  key: string;
+  label: string;
+  status: ChecklistStatus;
+  missing_children: string[];
+  is_complete: boolean;
+  override: { state: 'awaiting_confirmation' | 'confirmed'; proposed_by: string; proposer_side: 'creator' | 'brand' } | null;
+};
+
+export type SummaryChecklist = {
+  checklist: SummaryChecklistItem[];
+  missing_fields: Pick<SummaryChecklistItem, 'key' | 'label' | 'status' | 'missing_children'>[];
+  summary_request_allowed: boolean;
+  request_status: SummaryRequestStatus;
+  requester_side: 'creator' | 'brand' | null;
+  requested_by: string | null;
+  confirmed_by: string | null;
+  can_act: boolean;
+  viewer_side: 'creator' | 'brand';
+};
+
+async function summaryPost(
+  dealId: string,
+  path: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const res = await postJson<unknown>(`/deals/${dealId}/${path}`, {}, token);
+  return res.ok ? { ok: true } : { ok: false, message: res.message };
+}
+
+export async function fetchSummaryChecklist(dealId: string): Promise<{ ok: true; data: SummaryChecklist } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const res = await getJson<SummaryChecklist>(`/deals/${dealId}/summary-checklist`, token);
+  return res.ok ? { ok: true, data: res.data } : { ok: false, message: res.message };
+}
+
+export const requestTermsSummary = (dealId: string) => summaryPost(dealId, 'request-summary');
+export const confirmTermsSummaryRequest = (dealId: string) => summaryPost(dealId, 'confirm-summary-request');
+export const deferTermsSummaryRequest = (dealId: string) => summaryPost(dealId, 'summary-request-not-yet');
+export const proposeChecklistOverride = (dealId: string, fieldKey: string) =>
+  summaryPost(dealId, `summary-checklist/${fieldKey}/override`);
+export const confirmChecklistOverride = (dealId: string, fieldKey: string) =>
+  summaryPost(dealId, `summary-checklist/${fieldKey}/confirm-override`);
 
 /* ─────────────────────────────────────────────────────────────────────────
  * Chat / deal-room reads (Phase 9 Cluster 1 — tasks 9.2 / 9.3).
