@@ -46,7 +46,7 @@ class DealError(Exception):
 def _load_deal_for_transition(client: Client, deal_id: str) -> dict[str, Any]:
     resp = (
         client.table("deals")
-        .select("id, stage, created_by, creator_id, expires_at")
+        .select("id, stage, created_by, creator_id, brand_id, deal_name, currency, expires_at")
         .eq("id", deal_id)
         .is_("deleted_at", "null")
         .execute()
@@ -175,6 +175,23 @@ def _guard_stub(ctx: GuardContext) -> GuardOutcome:
     return not_yet_available()
 
 
+def _guard_contract_executed(ctx: GuardContext) -> GuardOutcome:
+    """Approval → Creating only after the contract service has executed v1.
+    The Phase-10 contract-vs-chat alignment check remains intentionally deferred."""
+    contracts = (
+        ctx.client.table("contracts")
+        .select("id")
+        .eq("deal_id", ctx.deal["id"])
+        .eq("version", 1)
+        .eq("status", "executed")
+        .execute()
+        .data
+    )
+    if not contracts:
+        return deny(409, "The contract still needs all required signatures.")
+    return allow({"contract_id": contracts[0]["id"]})
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # The transition registry — deal-engine.md "Guard conditions" table + the two
 # terminal off-ramps. Keyed by (from_stage, to_stage): a pair that isn't a key is
@@ -220,7 +237,7 @@ REGISTRY: dict[tuple[str, str], Transition] = {
         "chatting", "cancelled", "mutual-gate", RESPONDER_ROLES, False, False, _guard_stub, "deal_cancelled"
     ),
     ("approval", "creating"): Transition(  # task 9.12: all signatures collected (SYSTEM-auto)
-        "approval", "creating", "system-auto", frozenset(), False, True, _guard_stub, "deal_contract_executed"
+        "approval", "creating", "system-auto", frozenset(), False, True, _guard_contract_executed, "deal_contract_executed"
     ),
     ("approval", "cancelled"): Transition(  # mutual cancel, blocked once anyone signed
         "approval", "cancelled", "mutual-gate", RESPONDER_ROLES, False, False, _guard_stub, "deal_cancelled"

@@ -1,3 +1,8 @@
+import { Platform } from 'react-native';
+import * as Crypto from 'expo-crypto';
+import * as FileSystem from 'expo-file-system';
+import type { DocumentPickerAsset } from 'expo-document-picker';
+
 import { supabase } from '@/lib/supabase';
 import { getJson, postJson } from '@/lib/api';
 
@@ -177,6 +182,131 @@ export const proposeChecklistOverride = (dealId: string, fieldKey: string) =>
   summaryPost(dealId, `summary-checklist/${fieldKey}/override`);
 export const confirmChecklistOverride = (dealId: string, fieldKey: string) =>
   summaryPost(dealId, `summary-checklist/${fieldKey}/confirm-override`);
+
+export type ContractSignatureState = {
+  signer_id: string;
+  signer_name: string;
+  side: 'creator' | 'brand';
+  signature_mode: 'stored' | 'drawn' | 'print_bypass';
+  signed_at: string;
+  wet_signed_document: boolean;
+};
+
+export type ContractApprovalState = {
+  request_id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  maker_id: string;
+  maker_name: string;
+  checker_id: string;
+  checker_name: string;
+  comment: string | null;
+  created_at: string;
+  decided_at: string | null;
+  can_decide: boolean;
+};
+
+export type ContractState = {
+  contract: {
+    id: string;
+    status: 'draft' | 'awaiting_signatures' | 'executed';
+    version: number;
+    created_at: string;
+  } | null;
+  signatures: ContractSignatureState[];
+  required_signatures: { creator: 'pending' | 'held' | 'signed'; brand: 'pending' | 'held' | 'signed' };
+  maker_checker: ContractApprovalState | null;
+};
+
+export async function fetchContract(dealId: string): Promise<{ ok: true; data: ContractState } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await getJson<ContractState>(`/deals/${dealId}/contract`, token);
+  return result.ok ? { ok: true, data: result.data } : { ok: false, message: result.message };
+}
+
+export const generateContract = (dealId: string) => summaryPost(dealId, 'contract');
+
+export type ContractSignPayload = {
+  mode: 'stored' | 'drawn' | 'print_bypass';
+  svg?: string;
+  bypass_reason?: string;
+  physical_doc_path?: string;
+};
+
+export async function signContract(dealId: string, body: ContractSignPayload): Promise<{ ok: true } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<ContractState>(`/deals/${dealId}/contract/sign`, body, token);
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
+}
+
+export async function decideContractSigning(
+  requestId: string,
+  decision: 'approve' | 'reject',
+  comment?: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<unknown>(
+    `/maker-checker/requests/${requestId}/decide`,
+    { decision, comment: comment?.trim() || null },
+    token,
+  );
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
+}
+
+export async function getContractDownload(
+  dealId: string,
+): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await getJson<{ url: string }>(`/deals/${dealId}/contract/download`, token);
+  return result.ok ? { ok: true, url: result.data.url } : { ok: false, message: result.message };
+}
+
+async function readDocumentBytes(uri: string): Promise<Uint8Array | ArrayBuffer> {
+  if (Platform.OS === 'web') {
+    const response = await fetch(uri);
+    return response.arrayBuffer();
+  }
+  return new FileSystem.File(uri).bytes();
+}
+
+export async function uploadWetSignedContract(
+  dealId: string,
+  contractId: string,
+  asset: DocumentPickerAsset,
+): Promise<{ ok: true; path: string } | { ok: false; message: string }> {
+  if (!supabase) return { ok: false, message: 'You need to sign in again before uploading.' };
+  const session = await supabase.auth.getSession();
+  const userId = session.data.session?.user.id;
+  if (!userId) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const isPdf = asset.mimeType === 'application/pdf' || asset.name.toLowerCase().endsWith('.pdf');
+  if (!isPdf) return { ok: false, message: 'Choose a PDF file.' };
+  if (asset.size != null && (asset.size < 1_000 || asset.size > 10 * 1024 * 1024)) {
+    return { ok: false, message: 'Choose a PDF between 1 KB and 10 MB.' };
+  }
+  try {
+    const path = `${dealId}/${contractId}/wet-signatures/${userId}/${Crypto.randomUUID()}.pdf`;
+    const bytes = await readDocumentBytes(asset.uri);
+    if (bytes.byteLength < 1_000 || bytes.byteLength > 10 * 1024 * 1024) {
+      return { ok: false, message: 'Choose a PDF between 1 KB and 10 MB.' };
+    }
+    const { error } = await supabase.storage.from('contracts').upload(path, bytes, {
+      contentType: 'application/pdf',
+      upsert: false,
+    });
+    if (error) throw error;
+    return { ok: true, path };
+  } catch {
+    return { ok: false, message: "Couldn't upload that PDF. Check your connection and try again." };
+  }
+}
+
+export async function removeWetSignedContract(path: string): Promise<void> {
+  if (!supabase || !path) return;
+  await supabase.storage.from('contracts').remove([path]);
+}
 
 /* ─────────────────────────────────────────────────────────────────────────
  * Chat / deal-room reads (Phase 9 Cluster 1 — tasks 9.2 / 9.3).

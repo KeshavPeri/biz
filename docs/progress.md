@@ -16,7 +16,32 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — Deal Engine (Bucket 3). **Tasks 9.9 + 9.10 DONE; do not start 9.11.**
+- **Current phase:** Phase 9 — Deal Engine (Bucket 3). **Tasks 9.11/9.12 contract generation + signing DONE.**
+  - **9.11 DONE (B3-023):** participant-scoped FastAPI generation from the latest approved
+    `ai_summaries` row only while the deal is in Approval. A row-locked reservation + unique
+    `(deal_id, version)` index makes concurrent generation one version-1 contract; Jinja2 escapes
+    the approved terms and WeasyPrint produces a validated PDF. Drafts live only in the private
+    `contracts` bucket and participant downloads use audited five-minute signed URLs.
+  - **9.12 DONE (B3-025 + contract-signing slice of B3-028):** stored, newly drawn, and real
+    print-and-sign PDF upload modes are complete. Signer role/side checks, strict SVG/PDF validation,
+    append-only signature records, mode/timestamp/IP audit evidence, side-level uniqueness, and
+    checker hold/reject/retry/approve are enforced server-side. A checker releases the maker's held
+    signature atomically and never signs as the brand.
+  - **Execution + stage:** once exactly one named creator and one brand signature exist, the backend
+    freshly renders an executed PDF with signer/mode/time/evidence IDs (and appends validated wet-signed
+    pages), then reconciles the system-only Approval → Creating transition through the stage engine.
+    Retries and races produce one executed contract and one transition. IP/signature snapshots and held
+    payloads are not participant-readable; direct client signing/request writes are revoked.
+  - **Phase-10 honesty:** `phase10_alignment_check` is an explicit no-op seam. No `extracted_terms`
+    rows are fabricated and B3-026 remains Phase 10 work.
+  - **Schema:** migrations 019–024 are applied and verified on development. 020 creates the private
+    bucket + contract version uniqueness; 021 adds held-action linkage; 022–024 add atomic RPCs,
+    signer/side uniqueness, owner-only wet upload, service-only held payloads, safe column grants,
+    and backend-only write grants. Public schema is now 44 tables.
+  - **Verify:** `TEST-CONTRACT-FLOW` **28/28**, `TEST-CONTRACT-TEMPLATE` PASS,
+    `TEST-SUMMARY-GATE` **39/39**, `TEST-STAGE-ENGINE` **23/23**, and
+    `test_maker_checker.py` **10/10**. Python compile clean; strict TypeScript clean; Expo web export
+    clean (36 routes). All development test users/data/Storage objects cleaned up.
   - **9.9 DONE (B3-018):** server-owned exact-12 minimum-field checklist in
     `backend/services/summary_gate.py`, with documented `found` / `not_discussed` /
     `ambiguous` statuses and conditional children when a yes/no parent is yes. Phase 10 owns
@@ -216,10 +241,10 @@ up exactly where the last one left off, with zero context lost.
 - **Built so far:** Local environment + monorepo scaffolded. Private GitHub repo connected.
   `CLAUDE.md` written. All Phase 3 design docs locked (`technical-spec.md` v1.0 + 9 source docs).
   `docs/rtm.md` built — 93 features, 13 columns, pre-populated Explore + Design sections.
-  **`backend/migrations/` — 19 SQL files** defining 43 tables, 27 enums, ~60 indexes,
-  full RLS policies, role grants, the stage-transition RPC, and the Gate-A state RPCs (001–019,
-  see SESSION HISTORY). Migrations 001–018 applied to the development Supabase project; 019 is
-  intentionally kept pending while that project is paused. **`backend/tests/test_rls.py`** — RLS smoke test
+  **`backend/migrations/` — 24 SQL files** defining 44 tables, 27 enums, the private Storage
+  buckets/policies, full RLS/grants, and atomic stage, summary, contract and signing RPCs (001–024,
+  see SESSION HISTORY). Migrations 001–024 are applied to the development Supabase project.
+  **`backend/tests/test_rls.py`** — RLS smoke test
   (4/4 PASS). **`backend/migrations/apply_migration.py`** — applies a migration file to the
   dev project via the Supabase Management API (workaround for broken `DATABASE_URL`, see
   below).
@@ -228,7 +253,8 @@ up exactly where the last one left off, with zero context lost.
   (`get_supabase()`, service_role key), `backend/services/ai_service.py` (the `ai_service`
   abstraction — `call_ai(prompt, context)` stub, only file that imports `google.generativeai`),
   `backend/api/health.py` (`GET /health`). `backend/requirements.txt` now also has fastapi,
-  uvicorn, google-generativeai, weasyprint, resend — all installed in `backend/.venv/`.
+  uvicorn, google-generativeai, WeasyPrint, Jinja2, pypdf, and resend — all installed in
+  `backend/.venv/`.
 - **Not working / known issues:**
   - `DATABASE_URL` in `.env` does not connect — Supavisor pooler returns "tenant/user ... not
     found" even though the project ref matches `SUPABASE_URL`. Likely a stale/incorrect
@@ -236,9 +262,8 @@ up exactly where the last one left off, with zero context lost.
     service_role key, not raw psycopg; `apply_migration.py` is the workaround for running SQL
     migrations). Worth regenerating the connection string from the Supabase Dashboard
     (Settings → Database) when convenient.
-  - **WeasyPrint installs via pip but cannot be imported yet** — needs system Pango/GObject
-    libs (`brew install pango`). Not blocking now (nothing imports it yet); must be resolved
-    before Phase 9 contract/invoice PDF generation.
+  - WeasyPrint imports and renders valid contract PDFs locally; `TEST-CONTRACT-TEMPLATE` and the
+    live `TEST-CONTRACT-FLOW` both validate the generated bytes with pypdf.
 - **How to run the project:** Backend: `cd backend && .venv/bin/uvicorn main:app --reload --port 8000`,
   then `curl localhost:8000/health` and `curl localhost:8000/docs` (Swagger UI). **Must be run
   from inside `backend/`** — `main.py` and friends use absolute imports (`from api import
@@ -271,17 +296,24 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **Phase 9 — 9.11 All-party sign-off gate (B3-020):** build only after Phase 10 has real parser
-   output; use `term_approvals` then, not Gate-A state.
-2. **Phase 10 — AI parser:** replace the parser-pending seam with the validated 22-field contract
-   and persist a real `ai_summaries` row only after output exists.
-3. **Phase 9 follow-ons:** contract/signature, content and payment gates remain as documented stubs.
+1. **Phase 10 — AI parser + real all-party summary sign-off:** replace the parser-pending seam with
+   validated 22-field output, persist a real `ai_summaries` row, use `term_approvals`, and advance
+   Chatting → Approval only on the real Gate-B evidence.
+2. **Phase 10 — contract alignment (B3-026):** populate real `extracted_terms`, run the deterministic
+   normalised comparison, and replace the named no-op seam without changing the signing service shape.
+3. **Phase 9 follow-on — Creating/content flow:** brief, draft/revision, content maker-checker and
+   live-URL gates (9.13+) remain the next deal-engine implementation cluster.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
 
 *Claude: when you hit a STOP-and-flag situation (destructive ops, anything paid, live/prod,
 real secrets, big architectural change, irreversible + low confidence), describe it here and
 do not proceed. I'll resolve these at the start of my next session.*
+
+- **2026-08-26 — Manual device check remains:** the Approval contract card, drawn-signature gesture,
+  native document picker/private PDF upload, signed-link opening, and maker/checker two-device refresh
+  need the normal G4 Expo Go pass. TypeScript + 36-route web export are clean; this is visual/device
+  validation, not a known functional failure.
 
 - **2026-07-13 — RESOLVED: Supabase project resumed; live anon connection VERIFIED.** The paused
   dev project was resumed; `govozzmbcynoeijlqmxp.supabase.co` now resolves (Cloudflare
@@ -301,6 +333,18 @@ do not proceed. I'll resolve these at the start of my next session.*
 
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
+
+- 2026-08-26 — **Signing security/concurrency boundary.** In-process contract actions serialize use
+  of the shared sync Supabase client; database row locks/unique constraints remain the cross-worker
+  authority. PDF uploads use deterministic paths and retry-safe completion RPCs. User wet-sign uploads
+  are validated then copied to backend-owned immutable evidence paths before a held request returns.
+- 2026-08-26 — **Private signing evidence.** Participant APIs expose signer name/side/mode/time only.
+  Column grants hide signature snapshots, IPs, evidence paths, and held payloads; executed participant
+  PDFs omit IP while immutable audit rows retain it. Direct client inserts/updates/deletes on contract
+  signatures and maker-checker requests are revoked.
+- 2026-08-26 — **Phase-10 boundary held.** Contract generation consumes an existing approved summary,
+  but 9.11/9.12 do not create summaries or `extracted_terms`. The executed-contract hook is a named
+  no-op until the real parser/alignment task supplies evidence.
 
 - 2026-08-23 — **Gate-A state correction (9.9/9.10).** The specified checklist overrides and
   request/confirmation state had no schema home. Added one service-only `deal_summary_gates` row per
@@ -583,6 +627,20 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-26 — Phase 9: platform contract generation + three-mode signing (9.11/9.12)
+- **Backend:** private, idempotent version-1 generation from approved summary; escaped Jinja2 template
+  → WeasyPrint PDF; participant-only five-minute links; stored/drawn/wet-PDF signing; atomic held maker
+  release; freshly rendered executed PDF; retry-safe system Approval → Creating.
+- **Frontend:** Approval contract card with secure download, creator/brand checklist, held/approved/
+  rejected maker-checker states, checker decisions, validation/loading/retry states, SignaturePad, and
+  native/web PDF picker + owner-folder upload. Successful actions refetch contract and deal state.
+- **Security/schema:** migrations 020–024 applied to development; private bucket, strict SVG/readable-PDF
+  validation, one signer per side, service-only held payloads, immutable wet evidence, safe column grants,
+  and backend-only signing/request writes. Phase 10 remains an honest no-op seam.
+- **Verify:** contract flow 28/28; template PASS; summary gate 39/39; stage engine 23/23; maker-checker
+  10/10; Python compile, strict TypeScript, Expo web export, schema/grant inspection, diff check, and
+  fictional-data cleanup all pass. Manual Expo Go/two-device visual pass remains.
 
 ### 2026-08-23 — Phase 9: minimum fields + two-side summary trigger (9.9/9.10)
 - **Did:** Replaced Chatting's incorrect direct `approve-summary` action with a server-owned

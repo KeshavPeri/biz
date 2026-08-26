@@ -16,6 +16,7 @@ export function EditSheet({
   subtitle,
   children,
   footer,
+  scrollEnabled = true,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -23,6 +24,7 @@ export function EditSheet({
   subtitle?: string;
   children: ReactNode;
   footer?: ReactNode;
+  scrollEnabled?: boolean;
 }) {
   return (
     <Modal
@@ -51,6 +53,7 @@ export function EditSheet({
         ) : null}
         <ScrollView
           className="mt-4"
+          scrollEnabled={scrollEnabled}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerClassName="pb-2"

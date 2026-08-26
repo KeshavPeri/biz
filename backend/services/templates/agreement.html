@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <style>
+      @page { size: A4; margin: 18mm 18mm 20mm; @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8pt sans-serif; color: #77736b; } }
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 9.5pt/1.45 sans-serif; color: #1c1b18; }
+      h1 { margin: 0 0 4px; font-size: 22pt; line-height: 1.15; }
+      h2 { margin: 22px 0 8px; padding-bottom: 5px; border-bottom: 1px solid #d8d4cb; font-size: 12pt; }
+      p { margin: 5px 0; }
+      .meta, .muted { color: #69655e; font-size: 8.5pt; }
+      .notice { margin: 14px 0; padding: 9px 11px; border: 1px solid #d8d4cb; background: #f3f0e9; }
+      .parties, .terms { width: 100%; border-collapse: collapse; }
+      .parties td { width: 50%; padding: 8px 10px; border: 1px solid #d8d4cb; vertical-align: top; }
+      .terms th, .terms td { padding: 6px 8px; border-bottom: 1px solid #e7e3da; text-align: left; vertical-align: top; }
+      .terms th { width: 31%; font-size: 8.5pt; color: #55514a; }
+      .signature { margin: 11px 0; padding: 11px; border: 1px solid #cfcac0; page-break-inside: avoid; }
+      .signature img { display: block; width: 180px; max-height: 70px; object-fit: contain; margin: 8px 0; }
+      .typed { margin: 9px 0 5px; font: italic 18pt cursive; }
+      .evidence { font: 7.5pt monospace; color: #625e56; word-break: break-all; }
+      .executed { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 10px; background: #e6f0da; color: #3c6517; font-size: 8pt; font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <h1>Inflo collaboration agreement{% if executed %}<span class="executed">EXECUTED</span>{% endif %}</h1>
+    <p class="meta">Contract {{ contract_id }} · Version {{ version }} · Generated {{ generated_date }}</p>
+    <p class="meta">Approved summary source {{ approved_summary_id }}</p>
+    <div class="notice">MVP platform template. This document records the parties' approved commercial terms and signing evidence; it is not represented as legal advice or a legally reviewed form.</div>
+
+    <h2>Parties and collaboration</h2>
+    <table class="parties"><tr><td><strong>Creator</strong><br>{{ creator_name }}</td><td><strong>Brand</strong><br>{{ brand_name }}</td></tr></table>
+    <p><strong>Deal:</strong> {{ deal_name }}</p>
+    <p><strong>Currency:</strong> {{ currency }}</p>
+
+    <h2>Approved terms</h2>
+    <table class="terms"><tbody>
+      {% for term in terms %}<tr><th>{{ term.label }}</th><td>{{ term.value }}</td></tr>
+      {% else %}<tr><th>Terms</th><td>No structured terms were present.</td></tr>{% endfor %}
+    </tbody></table>
+
+    <h2>{% if executed %}Completed signatures and audit evidence{% else %}Signatures{% endif %}</h2>
+    {% if executed %}
+      {% for signature in signatures %}
+      <section class="signature">
+        <strong>{{ signature.side }} — {{ signature.signer_name }}</strong>
+        {% if signature.image_uri %}<img src="{{ signature.image_uri }}" alt="Signature mark">{% endif %}
+        {% if signature.typed_text %}<div class="typed">{{ signature.typed_text }}</div>{% endif %}
+        <p>{{ signature.mode }} · {{ signature.signed_at }}</p>
+        {% if signature.has_wet_document %}
+        <p>A validated private wet-signed PDF is appended after this executed record.</p>
+        <p class="evidence">Uploaded PDF SHA-256: {{ signature.wet_digest }}</p>
+        {% endif %}
+        <p class="evidence">Signature evidence ID: {{ signature.evidence_id }}</p>
+      </section>
+      {% endfor %}
+      <p class="muted">The application audit log separately retains the authenticated signer, signing mode, server timestamp, and request IP. Private IP data is intentionally omitted from participant downloads.</p>
+    {% else %}
+      <table class="parties"><tr><td>Creator signature pending</td><td>Brand signature pending</td></tr></table>
+    {% endif %}
+  </body>
+</html>

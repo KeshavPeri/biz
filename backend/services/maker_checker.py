@@ -100,7 +100,12 @@ def _audit(
 
 
 def initiate_action(
-    user_id: str, deal_id: str, action_type: str, ip_address: str
+    user_id: str,
+    deal_id: str,
+    action_type: str,
+    ip_address: str,
+    *,
+    action_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """A maker initiates a gated action. Returns 'executed' (ran directly) or
     'held' (a pending checker request was created)."""
@@ -118,8 +123,14 @@ def initiate_action(
     if role not in INITIATOR_ROLES:
         raise MakerCheckerError(403, "You can't initiate this action on this deal.")
 
+    # A real contract-signing approval must carry the validated, snapshotted
+    # signature created by contract_service. The generic endpoint cannot create
+    # an empty request that blocks the actual deal flow.
+    if action_type == "contract_signing" and action_payload is None:
+        raise MakerCheckerError(409, "Start contract signing from the contract card in this deal.")
+
     if not _requires_checker(client, brand_id, action_type):
-        # No checker gate — the maker acts alone. (Real execution is Phase 9.)
+        # No checker gate — the caller's owning service executes the action.
         _audit(
             client, user_id, "maker_checker.executed_direct", "deal", deal_id,
             {"action_type": action_type, "requires_checker": False}, ip_address,
@@ -135,19 +146,60 @@ def initiate_action(
             403, "You can't be both maker and checker on the same action."
         )
 
-    inserted = (
-        client.table("maker_checker_requests")
-        .insert(
-            {
-                "deal_id": deal_id,
-                "action_type": action_type,
-                "initiated_by": user_id,
-                "checker_id": checker_id,
-                "status": "pending",
-            }
+    if action_type == "contract_signing" and action_payload is not None:
+        try:
+            return client.rpc(
+                "create_held_contract_signing_request",
+                {
+                    "p_deal_id": deal_id,
+                    "p_initiated_by": user_id,
+                    "p_checker_id": checker_id,
+                    "p_contract_id": action_payload["contract_id"],
+                    "p_signature_mode": action_payload["mode"],
+                    "p_signature_ref": action_payload["signature_ref"],
+                    "p_bypass_reason": action_payload.get("bypass_reason"),
+                    "p_physical_doc_path": action_payload.get("physical_doc_path"),
+                    "p_signer_ip_address": action_payload["ip_address"],
+                },
+            ).execute().data
+        except Exception as exc:
+            if "pending_contract_signing_exists" in str(exc):
+                raise MakerCheckerError(409, "Another signing approval is already waiting for the checker.") from exc
+            raise MakerCheckerError(500, "The signing approval could not be saved. Please try again.") from exc
+
+    request_row = {
+        "deal_id": deal_id,
+        "action_type": action_type,
+        "initiated_by": user_id,
+        "checker_id": checker_id,
+        "status": "pending",
+    }
+    if action_payload is not None:
+        request_row["action_payload"] = action_payload
+    try:
+        inserted = client.table("maker_checker_requests").insert(request_row).execute()
+    except Exception as exc:
+        # A concurrent retry may have won the pending-request unique index. The
+        # same maker/payload is idempotent; a different live action is a conflict.
+        pending = (
+            client.table("maker_checker_requests")
+            .select("id,initiated_by,checker_id,action_payload")
+            .eq("deal_id", deal_id)
+            .eq("action_type", action_type)
+            .eq("status", "pending")
+            .limit(1)
+            .execute()
+            .data
         )
-        .execute()
-    )
+        if pending and pending[0]["initiated_by"] == user_id and pending[0].get("action_payload") == action_payload:
+            return {
+                "status": "held",
+                "requires_checker": True,
+                "request_id": pending[0]["id"],
+                "checker_id": pending[0]["checker_id"],
+                "idempotent": True,
+            }
+        raise MakerCheckerError(409, "Another signing approval is already waiting for the checker.") from exc
     request_id = inserted.data[0]["id"]
     _audit(
         client, user_id, "maker_checker.request_created", "maker_checker_request",
@@ -186,14 +238,31 @@ def decide_request(
     if _participant_role(client, request["deal_id"], user_id) != CHECKER_ROLE:
         raise MakerCheckerError(403, "You don't hold the checker role on this deal.")
 
+    # Contract signing is the one action whose approval releases a real held
+    # signature. Its request decision + signature + both audit rows are one DB
+    # transaction (migration 022), so a crash can never approve without signing.
+    if request["action_type"] == "contract_signing":
+        from services.contract_service import decide_held_contract_signature
+
+        try:
+            return decide_held_contract_signature(request, user_id, decision, comment, ip_address)
+        except Exception as exc:
+            # Avoid importing DealError at module load (stage_engine imports this
+            # module through contract_service). Preserve its friendly contract.
+            if hasattr(exc, "status_code") and hasattr(exc, "detail"):
+                raise MakerCheckerError(exc.status_code, exc.detail) from exc
+            raise
+
     new_status = "approved" if decision == "approve" else "rejected"
-    client.table("maker_checker_requests").update(
+    updated = client.table("maker_checker_requests").update(
         {
             "status": new_status,
             "comment": comment,
             "decided_at": datetime.now(timezone.utc).isoformat(),
         }
-    ).eq("id", request_id).execute()
+    ).eq("id", request_id).eq("status", "pending").execute()
+    if not updated.data:
+        raise MakerCheckerError(409, "This request has already been decided.")
 
     _audit(
         client, user_id, f"maker_checker.{new_status}", "maker_checker_request",

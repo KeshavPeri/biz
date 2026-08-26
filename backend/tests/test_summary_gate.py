@@ -33,6 +33,7 @@ PASSWORD = 'Chaturthi2026!Inflo'
 USERS = {
     'B': ('gate.brand@inflo.test', 'Brand Admin', 'brand'),
     'C': ('gate.creator@inflo.test', 'Creator', 'creator'),
+    'C2': ('gate.creator2@inflo.test', 'Creator Two', 'creator'),
     'M': ('gate.maker@inflo.test', 'Brand Maker', 'brand'),
     'K': ('gate.checker@inflo.test', 'Brand Checker', 'brand'),
     'U': ('gate.outsider@inflo.test', 'Outsider', 'creator'),
@@ -98,6 +99,7 @@ def main() -> None:
         deal_id = admin.table('deals').insert({'creator_id': ids['C'], 'brand_id': brand_id, 'deal_name': 'Gate test', 'direction': 'inbound', 'created_by': ids['B'], 'stage': 'chatting'}).execute().data[0]['id']
         admin.table('deal_participants').insert([
             {'deal_id': deal_id, 'profile_id': ids['C'], 'participant_role': 'creator'},
+            {'deal_id': deal_id, 'profile_id': ids['C2'], 'participant_role': 'creator'},
             {'deal_id': deal_id, 'profile_id': ids['B'], 'participant_role': 'brand_admin'},
             {'deal_id': deal_id, 'profile_id': ids['M'], 'participant_role': 'brand_maker'},
             {'deal_id': deal_id, 'profile_id': ids['K'], 'participant_role': 'brand_checker'},
@@ -125,7 +127,7 @@ def main() -> None:
         duplicate = call(f'/deals/{deal_id}/request-summary', tokens['C'])
         check('creator can request and duplicate is idempotent', first.status_code == 200 and duplicate.json().get('idempotent') is True)
         check('self confirmation rejected', call(f'/deals/{deal_id}/confirm-summary-request', tokens['C']).status_code == 403)
-        check('same-side confirmation rejected', call(f'/deals/{deal_id}/confirm-summary-request', tokens['M']).status_code == 403)
+        check('same-side confirmation rejected', call(f'/deals/{deal_id}/confirm-summary-request', tokens['C2']).status_code == 403)
         check('checker cannot confirm Gate A', call(f'/deals/{deal_id}/confirm-summary-request', tokens['K']).status_code == 403)
         check('other side can say not yet', call(f'/deals/{deal_id}/summary-request-not-yet', tokens['B']).status_code == 200)
         check('brand can make fresh request after not-yet', call(f'/deals/{deal_id}/request-summary', tokens['B']).status_code == 200)

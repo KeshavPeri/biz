@@ -62,6 +62,7 @@ from services.summary_gate import (
     propose_override,
     request_summary,
 )
+from services.contract_service import contract_status, generate_contract, sign_contract, signed_url
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
@@ -74,6 +75,13 @@ class ConnectBody(BaseModel):
 class AcceptBody(BaseModel):
     # The recipient re-confirms after seeing a warn-only exclusivity notice.
     acknowledge_exclusivity: bool = False
+
+
+class ContractSignBody(BaseModel):
+    mode: Literal["stored", "drawn", "print_bypass"]
+    svg: str | None = None
+    bypass_reason: str | None = None
+    physical_doc_path: str | None = None
 
 
 def _client_ip(request: Request) -> str:
@@ -183,6 +191,46 @@ async def confirm_checklist_override(
     deal_id: str, field_key: str, request: Request, user_id: str = Depends(get_current_user_id)
 ) -> dict[str, Any]:
     return await _summary_action(confirm_override(deal_id, field_key, user_id, _client_ip(request)))
+
+
+@router.post("/{deal_id}/contract")
+def generate_current_contract(deal_id: str, request: Request, user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
+    try:
+        return generate_contract(deal_id, user_id, _client_ip(request))
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get("/{deal_id}/contract")
+def get_contract_status(deal_id: str, user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
+    try:
+        return contract_status(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post("/{deal_id}/contract/sign")
+def apply_contract_signature(deal_id: str, body: ContractSignBody, request: Request, user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
+    try:
+        return sign_contract(
+            deal_id,
+            user_id,
+            body.mode,
+            _client_ip(request),
+            body.svg,
+            body.bypass_reason,
+            body.physical_doc_path,
+        )
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get("/{deal_id}/contract/download")
+def download_contract(deal_id: str, request: Request, user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
+    try:
+        return signed_url(deal_id, user_id, _client_ip(request))
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
 @router.post("/{deal_id}/cancel")

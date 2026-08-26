@@ -177,11 +177,11 @@ def main() -> None:
 
         # ── 1. Config gating: no checker required → executes directly ─────────
         admin.table("maker_checker_config").insert(
-            {"brand_id": ids["brand"], "action_type": "contract_signing", "requires_checker": False}
+            {"brand_id": ids["brand"], "action_type": "payment_release", "requires_checker": False}
         ).execute()
         r = client.post(
             "/maker-checker/initiate",
-            json={"deal_id": ids["deal"], "action_type": "contract_signing"},
+            json={"deal_id": ids["deal"], "action_type": "payment_release"},
             headers=auth_header(maker_token),
         )
         check("no checker required → initiate executes directly", r.status_code == 200 and r.json()["status"] == "executed")
@@ -248,7 +248,7 @@ def main() -> None:
         member_blocked = False
         try:
             anon_checker.table("maker_checker_config").insert(
-                {"brand_id": ids["brand"], "action_type": "payment_release", "requires_checker": True}
+                {"brand_id": ids["brand"], "action_type": "contract_signing", "requires_checker": True}
             ).execute()
         except Exception:
             member_blocked = True

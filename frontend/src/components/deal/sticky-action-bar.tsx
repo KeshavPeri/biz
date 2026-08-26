@@ -1,17 +1,24 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
+import { ContractSignSheet } from '@/components/deal/contract-sign-sheet';
 
 import {
   acceptDeal,
   confirmChecklistOverride,
   confirmTermsSummaryRequest,
   declineDeal,
+  decideContractSigning,
   deferTermsSummaryRequest,
+  fetchContract,
   fetchSummaryChecklist,
+  generateContract,
+  getContractDownload,
   proposeChecklistOverride,
   requestDealTransition,
   requestTermsSummary,
+  signContract,
   type DealThread,
+  type ContractState,
   type SummaryChecklist,
   type TransitionAction,
 } from '@/lib/deals';
@@ -45,6 +52,9 @@ export function StickyActionBar({
   // Set when accept returns a warn-only exclusivity notice (needs re-confirm).
   const [exclusivityWarning, setExclusivityWarning] = useState<string | null>(null);
   const [summary, setSummary] = useState<SummaryChecklist | null>(null);
+  const [contract, setContract] = useState<ContractState | null>(null);
+  const [contractLoading, setContractLoading] = useState(false);
+  const [signing, setSigning] = useState(false);
 
   const loadSummary = useCallback(async () => {
     if (thread.stage !== 'chatting') return;
@@ -56,6 +66,19 @@ export function StickyActionBar({
   useEffect(() => {
     void loadSummary();
   }, [loadSummary]);
+  const loadContract = useCallback(async () => {
+    if (thread.stage !== 'approval') return;
+    setContractLoading(true);
+    const result = await fetchContract(thread.dealId);
+    if (result.ok) setContract(result.data);
+    else setError(result.message);
+    setContractLoading(false);
+  }, [thread.dealId, thread.stage]);
+
+  useEffect(() => {
+    if (thread.stage === 'approval') void loadContract();
+    else setContract(null);
+  }, [loadContract, thread.stage]);
 
   const run = useCallback(
     async (fn: () => Promise<{ ok: true } | { ok: false; message: string }>) => {
@@ -106,6 +129,51 @@ export function StickyActionBar({
     [acting, loadSummary],
   );
 
+  const runContract = useCallback(
+    async (fn: () => Promise<{ ok: true } | { ok: false; message: string }>) => {
+      if (acting) return;
+      setActing(true);
+      setError(null);
+      const result = await fn();
+      if (!result.ok) setError(result.message);
+      await loadContract();
+      if (result.ok) onTransitioned();
+      setActing(false);
+    },
+    [acting, loadContract, onTransitioned],
+  );
+
+  const submitSignature = useCallback(
+    async (payload: Parameters<typeof signContract>[1]) => {
+      setError(null);
+      const result = await signContract(thread.dealId, payload);
+      if (!result.ok) {
+        setError(result.message);
+        return result;
+      }
+      await loadContract();
+      onTransitioned();
+      return result;
+    },
+    [loadContract, onTransitioned, thread.dealId],
+  );
+
+  const download = useCallback(async () => {
+    if (acting) return;
+    setActing(true);
+    setError(null);
+    const result = await getContractDownload(thread.dealId);
+    if (!result.ok) setError(result.message);
+    else {
+      try {
+        await Linking.openURL(result.url);
+      } catch {
+        setError('The secure download link could not be opened. Please try again.');
+      }
+    }
+    setActing(false);
+  }, [acting, thread.dealId]);
+
   // ── Role / relationship derivations (rbac.md + deal-engine.md) ──
   const { stage, myRole, isDisputed } = thread;
   const isInitiator = thread.createdBy === userId;
@@ -146,17 +214,25 @@ export function StickyActionBar({
         return <SummaryGate summary={summary} dealId={thread.dealId} userId={userId} acting={acting} error={error} onAction={runSummary} />;
 
       case 'approval':
-        // Signing is the 9.12 signature flow (not a stage transition) — the only
-        // transition here is the pre-signature cancel off-ramp.
+        if (contractLoading && !contract) return <Waiting text="Loading the contract…" />;
+        if (!contract?.contract) {
+          return (
+            <Actions label="Approval — contract" error={error}>
+              <PrimaryButton label={acting ? 'Generating…' : 'Generate contract'} onPress={() => runContract(() => generateContract(thread.dealId))} disabled={acting} />
+            </Actions>
+          );
+        }
         return (
-          <Actions label="Approval — review & sign the contract" error={error}>
-            {canRespond ? (
-              <ButtonRow>
-                <GhostButton label="Cancel deal" onPress={() => onTransition('cancel')} disabled={acting} />
-              </ButtonRow>
-            ) : (
-              <Waiting text="Review and sign the contract." />
-            )}
+          <Actions label="Approval — contract" error={error}>
+            <ContractCard
+              state={contract}
+              myRole={myRole}
+              userId={userId}
+              acting={acting}
+              onDownload={download}
+              onSign={() => setSigning(true)}
+              onDecision={(requestId, decision) => runContract(() => decideContractSigning(requestId, decision))}
+            />
           </Actions>
         );
 
@@ -206,7 +282,118 @@ export function StickyActionBar({
     }
   };
 
-  return <View className="border-t border-hairline bg-app px-4 pb-2 pt-3">{body()}</View>;
+  return (
+    <>
+      <View className="border-t border-hairline bg-app px-4 pb-2 pt-3">{body()}</View>
+      {contract?.contract ? (
+        <ContractSignSheet
+          visible={signing}
+          dealId={thread.dealId}
+          contractId={contract.contract.id}
+          onClose={() => setSigning(false)}
+          onSign={submitSignature}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function ContractCard({
+  state,
+  myRole,
+  userId,
+  acting,
+  onDownload,
+  onSign,
+  onDecision,
+}: {
+  state: ContractState;
+  myRole: DealThread['myRole'];
+  userId: string;
+  acting: boolean;
+  onDownload: () => void;
+  onSign: () => void;
+  onDecision: (requestId: string, decision: 'approve' | 'reject') => void;
+}) {
+  const creator = state.required_signatures.creator;
+  const brand = state.required_signatures.brand;
+  const approval = state.maker_checker;
+  const isBrand = myRole === 'brand_admin' || myRole === 'brand_maker';
+  const isCreator = myRole === 'creator';
+  const mySideSigned = (isCreator && creator === 'signed') || (isBrand && brand === 'signed');
+  const maySign = state.contract?.status === 'awaiting_signatures' && (isCreator || isBrand) && !mySideSigned && !(isBrand && brand === 'held');
+
+  return (
+    <View className="gap-2.5 rounded-2xl border border-hairline bg-surface-card p-3">
+      <View className="flex-row items-center justify-between">
+        <View>
+          <Text className="font-geist-semibold text-[14px] text-ink">Contract v{state.contract?.version}</Text>
+          <Text className="mt-0.5 font-geist text-[11px] text-ink-3">
+            {state.contract?.status === 'executed' ? 'Executed PDF ready' : 'Secure PDF · awaiting signatures'}
+          </Text>
+        </View>
+        <InlineButton label="Download" onPress={onDownload} disabled={acting} />
+      </View>
+
+      <View className="rounded-xl bg-surface-recess px-3 py-2">
+        <SignerRow label="Creator" status={creator} signature={state.signatures.find((item) => item.side === 'creator')} />
+        <View className="my-2 h-px bg-hairline" />
+        <SignerRow label="Brand" status={brand} signature={state.signatures.find((item) => item.side === 'brand')} />
+      </View>
+
+      {approval ? (
+        <View className={`rounded-xl px-3 py-2 ${approval.status === 'rejected' ? 'bg-status-critical-tint' : approval.status === 'approved' ? 'bg-status-good-tint' : 'bg-cane-1'}`}>
+          <Text className="font-geist-semibold text-[12px] text-ink">
+            {approval.status === 'pending'
+              ? `Maker signature held · waiting for ${approval.checker_name}`
+              : approval.status === 'approved'
+                ? `Checker approved ${approval.maker_name}'s signature`
+                : `Checker rejected ${approval.maker_name}'s signature`}
+          </Text>
+          {approval.comment ? <Text className="mt-1 font-geist text-[11px] text-ink-2">{approval.comment}</Text> : null}
+          {approval.can_decide ? (
+            <View className="mt-2 flex-row gap-2">
+              <GhostButton label="Reject" onPress={() => onDecision(approval.request_id, 'reject')} disabled={acting} />
+              <PrimaryButton label="Approve signing" onPress={() => onDecision(approval.request_id, 'approve')} disabled={acting} />
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      {maySign ? <PrimaryButton label="Review and sign" onPress={onSign} disabled={acting} /> : null}
+      {mySideSigned ? <Text className="text-center font-geist-medium text-[12px] text-status-good-label">Your side is signed.</Text> : null}
+      {approval?.status === 'rejected' && approval.maker_id === userId ? (
+        <Text className="text-center font-geist text-[11px] text-ink-2">Choose Review and sign to correct and retry.</Text>
+      ) : null}
+    </View>
+  );
+}
+
+function SignerRow({
+  label,
+  status,
+  signature,
+}: {
+  label: string;
+  status: 'pending' | 'held' | 'signed';
+  signature: ContractState['signatures'][number] | undefined;
+}) {
+  const detail = signature
+    ? `${signature.signer_name} · ${signature.signature_mode === 'print_bypass' ? 'print and sign' : signature.signature_mode}`
+    : status === 'held'
+      ? 'Held for checker approval'
+      : 'Signature pending';
+  return (
+    <View className="flex-row items-center justify-between gap-3">
+      <View className="min-w-0 flex-1">
+        <Text className="font-geist-semibold text-[12px] text-ink">{label}</Text>
+        <Text className="font-geist text-[11px] text-ink-2" numberOfLines={1}>{detail}</Text>
+      </View>
+      <Text className={`font-geist-semibold text-[11px] ${status === 'signed' ? 'text-status-good-label' : 'text-ink-3'}`}>
+        {status === 'signed' ? 'Signed' : status === 'held' ? 'Held' : 'Pending'}
+      </Text>
+    </View>
+  );
 }
 
 /** The two ordered Chatting gates. This only handles Gate A; no AI output or

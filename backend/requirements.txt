@@ -4,4 +4,6 @@ fastapi
 uvicorn[standard]
 google-generativeai
 weasyprint
+Jinja2
+pypdf
 resend
