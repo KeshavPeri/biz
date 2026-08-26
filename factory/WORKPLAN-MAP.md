@@ -1,0 +1,208 @@
+# Biz executable workplan map
+
+**Snapshot date:** 2026-08-26
+**Workbook reviewed:** `/Users/keshav/Downloads/App MVP - Build Workplan.xlsx`
+**Repository baseline:** `7257508 feat: generate and sign deal contracts`
+**Purpose:** give future Codex factory runs a versioned dependency and evidence map. This file is a planning index, not a replacement for the locked specifications, RTM, tests, or Git history.
+
+Block formation is controlled by `factory/BUNDLING-RULES.md`. The workplan map determines what is ready; the bundling rules determine how much of that ready work may enter one build ticket.
+
+## Source and status rules
+
+Use this order when sources disagree:
+
+1. The founder's current request.
+2. `docs/technical-spec.md` and the relevant detailed specification.
+3. Verified code, tests, migrations, and Git history.
+4. `docs/progress.md`.
+5. `docs/rtm.md`.
+6. The external workbook's status and notes.
+
+The workbook is the roadmap, but its status cells are not automatically synchronized with the repository. A task is **Complete** here only when repository or manual evidence supports it.
+
+| Executable status | Meaning |
+|---|---|
+| Complete | Required work is supported by repository or manual evidence. |
+| Ready | Dependencies are satisfied and the task can be converted into a build ticket. |
+| Waiting | At least one effective dependency is incomplete. |
+| Manual | Founder/device/browser action; never dispatch to a code-writing agent. |
+| Gate | Review, RTM, commit, or phase gate rather than a feature implementation. |
+| Deferred gap | RTM work not fully represented by the workbook task that originally carried it. |
+
+Only rows marked **Ready** may enter the `factory:ready` GitHub queue. GitHub issues and pull requests are the execution state; this map remains the workplan-to-RTM index.
+
+## Reconciliation decisions
+
+- Workbook rows **9.9–9.12 still say Not Started**, but Git, tests, progress, and RTM prove they are complete. This map uses the verified state.
+- Workbook row **10.1 originally depends on 9.19**. That dependency is now technically invalid: 9.9/9.10 intentionally left an honest parser-pending seam, so the real Phase 10 parser, Gate B approvals, and contract alignment must land before the remaining Phase 9 lifecycle can be exercised end to end.
+- Effective order from the current baseline is therefore: **9.12 → 10.1–10.9 → 9.13–9.19 → Phase 11**.
+- Phase 7 workplan rows are complete, but Bucket 1 is only **12/18 RTM features built**. The unrepresented or partial gaps are recorded separately below; completing a broad workplan row does not silently mark those RTM features complete.
+- The protected untracked file `Checklist_new_rows.xlsx` is unrelated user material and must never be staged by factory runs.
+
+## Current verified position
+
+| Area | Verified position | Evidence |
+|---|---|---|
+| Phases 0–6 | Workplan complete | Repository scaffold, locked specifications, `docs/rtm.md`, migrations, FastAPI and Expo foundation. |
+| Phase 7 | Workplan 7.1–7.14 complete; Bucket 1 is 12/18 | `docs/progress.md`; RTM Bucket 1. |
+| Phase 8 | Workplan 8.1–8.6 complete; Bucket 2 is 13/13 | `docs/progress.md`; RTM Bucket 2. |
+| Phase 9 | 9.1–9.12 complete; 9.13–9.19 pending | Commits through `7257508`; RTM Bucket 3 is 11/32. |
+| Phase 10 | 10.1–10.9 not started and now next | `docs/progress.md` NEXT UP; RTM Bucket 4 is 0/5. |
+| Phases 11–14 | Not started | Workbook, progress, and RTM. |
+
+## Phases 0–6 — completed foundation
+
+| Workplan IDs | Original dependency | Executable status | RTM / evidence |
+|---|---|---|---|
+| 0.1–0.9 | As listed in workbook | Complete | Founder orientation and required accounts recorded complete in workbook; live Supabase, GitHub, Gemini and Resend configuration seams exist. |
+| 1.1–1.13 | 0.x chain | Complete | `/Users/keshav/Projects/biz` is a connected Git repository with ignored secrets and pushed history. |
+| 2.1–2.8 | 1.13 and internal 2.x chain | Complete | Claude operating system remains; Codex equivalents are in `AGENTS.md`, `.codex/`, and `.agents/skills/` from `b026f01`. |
+| 3.0–3.14 | 2.x and internal 3.x chain | Complete | Locked documents include technical spec, scope, data model, deal engine, RBAC, API, AI parser, notifications, and security. |
+| 4.1–4.3 | 3.13 | Complete | `docs/rtm.md` exists and is maintained through `biz-wrap`. |
+| 5.1–5.13 | 3.13, 5.1 and internal 5.x chain | Complete | Supabase development project, migrations 001–024, RLS tests, FastAPI, health route, and Supabase service connection. Foundation work; no direct RTM feature row. |
+| 6.0–6.8 | 5.x, 6.0 and internal 6.x chain | Complete | Expo SDK 54, Expo Router, NativeWind, gluestack, design tokens, five-tab shell, and anon Supabase client. RTM explicitly records Phase 6 as built infrastructure. |
+
+## Phase 7 — Identity & Trust
+
+| ID | Task | Effective dependency | Status | RTM feature(s) / evidence |
+|---|---|---|---|---|
+| 7.1 | Sign-up screen | 6.7 | Complete | B1-001. |
+| 7.2 | Wire sign-up to Supabase Auth | 7.1, 6.6 | Complete | B1-001; `test_auth_session.py`. |
+| 7.3 | Email OTP verification | 7.2 | Complete | B1-001; Supabase OTP with development SMTP. |
+| 7.4 | Login and session handling | 7.3 | Complete | B1-003; `test_auth_session.py`. |
+| 7.5 | Creator/Brand role selection | 7.4 | Complete | B1-004; `test_onboarding.py`. |
+| 7.6 | Creator onboarding | 7.5 | Complete | B1-006; `test_onboarding.py`. |
+| 7.7 | Brand onboarding | 7.5 | Complete | B1-002 and B1-014; domain verification remains an RTM limitation. |
+| 7.8 | Mock social-platform link | 7.6 | Complete | B1-007 and B1-010. |
+| 7.9 | Draw/type stored signature | 7.6, 7.7 | Complete | B1-018; contract-use evidence completed again in 9.12. B1-019/B1-020 gaps remain below. |
+| 7.10 | Basic maker-checker configuration | 7.7 | Complete | B1-017; `test_maker_checker.py`. Contract action wired in 9.12. |
+| 7.11 | Profile completeness logic | 7.6, 7.7 | Complete | B1-027 core calculation built; scheduled reminders remain deferred. |
+| 7.12 | Phone-test both onboarding journeys | 7.11 | Manual complete | Recorded as device-tested in `docs/progress.md`. |
+| 7.13 | Update Bucket 1 RTM | 7.12 | Gate complete | RTM reconciled; Bucket 1 currently 12/18. |
+| 7.14 | Commit and Phase 7 gate | 7.13 | Gate complete | Relevant Phase 7 commits are in Git history. |
+
+### Phase 7 RTM gaps not safely represented by the completed rows
+
+These require future factory tickets rather than reopening the historical workplan status:
+
+| RTM ID | Gap | Earliest sensible dependency | Status |
+|---|---|---|---|
+| B1-015 | Invite brand employees and assign roles | Notification/email foundation or a deliberately scoped earlier block | Deferred gap |
+| B1-019 | Dedicated brand stored-signature setup path | Existing 9.12 signing flow | Deferred gap |
+| B1-020 | Stored-signature management with OTP re-verification | Auth hardening block | Deferred gap |
+| B1-021 | Account details/settings | Phase 12 reliability/security preparation | Deferred gap |
+| B1-023 | Notification preferences and quiet hours | 12.1 | Deferred gap |
+| B1-027 | Scheduled 24h/72h completeness nudges | 12.1–12.2 plus deployment scheduler | Deferred gap |
+
+## Phase 8 — Discovery
+
+| ID | Task | Effective dependency | Status | RTM feature(s) / evidence |
+|---|---|---|---|---|
+| 8.1 | Seed fictional creator and brand data | 7.7 | Complete | Discovery seed plus media-kit fixtures. |
+| 8.2 | Discover screen and cards | 8.1, 6.5 | Complete | B2-001 and B2-005. |
+| 8.3 | Profile detail and media-kit view | 8.2 | Complete | B2-002, B2-006 and reusable B2-030–B2-038 slices. |
+| 8.4 | Basic connection request | 8.3, 3.5 | Complete | B2-004; `TEST-CONNECT`. |
+| 8.5 | Phone-test discovery flow | 8.4 | Manual complete | Recorded in Phase 8 close-out evidence. |
+| 8.6 | Update RTM and commit Bucket 2 | 8.5 | Gate complete | Bucket 2 is 13/13; commits `7bc522d` through `52333c8`. |
+
+## Phase 9 — Deal Engine
+
+| ID | Task | Original dependency | Effective dependency | Status | RTM feature(s) / evidence |
+|---|---|---|---|---|---|
+| 9.1 | Verify chat/deal data model | 5.6, 3.5 | Same | Complete | Data-model/RLS verification supporting B3-001–B3-003. |
+| 9.2 | Chat list preview cards | 9.1 | Same | Complete | B3-001. |
+| 9.3 | Chat thread and messaging | 9.2 | Same | Complete | B3-002. |
+| 9.4 | Supabase Realtime delivery | 9.3 | Same | Complete | B3-003; migration 017. Two-device recheck remains part of lifecycle QA. |
+| 9.5 | Pending accept/decline | 9.4, 8.4 | Same | Complete | B3-016 plus the current warn-only exclusivity slice. |
+| 9.6 | Deal-stage progress bar | 9.5, 3.5 | Same | Complete | B3-013. |
+| 9.7 | Stage/role-aware sticky action bar | 9.6 | Same | Complete | B3-014. |
+| 9.8 | Server stage-transition engine | 9.7, 3.5, 3.7 | Same | Complete | B3-015; `TEST-STAGE-ENGINE` 23/23. |
+| 9.9 | Minimum deal-fields checklist | 9.8, 3.8 | Same | Complete | B3-018; workbook is stale; summary-gate tests pass. |
+| 9.10 | Two-side summary request | 9.9 | Same | Complete | B3-019 Gate A only; real AI output/Gate B deliberately deferred to Phase 10. |
+| 9.11 | WeasyPrint contract generation | 9.10, 5.11 | Same | Complete | B3-023; `7257508`; `TEST-CONTRACT-FLOW` and template test. |
+| 9.12 | Three-mode contract signing | 9.11, 7.9 | Same | Complete | B3-025 plus contract slice of B3-028; exactly-once execution and Approval → Creating. |
+| 9.13 | Creating: brief, content and revisions | 9.12 | **10.9** | Waiting | B3-021, B3-028 content slice, B3-029–B3-032. Requires real Phase 10 terms and alignment evidence first. |
+| 9.14 | Posted: live URL hard gate | 9.13 | Same | Waiting | B3-033. |
+| 9.15 | Payment tracking and states | 9.14 | Same | Waiting | B3-034 and B3-035. Automated reminders B3-037 also depend on Phase 12/deployment scheduling. |
+| 9.16 | Payment dispute overlay | 9.15 | Same | Waiting | B3-039. |
+| 9.17 | Close and ratings | 9.16 | Same | Waiting | B3-040. |
+| 9.18 | Full deal-lifecycle test | 9.17 | Same | Manual | Phase 9 acceptance gate covering every B3 path. |
+| 9.19 | RTM, commit and Phase 9 gate | 9.18 | Same | Gate waiting | Reconcile all 32 B3 rows only after lifecycle evidence. |
+
+### Outstanding manual check from 9.11/9.12
+
+The normal G4 device check remains for the Approval contract card, drawn-signature gesture, native PDF picker/private upload, signed-link opening, and maker/checker two-device refresh. It is an explicit manual QA item, not evidence that the shipped automated tests failed.
+
+## Phase 10 — AI Contract Parser
+
+| ID | Task | Original dependency | Effective dependency | Status | RTM feature(s) / evidence |
+|---|---|---|---|---|---|
+| 10.1 | AI service abstraction | 9.19, 3.8 | **9.12, 3.8** | **Ready** | B4-001. A stub exists in `backend/services/ai_service.py`; production behaviour is not built. |
+| 10.2 | Connect Gemini | 10.1, 0.7 | Same | Waiting | B4-001 provider implementation; backend-only secret boundary. |
+| 10.3 | Build the fixed 22-field prompt/schema | 10.2, 3.8 | Same | Waiting | B4-002; exact schema is locked in `docs/ai-parser.md`. |
+| 10.4 | Parse source text into validated JSON | 10.3, 9.10 | Same | Waiting | B4-002 for chat and B4-003 for generated-contract text; retry once on invalid model output. |
+| 10.5 | Persist extracted fields | 10.4, 5.6 | Same | Waiting | B4-002/B4-003 persistence into real `ai_summaries` and `extracted_terms`. |
+| 10.6 | Confirmation UI and Gate B | 10.5 | Same | Waiting | B4-004 plus B3-020/B3-021; all-party `term_approvals` and Chatting → Approval. |
+| 10.7 | Contract-vs-chat alignment | 10.6 | Same | Waiting | B4-005 plus B3-026; deterministic normalized comparison, not a second AI judgment. |
+| 10.8 | Test varied fictional contracts | 10.7 | Same | Manual | Real Gemini evaluation using fictional data; no hard-coded AI responses. |
+| 10.9 | RTM and commit Phase 10 | 10.8 | Same | Gate waiting | Reconcile B4-001–B4-005 and the Phase 9 Gate-B/alignment rows. |
+
+## Phase 11 — Tracking
+
+| ID | Task | Effective dependency | Status | RTM feature(s) |
+|---|---|---|---|---|
+| 11.1 | Deal tracker and RAG dashboard | 10.9, 9.19 | Waiting | B5-001, B5-002 and B5-005. |
+| 11.2 | Payment tracker | 11.1, 9.15 | Waiting | B5-006 and B5-008. |
+| 11.3 | Calendar | 11.1 | Waiting | B5-010, B5-011 and B5-012. |
+| 11.4 | Rights and exclusivity trackers | 11.1, 10.5 | Waiting | B5-003, B5-004 and B5-013–B5-017. |
+| 11.5 | Exclusivity conflict warning | 11.4 | Waiting | B3-041/B5 tracker integration; warn, never block. |
+| 11.6 | Test parser-to-tracker population | 11.5 | Manual | Phase 11 acceptance gate. |
+| 11.7 | RTM and commit Bucket 5 | 11.6 | Gate waiting | Reconcile all 15 B5 rows. |
+
+## Phase 12 — Security and Notifications
+
+| ID | Task | Effective dependency | Status | RTM feature(s) |
+|---|---|---|---|---|
+| 12.1 | In-app notification engine | 11.7, 3.9 | Waiting | CC-N001 and CC-N002. |
+| 12.2 | Resend email notifications | 12.1, 0.8 | Waiting | CC-N003. |
+| 12.3 | Stage-gate blocked alerts | 12.1, 9.8 | Waiting | CC-N004. |
+| 12.4 | Consolidate immutable audit logging | 11.7, 3.10 | Waiting | CC-S003; partial audit writes already exist and require a full coverage review. |
+| 12.5 | Endpoint-wide RBAC review | 12.4, 3.6 | Waiting | CC-S001 and CC-S002; partial RLS/RBAC exists and must be audited, not assumed complete. |
+| 12.6 | Encryption review | 12.5 | Waiting | CC-S004. |
+| 12.7 | Secrets audit | 12.6 | Waiting | CC-S005. |
+| 12.8 | Error handling and degradation | 12.5 | Waiting | CC-S006. |
+| 12.9 | RTM and cross-cutting gate | 12.8 | Gate waiting | Reconcile all CC-S and CC-N rows. |
+
+## Phase 13 — Integration testing
+
+| ID | Task | Effective dependency | Status | Evidence target |
+|---|---|---|---|---|
+| 13.1 | Full regression, both roles | 12.9 | Manual | All Tier 1 journeys on realistic fictional data. |
+| 13.2 | Fix discovered bugs | 13.1 | Waiting | Separate bounded tickets created from concrete failures. |
+| 13.3 | Re-test on both phones | 13.2 | Manual | Expo Go device evidence for both roles. |
+| 13.4 | Performance sanity check | 13.3 | Manual | Startup, navigation, large lists, uploads, Realtime, and slow/failure states. |
+
+## Phase 14 — Deployment for market research
+
+| ID | Task | Effective dependency | Status | Evidence target |
+|---|---|---|---|---|
+| 14.1 | Deploy FastAPI to Railway | 13.4 | Waiting | Owner-reviewed free-tier production setup. |
+| 14.2 | Configure Railway environment variables | 14.1 | Manual | Owner-controlled secrets; never committed. |
+| 14.3 | Deploy Expo web to Vercel | 14.1 | Waiting | Deterministic frontend deployment. |
+| 14.4 | Point frontend at live backend | 14.2, 14.3 | Waiting | Production-safe public backend URL. |
+| 14.5 | Test live app on both phones | 14.4 | Manual | Real deployed end-to-end evidence. |
+| 14.6 | Add basic error monitoring | 14.5 | Waiting | Free-tier monitoring selected with owner approval if an external account is needed. |
+| 14.7 | Final RTM update | 14.6 | Gate waiting | Every MVP feature reconciled with code and test evidence. |
+| 14.8 | Tag `v0.1` | 14.7 | Gate waiting | Owner-approved release tag. |
+| 14.9 | MVP market-research gate | 14.8 | Manual | Founder accepts the deployed research build. |
+
+## Installed Phase 10 queue
+
+| Issue | Workplan block | Queue state | Dependency |
+|---|---|---|---|
+| [#1](https://github.com/KeshavPeri/biz/issues/1) | 10-A · 10.1–10.2 | `factory:ready` | Current verified baseline |
+| [#2](https://github.com/KeshavPeri/biz/issues/2) | 10-B · 10.3–10.5 | Waiting | #1 merged and reconciled |
+| [#3](https://github.com/KeshavPeri/biz/issues/3) | 10-C · 10.6 | Waiting | #2 merged and reconciled |
+| [#4](https://github.com/KeshavPeri/biz/issues/4) | 10-D · 10.7 | Waiting | #3 merged and reconciled |
+
+The next factory run must select **#1 only**. Later issues receive `factory:ready` only after their named dependency is merged to `main` and repository evidence is reconciled. Workplan 10.8 remains a manual gate and 10.9 remains the Phase 10 reconciliation gate; neither belongs in an autonomous build issue.

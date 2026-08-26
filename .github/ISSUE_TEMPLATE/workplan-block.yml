@@ -1,0 +1,102 @@
+name: Biz workplan build block
+description: A bounded, dependency-checked block for the Biz Workplan Factory
+title: "[Workplan] "
+labels:
+  - enhancement
+body:
+  - type: input
+    id: workplan_ids
+    attributes:
+      label: Workplan IDs
+      description: Exact rows from factory/WORKPLAN-MAP.md.
+      placeholder: "10.1–10.2"
+    validations:
+      required: true
+  - type: input
+    id: rtm_ids
+    attributes:
+      label: RTM IDs
+      description: Exact affected requirements from docs/rtm.md.
+      placeholder: "B4-001"
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: One-sentence outcome
+      description: Describe the single coherent capability this block delivers.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and evidence
+      description: Name every prerequisite and the Git/test/document evidence that proves it is satisfied.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Observable acceptance checks
+      description: List independently verifiable Given/When/Then or equivalent checks.
+      placeholder: |
+        - Given..., when..., then...
+        - Invalid input...
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: In scope
+      description: Name the behaviour and systems this block may change.
+    validations:
+      required: true
+  - type: textarea
+    id: exclusions
+    attributes:
+      label: Out of scope
+      description: Name adjacent work that must not be absorbed.
+    validations:
+      required: true
+  - type: dropdown
+    id: route
+    attributes:
+      label: Implementation route
+      options:
+        - senior_builder — Sol High
+        - builder — Terra High
+    validations:
+      required: true
+  - type: checkboxes
+    id: review
+    attributes:
+      label: Required reviews
+      options:
+        - label: Independent QA is required.
+          required: true
+        - label: Security review is required because this block is high risk.
+  - type: textarea
+    id: verification
+    attributes:
+      label: Tests and manual checks
+      description: Focused tests, regressions, migrations, devices, live AI, Realtime, browser, or external-service evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: owner_actions
+    attributes:
+      label: Owner-only actions
+      description: List any owner-only action, or write None.
+    validations:
+      required: true
+  - type: checkboxes
+    id: readiness
+    attributes:
+      label: Readiness confirmation
+      options:
+        - label: Every included row is Ready or becomes ready strictly through an earlier row in this block.
+          required: true
+        - label: This block follows factory/BUNDLING-RULES.md and contains no manual or phase gate.
+          required: true
+        - label: No production action, new account, billing change, new secret, destructive operation, or privacy-boundary change is authorized by this issue.
+          required: true

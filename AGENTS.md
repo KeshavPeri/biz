@@ -26,6 +26,8 @@ Use this precedence when sources disagree:
 5. Current code and `docs/progress.md`.
 6. `docs/rtm.md` for traceability/status.
 
+For factory queue decisions, `factory/WORKPLAN-MAP.md` reconciles workbook rows with verified repository evidence, and `factory/BUNDLING-RULES.md` controls how ready rows may be grouped. Neither overrides the specifications above.
+
 If code contradicts a locked spec, follow the spec and call out the mismatch. Keep work inside Tier 1 MVP scope from `docs/scope.md`.
 
 ## Locked architecture
@@ -47,6 +49,26 @@ If code contradicts a locked spec, follow the spec and call out the mismatch. Ke
 - Backend tests under `backend/tests/` use the live development Supabase project and may create temporary fictional data. Run only relevant tests, never against production, and use realistic fictional—not real private—data.
 - Review the final diff, update `docs/progress.md`, and update the affected `docs/rtm.md` rows with files/tests/status.
 - Do not commit or push unless the user's task explicitly asks, or the `biz-ship` skill is invoked.
+
+## Workplan factory
+
+- Use `$biz-workplan-factory` only when asked to process the next ready workplan block or run the factory.
+- GitHub workflow labels are `factory:ready`, `factory:building`, `factory:review`, and `factory:blocked`.
+- Process at most one build block per run. The primary Codex agent owns queue state, branches, commits, pushes, pull requests, recovery, and the final report.
+- Delegate readiness and task-packet review to `workplan_manager`.
+- Delegate implementation to exactly one of `builder` or `senior_builder`, as required by `factory/BUNDLING-RULES.md`. Never run both on the same block.
+- Delegate independent verification to `qa`. Also use `security_reviewer` when the task packet requires it.
+- Read-only agents may run in parallel when their scopes are independent. Never run concurrent code-writing agents in the same worktree.
+- Allow at most two focused implementation revisions after review failures. Then preserve the branch and mark the issue blocked with evidence.
+- A direct request to run `$biz-workplan-factory` authorizes the feature-branch commit, push, and draft pull request defined by that skill. It never authorizes merging, production deployment, billing, account creation, secret changes, or destructive data operations.
+- `Checklist_new_rows.xlsx` is protected unrelated user material: never edit, stage, move, delete, or include it in a factory branch.
+
+## Factory worktrees
+
+- Run each factory build block in its own Codex-managed worktree or isolated feature branch.
+- Use `scripts/setup-worktree.sh` for dependencies. `.worktreeinclude` copies only the two ignored environment files needed for the existing local development setup; they remain untracked and must never be printed or committed.
+- Serialize development-Supabase migrations and integration tests across active Biz blocks.
+- Do not start a second writing block that depends on, migrates, or edits the same core contracts as an active block.
 
 ## Autonomy and stop conditions
 

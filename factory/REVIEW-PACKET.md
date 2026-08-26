@@ -1,0 +1,39 @@
+## Outcome
+
+What user-visible or system-level behaviour changed?
+
+## Workplan and RTM
+
+- Workplan block:
+- Included workplan IDs:
+- Included RTM IDs:
+- Issue:
+
+## Acceptance evidence
+
+Map every acceptance criterion to observed evidence. Do not use a general statement such as “tests pass” in place of criterion-level evidence.
+
+## Verification
+
+- Focused automated tests:
+- Regression tests:
+- Frontend typecheck/lint/build:
+- Independent QA result:
+- Security review result or `Not required`:
+- Manual or environment limitations:
+
+## Migrations and data
+
+List migrations, development-application status, fictional test-data cleanup, and destructive-data impact. Use `None` when absent.
+
+## Decisions and risks
+
+List material decisions with reasoning and reversibility, residual risks, deferred RTM gaps, or `None`.
+
+## Owner review
+
+Give the shortest reliable review path, including any phone, live-AI, Realtime, or external-service check the founder must perform.
+
+## Safety
+
+Confirm that no secret, real private data, production action, billing change, destructive operation, or unrelated file entered the branch.

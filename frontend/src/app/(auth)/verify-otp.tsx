@@ -166,7 +166,7 @@ export default function VerifyOtpScreen() {
 
       <Pressable onPress={resend} disabled={cooldown > 0} hitSlop={6} className="mt-2">
         <Text className="font-geist text-secondary text-ink-3">
-          Didn't get it?{' '}
+          Didn&apos;t get it?{' '}
           {cooldown > 0 ? (
             <Text className="font-geist-semibold text-ink">Resend in {cooldownLabel}</Text>
           ) : (
