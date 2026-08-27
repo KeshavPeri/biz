@@ -28,6 +28,13 @@ body:
     validations:
       required: true
   - type: textarea
+    id: context
+    attributes:
+      label: Context and plain-language explanation
+      description: Explain why this block is next, the current problem, what it delivers in plain terms, and later work that depends on it.
+    validations:
+      required: true
+  - type: textarea
     id: dependencies
     attributes:
       label: Dependencies and evidence
@@ -35,13 +42,20 @@ body:
     validations:
       required: true
   - type: textarea
+    id: decisions
+    attributes:
+      label: Decisions and rationale
+      description: Record consequential locked choices and why tempting alternatives are unsafe or out of scope. Write None only when no material choice applies.
+    validations:
+      required: true
+  - type: textarea
     id: acceptance
     attributes:
-      label: Observable acceptance checks
-      description: List independently verifiable Given/When/Then or equivalent checks.
+      label: Numbered definition of done
+      description: List atomic, independently verifiable criteria with observable evidence, including relevant failures, authorization, boundaries, and regressions.
       placeholder: |
-        - Given..., when..., then...
-        - Invalid input...
+        1. Given..., when..., then... Evidence: named test/state.
+        2. Invalid input... Evidence: named test/response.
     validations:
       required: true
   - type: textarea
@@ -76,10 +90,31 @@ body:
           required: true
         - label: Security review is required because this block is high risk.
   - type: textarea
+    id: builder_notes
+    attributes:
+      label: Notes for the builder
+      description: Name existing patterns, silent-failure traps, identifiers, normalization, trust boundaries, race conditions, and mandatory versus suggested implementation guidance.
+    validations:
+      required: true
+  - type: textarea
+    id: file_boundary
+    attributes:
+      label: Likely files and scope constraint
+      description: Name grounded likely touchpoints, expected new files, and protected/concurrently owned surfaces. Use an exact whitelist only when evidence supports it.
+    validations:
+      required: true
+  - type: textarea
     id: verification
     attributes:
       label: Tests and manual checks
       description: Focused tests, regressions, migrations, devices, live AI, Realtime, browser, or external-service evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: completion
+    attributes:
+      label: Completion and documentation contract
+      description: State required progress/RTM updates, evidence mapping, branch/commit/draft-PR result, and queue-state outcome.
     validations:
       required: true
   - type: textarea

@@ -16,6 +16,7 @@ Before proposing a block, read:
 4. The affected `docs/rtm.md` rows.
 5. The relevant locked specification and detailed domain documents.
 6. Current Git status and recent history.
+7. `factory/TICKET-CONTRACT.md` and the actual code, migrations, tests, and symbols the block will extend.
 
 Do not bundle a row marked Waiting, Manual, Gate, or Deferred gap unless the founder explicitly approves a separate remediation block.
 
@@ -84,7 +85,7 @@ If uncertain between the two, route to `senior_builder`; do not enlarge the bloc
 
 ## Required task-packet fields
 
-The Workplan Manager must return all of these before a coding agent is dispatched:
+The Workplan Manager must return a complete GitHub ticket that passes `factory/TICKET-CONTRACT.md` before a coding agent is dispatched. At minimum it includes:
 
 - block title and one-sentence outcome;
 - included workplan IDs and RTM IDs;
@@ -100,7 +101,7 @@ The Workplan Manager must return all of these before a coding agent is dispatche
 - owner-only actions or `None`;
 - completion contract, including documentation expectations.
 
-If any field cannot be made concrete, return BLOCKED rather than sending an ambiguous block to a builder.
+The definition of done must be numbered, atomic, and mapped to observable evidence. The ticket must also explain consequential decisions, likely silent-failure traps, current-code touchpoints, protected surfaces, exact verification commands, and evidence a substitute cannot produce. If any material field cannot be made concrete, return BLOCKED rather than sending an ambiguous block to a builder.
 
 ## Current Phase 10 partition
 

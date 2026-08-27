@@ -9,19 +9,20 @@ Turn at most one reviewed GitHub workplan issue into a tested draft pull request
 
 ## Preflight and selection
 
-1. Change to the primary checkout at `/Users/keshav/Projects/biz`, then read `AGENTS.md`, `factory/WORKPLAN-MAP.md`, `factory/BUNDLING-RULES.md`, and `factory/PROJECT-CONFIG.md`.
+1. Change to the primary checkout at `/Users/keshav/Projects/biz`, then read `AGENTS.md`, `factory/WORKPLAN-MAP.md`, `factory/BUNDLING-RULES.md`, `factory/TICKET-CONTRACT.md`, and `factory/PROJECT-CONFIG.md`.
 2. Before any GitHub, branch, worktree, or queue action, create a unique owner token such as `biz-<UTC timestamp>-<process id>` and run `./scripts/factory-run-lock.sh acquire <owner-token>`. Keep the exact token for the whole run.
 3. If acquisition exits 75 or prints `Factory already running`, report `Factory already running` and stop without touching GitHub, branches, worktrees, or queue labels. Never bypass or delete a live lock.
 4. Once acquired, renew the lock after readiness review, after implementation, and before shipping. Release it on every clean terminal path, including `Nothing ready`, BLOCKED, and successful draft-PR completion. Release only with the same owner token. A crashed run becomes recoverable after the lock's 18-hour stale timeout.
 5. Before broad code exploration, check GitHub for an open `factory:building` issue. Recover its existing branch or draft PR when safe; do not claim a second block while recoverable work exists.
 6. If nothing is building, select the oldest open `factory:ready` issue. If none exists, release the lock, report `Nothing ready`, and stop cheaply.
 7. Confirm the checkout is an isolated worktree or feature branch and preserve all unrelated work. Never touch `Checklist_new_rows.xlsx`.
-8. Ask `workplan_manager` to validate the issue against current repository evidence and return READY or BLOCKED. It may narrow an unsafe packet but may not enlarge approved scope. Renew the lock after this review.
+8. For an unclaimed `factory:ready` issue, ask `workplan_manager` to re-author and validate it against current repository evidence and return READY or BLOCKED. It may narrow an unsafe packet but may not enlarge approved scope. A READY response must contain a complete, prescriptive GitHub title and body that pass `factory/TICKET-CONTRACT.md`, not a summary. For recovery of an existing `factory:building` issue, validate the saved packet and recovery evidence without changing scope; return BLOCKED if the original contract is unsafe or materially incomplete. Renew the lock after this review.
 9. If blocked, comment with the evidence and one question when needed, replace the workflow label with `factory:blocked`, release the lock, and stop.
+10. If an unclaimed issue is ready, replace its GitHub title/body with the approved packet before claiming it. Re-read the saved issue and confirm every ticket-contract section and quality gate survived the update. Do not dispatch a builder from an older or abbreviated body, and do not silently rewrite the scope of a recovered building issue.
 
 ## Claim and implement
 
-1. Replace `factory:ready` with `factory:building` only after readiness passes.
+1. Replace `factory:ready` with `factory:building` only after readiness and the saved-ticket quality gate pass.
 2. Reuse a safe existing branch or create `codex/workplan-<issue-number>-<short-slug>` from current `main`.
 3. Record any material reversible decision in the issue and `docs/progress.md` before implementation.
 4. Spawn exactly one implementation agent named by the approved packet: `builder` for routine work or `senior_builder` for high-risk work. Never run concurrent writers in the worktree.

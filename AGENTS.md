@@ -56,7 +56,7 @@ If code contradicts a locked spec, follow the spec and call out the mismatch. Ke
 - GitHub workflow labels are `factory:ready`, `factory:building`, `factory:review`, and `factory:blocked`.
 - Process at most one build block per run. The primary Codex agent owns queue state, branches, commits, pushes, pull requests, recovery, and the final report.
 - Before touching GitHub or queue state, every factory run must acquire the shared lock with `scripts/factory-run-lock.sh`; an overlapping run reports `Factory already running` and stops.
-- Delegate readiness and task-packet review to `workplan_manager`.
+- Delegate evidence-based ticket authoring and readiness review to the Sol High `workplan_manager`. No builder starts until the saved GitHub issue passes `factory/TICKET-CONTRACT.md`.
 - Delegate implementation to exactly one of `builder` or `senior_builder`, as required by `factory/BUNDLING-RULES.md`. Never run both on the same block.
 - Delegate independent verification to `qa`. Also use `security_reviewer` when the task packet requires it.
 - Read-only agents may run in parallel when their scopes are independent. Never run concurrent code-writing agents in the same worktree.
