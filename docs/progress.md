@@ -16,7 +16,19 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — Deal Engine (Bucket 3). **Tasks 9.11/9.12 contract generation + signing DONE.**
+- **Current phase:** Phase 10 — AI Contract Parser (Bucket 4). **10-A / B4-001 is built, independently
+  QA/security reviewed, and awaiting its draft pull request for founder review.**
+  - **10.1–10.2 BUILT (B4-001):** `backend/services/ai_service.py` now exposes the typed,
+    provider-neutral `AIRequest` / `AIResult` / `AIError` contract and an internal Gemini provider
+    using the maintained `google-genai` SDK.
+    The key and configurable model remain backend-only; no module outside `ai_service.py` imports the
+    Gemini SDK. Missing configuration, timeout, rate limit, malformed provider output, and provider
+    failure produce stable friendly errors without raw details. The existing Gate-A methods deliberately
+    still return `not_discussed` / `parser_pending`: no extraction, persistence, UI, Gate B, stage, or
+    schema work was added. Deterministic `test_ai_service.py` (11 checks), compile, summary-gate unit
+    (7), contract-template, and diff checks pass. The serialized summary-gate run exercised 39 assertions
+    but was **LIMITED** by cleanup after an already-absent fictional auth user; real Gemini smoke is also
+    opt-in and **LIMITED** this run.
   - **9.11 DONE (B3-023):** participant-scoped FastAPI generation from the latest approved
     `ai_summaries` row only while the deal is in Approval. A row-locked reservation + unique
     `(deal_id, version)` index makes concurrent generation one version-1 contract; Jinja2 escapes
@@ -296,13 +308,13 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **Phase 10 — AI parser + real all-party summary sign-off:** replace the parser-pending seam with
-   validated 22-field output, persist a real `ai_summaries` row, use `term_approvals`, and advance
+1. **Phase 10 — 10-B parser output contract:** after #1 is founder-reviewed and merged/reconciled,
+   define the locked 22-field schema and prompt, validate real Gemini output, and persist it without
+   weakening the provider boundary.
+2. **Phase 10 — all-party summary sign-off:** after 10-B, use `term_approvals` and advance
    Chatting → Approval only on the real Gate-B evidence.
-2. **Phase 10 — contract alignment (B3-026):** populate real `extracted_terms`, run the deterministic
+3. **Phase 10 — contract alignment (B3-026):** populate real `extracted_terms`, run the deterministic
    normalised comparison, and replace the named no-op seam without changing the signing service shape.
-3. **Phase 9 follow-on — Creating/content flow:** brief, draft/revision, content maker-checker and
-   live-URL gates (9.13+) remain the next deal-engine implementation cluster.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
 
@@ -334,6 +346,10 @@ do not proceed. I'll resolve these at the start of my next session.*
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
 
+- 2026-08-27 — **AI provider boundary.** Gemini remains the MVP provider behind a typed backend-only
+  interface. `AI_PROVIDER` and `GEMINI_MODEL` are reversible backend configuration, while callers
+  depend only on request/result/error types. The maintained `google-genai` SDK is constrained to
+  `>=1.75.0,<2.0`; live provider smoke stays opt-in and uses fictional content only.
 - 2026-08-26 — **Signing security/concurrency boundary.** In-process contract actions serialize use
   of the shared sync Supabase client; database row locks/unique constraints remain the cross-worker
   authority. PDF uploads use deterministic paths and retry-safe completion RPCs. User wet-sign uploads
@@ -627,6 +643,18 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-27 — Phase 10: AI service and Gemini provider boundary (10.1/10.2)
+- **Did:** added the provider-neutral `AIRequest` / `AIResult` / `AIError` contract and a backend-only
+  Gemini adapter. It maps missing configuration, timeout, rate limit, malformed output, and provider
+  failure to friendly stable errors; the existing Gate-A parser-pending seam is unchanged.
+- **Security:** switched to maintained constrained `google-genai`; SDK imports remain isolated to
+  `ai_service.py`, keys stay ignored/backend-only, clients close after each call, and no parsing,
+  persistence, UI, stage, schema, or migration work entered the block.
+- **Verify:** compile; AI service 11/11; summary-gate unit 7/7; contract template; diff hygiene; and
+  independent QA/security reviews all pass. The serialized summary-gate run exercised 39 assertions but
+  is LIMITED by cleanup after an already-absent fictional auth user. Live fictional Gemini smoke is
+  opt-in and LIMITED this run.
 
 ### 2026-08-26 — Phase 9: platform contract generation + three-mode signing (9.11/9.12)
 - **Backend:** private, idempotent version-1 generation from approved summary; escaped Jinja2 template

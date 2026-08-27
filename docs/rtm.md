@@ -40,7 +40,7 @@
 | Bucket 1 — Identity & Trust | Phase 7 | 18 | 12 / 18 |
 | Bucket 2 — Discovery (Placeholder) | Phase 8 | 13 | 13 / 13 |
 | Bucket 3 — Deal Engine | Phase 9 | 32 | 11 / 32 |
-| Bucket 4 — AI Contract Parser | Phase 10 | 5 | 0 / 5 |
+| Bucket 4 — AI Contract Parser | Phase 10 | 5 | 1 / 5 |
 | Bucket 5 — Tracking | Phase 11 | 15 | 0 / 15 |
 | Cross-cutting: Security | Phase 12 (throughout) | 6 | 0 / 6 |
 | Cross-cutting: Notifications | Phase 12 (throughout) | 4 | 0 / 4 |
@@ -155,7 +155,7 @@
 
 | ID | Feature | Bucket | Phase | Priority | Scope | Design Summary | Build Elements | Code File(s) | Build Status | Build Notes | Test ID(s) | Test Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| B4-001 | AI service abstraction layer | AI Contract Parser | Phase 10 | High | MVP | Single `ai_service` backend module wraps all Gemini calls → no screen/endpoint calls Gemini directly → provider swap = change one file | `backend/services/ai_service.py`; Gemini client wrapper; prompt + output schema definitions; provider interface (swap-ready) | — | Not started | Non-negotiable architectural rule | — | Not written |
+| B4-001 | AI service abstraction layer | AI Contract Parser | Phase 10 | High | MVP | Single `ai_service` backend module wraps all Gemini calls → no screen/endpoint calls Gemini directly → provider swap = change one file | `backend/services/ai_service.py`; maintained Google Gen AI client wrapper; provider interface (swap-ready) | `backend/services/ai_service.py`; `backend/core/config.py`; `backend/requirements.txt`; `backend/tests/test_ai_service.py`; `backend/tests/test_ai_service_smoke.py` | Built | Typed request/result/error boundary; maintained `google-genai` SDK; Gemini model is backend configuration; no extraction, persistence, Gate B, UI, schema, or stage work. Real fictional smoke is opt-in/LIMITED. | TEST-AI-SERVICE; TEST-SUMMARY-GATE-UNIT; TEST-CONTRACT-TEMPLATE | Pass; Pass; Pass |
 | B4-002 | 22-field extraction from chat | AI Contract Parser | Phase 10 | High | MVP | ai_service sends deal chat history to Gemini → returns strict JSON (22 fields, each `found / not_discussed / ambiguous`) → validation layer enforces schema | ai_service extraction method (chat input); prompt template; 22-field Pydantic schema + validation; re-prompt-once on failure; `ai_summaries` insert; realistic fictional test data | — | Not started | Never hardcode AI responses — use fictional data | — | Not written |
 | B4-003 | 22-field extraction from contract | AI Contract Parser | Phase 10 | High | MVP | ai_service parses platform-generated contract PDF (text extracted) → extracts same 22 fields → stored on `extracted_terms` | PDF text extraction utility (from WeasyPrint output); ai_service extraction method (contract input); `extracted_terms` table | — | Not started | Brand-uploaded contracts deferred | — | Not written |
 | B4-004 | Both-party confirmation of extracted terms | AI Contract Parser | Phase 10 | High | MVP | Extracted fields rendered field-by-field to both parties → each approves or raises issue → all approved before stage advances; `term_approvals` tracked | `term_approvals` table; Expo terms confirmation screen (field-by-field); FastAPI approve-term endpoint; all-approved gate logic | — | Not started | — | — | Not written |
