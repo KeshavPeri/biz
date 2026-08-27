@@ -1,11 +1,11 @@
 ---
 name: biz-workplan-factory
-description: Process the next ready Biz workplan build block through readiness review, one implementation agent, independent QA and conditional security review, documentation, and a draft pull request. Use when asked to run the Biz factory, build the next queued block, or process a factory:ready issue. Do not use for manual phase gates, production deployment, owner-only actions, or open-ended product design.
+description: Process the next ready Biz workplan build block or, when the workplan issue queue is empty, prepare exactly one fresh planned ticket. Use when asked to run the Biz factory, build the next queued block, replenish the queue, or process a factory:ready issue. Do not use for manual phase gates, production deployment, owner-only actions, or open-ended product design.
 ---
 
 # Biz Workplan Factory
 
-Turn at most one reviewed GitHub workplan issue into a tested draft pull request. The primary agent is the orchestrator and is the only role that changes GitHub workflow state or manages Git.
+Turn at most one reviewed GitHub workplan issue into a tested draft pull request, or prepare exactly one future ticket when no open workplan issue remains. The primary agent is the orchestrator and is the only role that changes GitHub workflow state or manages Git.
 
 ## Preflight and selection
 
@@ -14,11 +14,21 @@ Turn at most one reviewed GitHub workplan issue into a tested draft pull request
 3. If acquisition exits 75 or prints `Factory already running`, report `Factory already running` and stop without touching GitHub, branches, worktrees, or queue labels. Never bypass or delete a live lock.
 4. Once acquired, renew the lock after readiness review, after implementation, and before shipping. Release it on every clean terminal path, including `Nothing ready`, BLOCKED, and successful draft-PR completion. Release only with the same owner token. A crashed run becomes recoverable after the lock's 18-hour stale timeout.
 5. Before broad code exploration, check GitHub for an open `factory:building` issue. Recover its existing branch or draft PR when safe; do not claim a second block while recoverable work exists.
-6. If nothing is building, select the oldest open `factory:ready` issue. If none exists, release the lock, report `Nothing ready`, and stop cheaply.
+6. If nothing is building, select the oldest open `factory:ready` issue. If none exists, follow **Queue replenishment** below; do not explore implementation code first.
 7. Confirm the checkout is an isolated worktree or feature branch and preserve all unrelated work. Never touch `Checklist_new_rows.xlsx`.
-8. For an unclaimed `factory:ready` issue, ask `workplan_manager` to re-author and validate it against current repository evidence and return READY or BLOCKED. It may narrow an unsafe packet but may not enlarge approved scope. A READY response must contain a complete, prescriptive GitHub title and body that pass `factory/TICKET-CONTRACT.md`, not a summary. For recovery of an existing `factory:building` issue, validate the saved packet and recovery evidence without changing scope; return BLOCKED if the original contract is unsafe or materially incomplete. Renew the lock after this review.
+8. For an unclaimed `factory:ready` issue, ask `workplan_manager` in READY_REVIEW mode to re-author and validate it against current repository evidence and return READY or BLOCKED. It may narrow an unsafe packet but may not enlarge approved scope. A READY response must contain a complete, prescriptive GitHub title and body that pass `factory/TICKET-CONTRACT.md`, not a summary. For recovery of an existing `factory:building` issue, use RECOVERY_REVIEW mode and validate the saved packet and recovery evidence without changing scope; return BLOCKED if the original contract is unsafe or materially incomplete. Renew the lock after this review.
 9. If blocked, comment with the evidence and one question when needed, replace the workflow label with `factory:blocked`, release the lock, and stop.
-10. If an unclaimed issue is ready, replace its GitHub title/body with the approved packet before claiming it. Re-read the saved issue and confirm every ticket-contract section and quality gate survived the update. Do not dispatch a builder from an older or abbreviated body, and do not silently rewrite the scope of a recovered building issue.
+10. If an unclaimed issue is ready, replace its GitHub title/body with the approved packet before claiming it. Re-read the saved issue and confirm every ticket-contract section and quality gate survived the update. Remove `factory:planned` if present, then claim it. Do not dispatch a builder from an older or abbreviated body, and do not silently rewrite the scope of a recovered building issue.
+
+## Queue replenishment
+
+1. List every open GitHub issue whose title begins `[Workplan`. An open planned, blocked, review, unlabeled, or otherwise waiting workplan issue means the queue has not run out: release the lock, report `Nothing ready: #<number> awaits founder/review/blocker`, and stop without creating another ticket.
+2. Only when no open workplan issue exists, ask the Sol High `workplan_manager` in QUEUE_AUTHORING mode to inspect current `main`, all open/closed workplan issues, merged pull requests, workplan/RTM evidence, specifications, code, migrations, and tests. It must return exactly one PLANNED packet or BLOCKED.
+3. If BLOCKED because the next item is Waiting, Manual, Gate, Deferred gap, owner-only, or lacks evidence, release the lock and report the exact founder action or dependency. Do not create a coding issue to bypass the gate.
+4. If PLANNED, verify the proposed title/body passes `factory/TICKET-CONTRACT.md` and that its workplan/RTM IDs are absent from every other open issue and completed merged scope.
+5. Create exactly one GitHub issue atomically with the approved title/body and labels `enhancement` and `factory:planned`, plus `risk:high` when required. Never add `factory:ready` and never build the new ticket in the same run.
+6. Re-read the created issue and verify its complete body and labels survived. If creation or verification is ambiguous, search by exact title/workplan IDs before retrying so a duplicate cannot be created.
+7. Release the lock and report `Ticket prepared: #<number> — waiting for founder to add factory:ready`, then stop.
 
 ## Claim and implement
 
@@ -49,7 +59,8 @@ Turn at most one reviewed GitHub workplan issue into a tested draft pull request
 
 - GitHub issues, branches, comments, draft pull requests, CI, `docs/progress.md`, and `docs/rtm.md` are durable state; never rely on chat memory alone.
 - Exactly one factory run may hold the repository-wide lock. Never work around a live lock or release a lock owned by another run.
-- Process one block per run and one writer per worktree.
+- Process one block per run and one writer per worktree. Ticket creation is its own run and never starts implementation.
+- After the current pre-created queue is exhausted, keep at most one automatically authored workplan issue open; never replenish it with a speculative batch. `factory:planned` means detailed and waiting for founder release, not ready to build.
 - Use only verified Ready rows and the approved issue packet. Do not silently absorb adjacent RTM gaps.
 - Migrations must be additive and non-destructive unless the founder explicitly approves otherwise.
 - Development tests use realistic fictional data with safe cleanup; never use production or real private user/payment data.

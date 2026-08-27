@@ -20,6 +20,8 @@ Before proposing a block, read:
 
 Do not bundle a row marked Waiting, Manual, Gate, or Deferred gap unless the founder explicitly approves a separate remediation block.
 
+When the open workplan issue queue is empty, author exactly one next safe block rather than a speculative batch. Save it as `factory:planned` and stop; ticket creation and implementation must occur in different runs. If the next honest step is Manual, Gate, Waiting, Deferred, owner-only, or unproven, report that blocker instead of skipping ahead.
+
 ## Bundle rows only when all conditions hold
 
 - Every row is Ready, or becomes ready strictly because the previous row in the same block is completed.

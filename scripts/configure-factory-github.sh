@@ -9,6 +9,7 @@ fi
 gh auth status >/dev/null
 repo=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 
+gh label create 'factory:planned' --repo "$repo" --color 'C5DEF5' --description 'Detailed ticket prepared; waiting for founder release' --force
 gh label create 'factory:ready' --repo "$repo" --color '1F883D' --description 'Reviewed and available for the next factory run' --force
 gh label create 'factory:building' --repo "$repo" --color 'BF8700' --description 'Claimed by an active or recoverable factory run' --force
 gh label create 'factory:review' --repo "$repo" --color '8250DF' --description 'Draft pull request is ready for owner review' --force

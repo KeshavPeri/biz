@@ -15,6 +15,13 @@ The ticket author must inspect, not merely cite:
 3. Current `main`: existing services, schemas, migrations, UI paths, tests, and named seams the work will extend or replace.
 4. `docs/progress.md`, recent commits, and dependency pull requests/issues.
 5. Any active or planned block that may own the same files, migration sequence, or contracts.
+6. Every open and closed `[Workplan ...]` issue and merged pull request needed to prove the proposed workplan/RTM IDs are not duplicated.
+
+## Queue-authored ticket state
+
+When no open workplan issue remains, the Workplan Manager may draft exactly one next safe ticket. The orchestrator creates it with `factory:planned`, never `factory:ready`, and stops that run without implementation. The founder alone releases it by replacing `factory:planned` with `factory:ready`.
+
+Return BLOCKED and create no coding ticket when the next honest workplan step is Waiting, Manual, Gate, Deferred gap, owner-only, or unsupported by current repository evidence.
 
 ## Required ticket body
 
@@ -110,3 +117,5 @@ Return BLOCKED rather than READY unless all are true:
 - The route and reviews match `factory/BUNDLING-RULES.md`.
 - No unresolved founder decision is hidden as an implementation detail.
 - The ticket is specific because the evidence is specific, not because it guesses implementation details.
+- The workplan/RTM IDs do not duplicate any open issue or already merged scope.
+- A queue-authored ticket is the single next safe block and is saved as `factory:planned`, never auto-released or auto-built.

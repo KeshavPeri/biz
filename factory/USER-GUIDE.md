@@ -4,15 +4,15 @@ This guide explains the Biz/Inflo autonomous build system in plain language. It 
 
 ## The short version
 
-1. **You decide when the next ticket may start** by adding the GitHub label `factory:ready`.
-2. **The factory builds one ticket automatically** and produces a tested draft pull request.
-3. **You review and merge the pull request.** The factory never merges for you.
-4. **GitHub closes the ticket automatically** when its pull request is merged.
-5. **You mark the next ticket ready** when you want the cycle to continue.
+1. **The factory prepares the next detailed ticket automatically** when no open workplan ticket remains.
+2. **You decide when that ticket may start** by replacing `factory:planned` with `factory:ready`.
+3. **The factory builds one ticket automatically** and produces a tested draft pull request.
+4. **You review and merge the pull request.** The factory never merges for you.
+5. **GitHub closes the ticket automatically**; an existing planned successor waits, or the next run prepares one when the queue is empty.
 
 The normal state flow is:
 
-`Open` → `factory:ready` → `factory:building` → `factory:review` → **Merged PR / Closed issue**
+`factory:planned` → `factory:ready` → `factory:building` → `factory:review` → **Merged PR / Closed issue**
 
 If the factory cannot proceed safely:
 
@@ -24,7 +24,8 @@ Each scheduled run starts independently, so the system rebuilds its understandin
 
 | Stage | What you do | What happens automatically |
 |---|---|---|
-| Choose the next block | Confirm its dependency PR is merged, then add `factory:ready` to one ticket | Nothing starts before you apply the label |
+| Prepare the next block | Nothing | When no open workplan issue remains, Sol High authors exactly one current, detailed `factory:planned` ticket |
+| Release the next block | Confirm its dependency is satisfied, replace `factory:planned` with `factory:ready` | Nothing starts before you apply `factory:ready` |
 | Scheduled start | Keep the Mac powered on and the ChatGPT desktop app running | The factory checks the queue at the next scheduled time |
 | Ticket preparation | Nothing | Sol High inspects the current code and rewrites the ticket into a prescriptive build contract |
 | Build | Nothing unless a blocker requires a founder decision | The factory creates an isolated worktree and assigns one appropriate builder |
@@ -68,18 +69,19 @@ In GitHub:
 2. Open **Issues**.
 3. Open the next workplan ticket.
 4. Confirm its stated dependency is merged.
-5. Add the label `factory:ready`.
-6. Leave later dependent tickets without a factory workflow label.
+5. Remove `factory:planned` if present.
+6. Add the label `factory:ready`.
+7. Leave later dependent tickets unreleased.
 
 Recommended rule: mark only one ticket `factory:ready` at a time. The factory can select the oldest ready issue, but releasing one at a time keeps your intent unambiguous.
 
 ### Ticket creation versus ticket preparation
 
-The factory needs a GitHub issue to exist before you can mark it ready. It does not create a new issue when the queue is empty; it reports `Nothing ready`.
+Once an existing issue receives `factory:ready`, the Sol High Workplan Manager rechecks and, when needed, rewrites it into a detailed, code-aware build contract before implementation begins.
 
-Once an existing issue receives `factory:ready`, the Sol High Workplan Manager automatically rewrites it into the detailed, code-aware build contract before implementation begins.
+When the final open workplan ticket closes, the next scheduled run asks the Sol High Workplan Manager to inspect current code, specifications, workplan/RTM evidence, and all issue/PR history. It creates exactly one fresh `factory:planned` ticket and stops; it never marks that ticket ready or builds it in the same run.
 
-When the existing GitHub ticket queue runs out, ask the orchestrator chat to reconcile the workplan and create the next safe batch of tickets. Do not create or label a speculative ticket whose dependencies or scope have not been reconciled.
+If the next honest step is a manual test, phase gate, waiting dependency, deferred gap, or owner decision, the factory creates no coding ticket and reports the exact action needed. It never skips a gate merely to keep coding.
 
 ### Step 3: Keep the local runner available
 
@@ -99,18 +101,19 @@ No founder action is normally required during the build. The factory will:
 1. Acquire the repository-wide lock.
 2. Recover an interrupted `factory:building` ticket before considering new work.
 3. Otherwise select the oldest open `factory:ready` ticket.
-4. Ask the Sol High Workplan Manager to inspect current code, specifications, migrations, tests, dependencies, and recent history.
-5. Rewrite and save a detailed GitHub ticket that passes the ticket quality contract.
-6. Change the ticket from `factory:ready` to `factory:building`.
-7. Create an isolated feature branch/worktree based on current `origin/main`.
-8. Route the implementation to one builder.
-9. Run independent QA and any required security review.
-10. Allow up to two focused repair rounds if a review fails.
-11. Update progress and RTM evidence.
-12. Commit and push the feature branch.
-13. Create or update a draft PR containing `Closes #<ticket-number>`.
-14. Verify that GitHub recognizes the closing link.
-15. Change the issue to `factory:review` and report the PR URL.
+4. If there is no building or ready ticket, either wait on an existing planned/review/blocked workplan ticket or prepare one new `factory:planned` ticket when none remains, then stop.
+5. For a ready ticket, ask the Sol High Workplan Manager to inspect current code, specifications, migrations, tests, dependencies, and recent history.
+6. Rewrite and save a detailed GitHub ticket that passes the ticket quality contract.
+7. Change the ticket from `factory:ready` to `factory:building`.
+8. Create an isolated feature branch/worktree based on current `origin/main`.
+9. Route the implementation to one builder.
+10. Run independent QA and any required security review.
+11. Allow up to two focused repair rounds if a review fails.
+12. Update progress and RTM evidence.
+13. Commit and push the feature branch.
+14. Create or update a draft PR containing `Closes #<ticket-number>`.
+15. Verify that GitHub recognizes the closing link.
+16. Change the issue to `factory:review` and report the PR URL.
 
 ### Step 5: Review the draft pull request
 
@@ -157,9 +160,9 @@ For a new product decision or material scope change, do not relabel the ticket a
 
 After the PR is merged and its issue is closed:
 
-1. Open the next dependent issue.
-2. Confirm the dependency is now merged.
-3. Add `factory:ready` when you want work to begin.
+1. Open the existing next `factory:planned` ticket. If none exists, the next scheduled run prepares one when no open workplan ticket remains.
+2. Confirm the ticket's dependency is satisfied.
+3. Replace `factory:planned` with `factory:ready` when you want work to begin.
 4. Repeat the cycle.
 
 There is no need to rush this step. Leaving all tickets without `factory:ready` safely pauses feature development while the scheduled task remains active.
@@ -168,7 +171,8 @@ There is no need to rush this step. Leaving all tickets without `factory:ready` 
 
 | Label | Meaning | Your normal action |
 |---|---|---|
-| No factory label | Planned but not released | Wait until you want it built and its dependencies are merged |
+| `factory:planned` | Detailed ticket prepared but not released | Confirm its dependency, then replace this label with `factory:ready` when you want it built |
+| No factory label | Legacy or manually created issue with no workflow state | Do not release it until its scope and dependency are clear |
 | `factory:ready` | Founder has released the ticket | Wait for the next run |
 | `factory:building` | Work is active or recoverable | Do not start another dependent ticket |
 | `factory:review` | Draft PR and automated evidence are ready | Review, test, and decide whether to merge |
@@ -219,9 +223,15 @@ Only one implementation agent writes code for a ticket. Review agents are separa
 
 ### `Nothing ready`
 
-Meaning: no open issue has `factory:building` or `factory:ready`.
+Meaning: no open issue has `factory:building` or `factory:ready`, but an open workplan issue is still planned, under review, blocked, or otherwise waiting.
 
-Your action: none, unless you want work to start. Add `factory:ready` to one eligible ticket when ready.
+Your action: read the reported issue state. If it is an eligible `factory:planned` ticket and you want work to start, replace that label with `factory:ready`.
+
+### `Ticket prepared`
+
+Meaning: the previous workplan queue was empty, so Sol High authored one fresh detailed ticket and the factory saved it as `factory:planned`.
+
+Your action: review its dependency, then replace `factory:planned` with `factory:ready` when you want the next build to start.
 
 ### `Factory already running`
 
@@ -258,7 +268,6 @@ Your action: normally none. Durable state remains in GitHub, the branch, the wor
 You are always responsible for:
 
 - deciding when to add `factory:ready`;
-- asking the orchestrator to create/reconcile the next ticket batch when no suitable GitHub issue exists;
 - resolving material product, architecture, privacy, cost, or infrastructure dilemmas;
 - performing named owner-only or real-environment checks;
 - reviewing the draft PR and limitations;

@@ -1,8 +1,8 @@
 # Biz executable workplan map
 
-**Snapshot date:** 2026-08-26
+**Snapshot date:** 2026-08-27
 **Workbook reviewed:** `/Users/keshav/Downloads/App MVP - Build Workplan.xlsx`
-**Repository baseline:** `7257508 feat: generate and sign deal contracts`
+**Repository baseline:** `08d72f7 Merge pull request #5 from KeshavPeri/codex/workplan-1-ai-provider-20260827`
 **Purpose:** give future Codex factory runs a versioned dependency and evidence map. This file is a planning index, not a replacement for the locked specifications, RTM, tests, or Git history.
 
 Block formation is controlled by `factory/BUNDLING-RULES.md`. The workplan map determines what is ready; the bundling rules determine how much of that ready work may enter one build ticket.
@@ -29,7 +29,7 @@ The workbook is the roadmap, but its status cells are not automatically synchron
 | Gate | Review, RTM, commit, or phase gate rather than a feature implementation. |
 | Deferred gap | RTM work not fully represented by the workbook task that originally carried it. |
 
-Only rows marked **Ready** may enter the `factory:ready` GitHub queue. GitHub issues and pull requests are the execution state; this map remains the workplan-to-RTM index.
+Only rows marked **Ready** may enter the `factory:ready` GitHub queue. GitHub issues and pull requests are the execution state; this map remains the workplan-to-RTM index. When no open workplan issue remains, the factory may use current verified evidence to author exactly one successor as `factory:planned`; the founder still controls release to `factory:ready`.
 
 ## Reconciliation decisions
 
@@ -47,7 +47,7 @@ Only rows marked **Ready** may enter the `factory:ready` GitHub queue. GitHub is
 | Phase 7 | Workplan 7.1–7.14 complete; Bucket 1 is 12/18 | `docs/progress.md`; RTM Bucket 1. |
 | Phase 8 | Workplan 8.1–8.6 complete; Bucket 2 is 13/13 | `docs/progress.md`; RTM Bucket 2. |
 | Phase 9 | 9.1–9.12 complete; 9.13–9.19 pending | Commits through `7257508`; RTM Bucket 3 is 11/32. |
-| Phase 10 | 10.1–10.9 not started and now next | `docs/progress.md` NEXT UP; RTM Bucket 4 is 0/5. |
+| Phase 10 | 10.1–10.2 complete; 10.3–10.9 pending | Merged PR #5; `docs/progress.md`; B4-001 is Built in RTM. |
 | Phases 11–14 | Not started | Workbook, progress, and RTM. |
 
 ## Phases 0–6 — completed foundation
@@ -137,9 +137,9 @@ The normal G4 device check remains for the Approval contract card, drawn-signatu
 
 | ID | Task | Original dependency | Effective dependency | Status | RTM feature(s) / evidence |
 |---|---|---|---|---|---|
-| 10.1 | AI service abstraction | 9.19, 3.8 | **9.12, 3.8** | **Ready** | B4-001. A stub exists in `backend/services/ai_service.py`; production behaviour is not built. |
-| 10.2 | Connect Gemini | 10.1, 0.7 | Same | Waiting | B4-001 provider implementation; backend-only secret boundary. |
-| 10.3 | Build the fixed 22-field prompt/schema | 10.2, 3.8 | Same | Waiting | B4-002; exact schema is locked in `docs/ai-parser.md`. |
+| 10.1 | AI service abstraction | 9.19, 3.8 | **9.12, 3.8** | Complete | B4-001; merged PR #5 provides the typed provider-neutral boundary. |
+| 10.2 | Connect Gemini | 10.1, 0.7 | Same | Complete | B4-001; merged PR #5 provides the backend-only maintained Google Gen AI adapter. |
+| 10.3 | Build the fixed 22-field prompt/schema | 10.2, 3.8 | Same | **Ready** | B4-002; exact schema is locked in `docs/ai-parser.md`. |
 | 10.4 | Parse source text into validated JSON | 10.3, 9.10 | Same | Waiting | B4-002 for chat and B4-003 for generated-contract text; retry once on invalid model output. |
 | 10.5 | Persist extracted fields | 10.4, 5.6 | Same | Waiting | B4-002/B4-003 persistence into real `ai_summaries` and `extracted_terms`. |
 | 10.6 | Confirmation UI and Gate B | 10.5 | Same | Waiting | B4-004 plus B3-020/B3-021; all-party `term_approvals` and Chatting → Approval. |
@@ -200,9 +200,9 @@ The normal G4 device check remains for the Approval contract card, drawn-signatu
 
 | Issue | Workplan block | Queue state | Dependency |
 |---|---|---|---|
-| [#1](https://github.com/KeshavPeri/biz/issues/1) | 10-A · 10.1–10.2 | `factory:ready` | Current verified baseline |
-| [#2](https://github.com/KeshavPeri/biz/issues/2) | 10-B · 10.3–10.5 | Waiting | #1 merged and reconciled |
-| [#3](https://github.com/KeshavPeri/biz/issues/3) | 10-C · 10.6 | Waiting | #2 merged and reconciled |
-| [#4](https://github.com/KeshavPeri/biz/issues/4) | 10-D · 10.7 | Waiting | #3 merged and reconciled |
+| [#1](https://github.com/KeshavPeri/biz/issues/1) | 10-A · 10.1–10.2 | Closed / merged | PR #5 merged and B4-001 reconciled |
+| [#2](https://github.com/KeshavPeri/biz/issues/2) | 10-B · 10.3–10.5 | `factory:ready` | #1 merged and reconciled |
+| [#3](https://github.com/KeshavPeri/biz/issues/3) | 10-C · 10.6 | `factory:planned` | #2 merged and reconciled |
+| [#4](https://github.com/KeshavPeri/biz/issues/4) | 10-D · 10.7 | `factory:planned` | #3 merged and reconciled |
 
-The next factory run must select **#1 only**. Later issues receive `factory:ready` only after their named dependency is merged to `main` and repository evidence is reconciled. Workplan 10.8 remains a manual gate and 10.9 remains the Phase 10 reconciliation gate; neither belongs in an autonomous build issue.
+The next build run must select **#2 only**. Later issues receive `factory:ready` only after their named dependency is merged to `main`, repository evidence is reconciled, and the founder releases them. After #4 closes, automatic replenishment stops at manual workplan 10.8 rather than skipping it; 10.9 remains the Phase 10 reconciliation gate and neither belongs in an autonomous coding issue.
