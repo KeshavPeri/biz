@@ -135,10 +135,21 @@ def main() -> None:
         calls = 0
         original = ai_service.request_terms_summary_generation
 
-        async def counted_generation(gate_deal_id: str):
+        async def counted_generation(gate_deal_id: str, generation_id: str, ip_address: str):
             nonlocal calls
             calls += 1
-            return await original(gate_deal_id)
+            del gate_deal_id, ip_address
+            return {
+                'id': '00000000-0000-0000-0000-000000000001',
+                'generation_id': generation_id,
+                'status': 'pending_approval',
+                'schema_version': 'chat-terms-22.v1',
+                'prompt_version': 'chat-terms-extraction.v1',
+                'provider': 'fake',
+                'model': 'fake-model',
+                'generated_at': '2026-08-27T00:00:00Z',
+                'idempotent': calls > 1,
+            }
 
         ai_service.request_terms_summary_generation = counted_generation
         try:
@@ -146,8 +157,8 @@ def main() -> None:
             duplicate_confirmation = call(f'/deals/{deal_id}/confirm-summary-request', tokens['C'])
         finally:
             ai_service.request_terms_summary_generation = original
-        check('opposite side confirms and invokes AI seam once', confirmed.status_code == 200 and duplicate_confirmation.status_code == 200 and calls == 1)
-        check('no fake summary and no stage transition while parser is stubbed', admin.table('ai_summaries').select('id').eq('deal_id', deal_id).execute().data == [] and admin.table('deals').select('stage').eq('id', deal_id).execute().data[0]['stage'] == 'chatting')
+        check('opposite side confirms and a retry re-enters the idempotent persistence seam', confirmed.status_code == 200 and duplicate_confirmation.status_code == 200 and calls == 2 and duplicate_confirmation.json().get('idempotent') is True)
+        check('Gate-A orchestration itself performs no stage transition', admin.table('deals').select('stage').eq('id', deal_id).execute().data[0]['stage'] == 'chatting')
     finally:
         cleanup()
 

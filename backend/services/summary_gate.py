@@ -153,11 +153,35 @@ async def confirm_summary(deal_id: str, user_id: str, ip_address: str) -> dict[s
         raise DealError(409, 'There is no summary request waiting for confirmation.')
     if outcome == 'same_side':
         raise DealError(403, 'Only an eligible participant on the other side can confirm this request.')
-    if outcome == 'confirmed' and result.get('invoke_ai'):
-        # This seam is reached exactly once: the atomic state switch above makes
-        # every later concurrent confirmation return already_confirmed.
-        await ai_service.request_terms_summary_generation(deal_id)
-    return {'status': 'ready_for_generation', 'idempotent': outcome == 'already_confirmed', 'parser_status': 'pending'}
+    generation_id = result.get('generation_id')
+    if outcome in ('confirmed', 'already_confirmed') and result.get('invoke_ai'):
+        if not generation_id:
+            raise DealError(409, 'This summary generation request is no longer valid.')
+        from services.term_extraction import SummaryGenerationError
+
+        try:
+            summary = await ai_service.request_terms_summary_generation(
+                deal_id,
+                generation_id,
+                ip_address,
+            )
+        except SummaryGenerationError as exc:
+            raise DealError(exc.status_code, exc.detail) from exc
+        return {
+            'status': 'summary_ready',
+            'idempotent': bool(summary.get('idempotent')),
+            'summary': {
+                'id': summary['id'],
+                'generation_id': summary['generation_id'],
+                'status': summary['status'],
+                'schema_version': summary['schema_version'],
+                'prompt_version': summary['prompt_version'],
+                'provider': summary['provider'],
+                'model': summary['model'],
+                'generated_at': summary['generated_at'],
+            },
+        }
+    raise DealError(409, 'This summary generation request is no longer valid.')
 
 
 async def decline_summary(deal_id: str, user_id: str, ip_address: str) -> dict[str, Any]:

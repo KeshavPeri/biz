@@ -247,24 +247,18 @@ not legal advice.
 
 ## Known RLS implementation gaps (address before production)
 
-Identified during the Phase 5.4 schema review. Neither blocks MVP development — the app architecture
-mitigates both — but both should be hardened before public launch.
+Identified during the Phase 5.4 schema review. Gap 1 is resolved by migration 025; Gap 2 remains a
+pre-production hardening item.
 
-### Gap 1 — `deal_participants` INSERT policy allows uninvited self-addition
+### Resolved — `deal_participants` uninvited self-addition
 
 **File:** `backend/migrations/012_rls.sql` — policy `deal_participants_insert_own`
 
-**Issue:** `WITH CHECK (profile_id = auth.uid())` lets any authenticated user who knows a deal's
-UUID add themselves as a participant. The intent ("client confirms an invitation") is not enforced
-at the database level — no check for an existing invite or permission exists.
-
-**Why it's acceptable for MVP:** Deal UUIDs are not guessable; the app only surfaces deal IDs to
-intended parties; all real participant-addition flows go through FastAPI (service_role), which
-enforces invite logic.
-
-**Fix before production:** Remove the client INSERT policy from `deal_participants` entirely. Route
-all participant additions through FastAPI (service_role). The client should never directly insert
-into `deal_participants`.
+**Resolution:** `backend/migrations/025_chat_terms_summary.sql` removes the authenticated INSERT
+policy and table grant. Participant assignment remains a FastAPI/service-role action, matching the
+locked architecture. Development RLS evidence proves an outsider cannot self-add and inherit a
+participant-readable AI summary, while backend-added participants retain their required reads and
+own `last_read_at` update.
 
 ---
 
