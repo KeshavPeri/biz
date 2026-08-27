@@ -187,14 +187,26 @@ async def get_minimum_field_statuses(deal_id: str) -> dict[str, ChecklistAnalysi
     return {key: ChecklistAnalysis(status='not_discussed') for key in MINIMUM_FIELD_KEYS}
 
 
-async def request_terms_summary_generation(deal_id: str) -> dict[str, str]:
-    """The single Gate-A invocation seam. Phase 10 will call the real parser here.
+async def request_terms_summary_generation(
+    deal_id: str,
+    generation_id: str,
+    ip_address: str,
+    *,
+    provider: AIProvider | None = None,
+) -> dict[str, Any]:
+    """Run the post-Gate-A parser without exposing provider details upstream.
 
-    It does not create ai_summaries or pretend a summary exists while the parser
-    is intentionally pending.
+    The lazy import keeps the provider boundary independent from the extraction
+    schema while retaining this as the workflow's one public invocation seam.
     """
-    del deal_id
-    return {'status': 'parser_pending'}
+    from services.term_extraction import generate_and_persist_summary
+
+    return await generate_and_persist_summary(
+        deal_id,
+        generation_id,
+        ip_address,
+        provider=provider,
+    )
 
 
 MINIMUM_FIELD_KEYS = (

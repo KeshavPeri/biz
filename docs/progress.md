@@ -16,16 +16,39 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 10 — AI Contract Parser (Bucket 4). **10-A / B4-001 is built, independently
-  QA/security reviewed, and awaiting its draft pull request for founder review.**
+- **Current phase:** Phase 10 — AI Contract Parser (Bucket 4). **10-A / B4-001 is merged; 10-B /
+  B4-002 is built, independently QA/security reviewed, and pending its factory draft pull request
+  for founder review.**
+  - **10.3–10.5 BUILT (B4-002 chat slice):** `backend/services/term_extraction.py` owns the strict
+    provider-neutral prompt (`chat-terms-extraction.v1`) and Pydantic schema (`chat-terms-22.v1`)
+    for exactly 22 `found` / `not_discussed` / `ambiguous` envelopes. It forbids coercion/extras,
+    validates source-backed bounded evidence, locked enums, explicit false/zero, conditional rights,
+    payment, date, deliverable-index and milestone rules, and retries exactly once only for invalid
+    output. Ordered non-deleted chat input contains only opaque message ID, timestamp, participant
+    side/role and body; 500 messages, 8,000 characters per body, and 100,000 total characters are the
+    hard pre-provider limits. Provider/DB failures map to stable safe HTTP errors.
+  - **Gate-A + persistence:** migration `025_chat_terms_summary.sql` gives each confirmed Gate-A event
+    a durable UUID and adds schema/prompt/provider/model provenance to `ai_summaries`. Its backend-only,
+    row-locked RPC verifies the deal, chatting stage and generation identity, returns the first valid
+    `pending_approval` row on retries/races, and writes one metadata-only audit. Failures leave the
+    confirmed event retryable; success never advances stage or writes approvals/canonical terms,
+    rights, deliverables, briefs, payments, milestones, contracts, or extracted contract terms.
+    The same migration closes the historical `deal_participants_insert_own` self-enrollment gap;
+    FastAPI/service-role remains the participant-add path, while legitimate participant reads and
+    own read-marker updates remain available under RLS.
+  - **10-B verification:** extraction unit **29/29**; development persistence/RLS/recovery/concurrency
+    **20/20**; AI boundary **11/11**; summary-gate unit **7/7** and integration **39/39**; stage engine
+    **23/23**; contract flow **28/28**; contract-template PASS; Python compile and diff checks clean.
+    Migration 025 applied and repair-reapplied successfully on development; fictional test data cleaned.
+    Real Gemini smoke is optional and **LIMITED/not run**; no real/private chat was sent.
   - **10.1–10.2 BUILT (B4-001):** `backend/services/ai_service.py` now exposes the typed,
     provider-neutral `AIRequest` / `AIResult` / `AIError` contract and an internal Gemini provider
     using the maintained `google-genai` SDK.
     The key and configurable model remain backend-only; no module outside `ai_service.py` imports the
     Gemini SDK. Missing configuration, timeout, rate limit, malformed provider output, and provider
-    failure produce stable friendly errors without raw details. The existing Gate-A methods deliberately
-    still return `not_discussed` / `parser_pending`: no extraction, persistence, UI, Gate B, stage, or
-    schema work was added. Deterministic `test_ai_service.py` (11 checks), compile, summary-gate unit
+    failure produce stable friendly errors without raw details. That merged block added no extraction,
+    persistence, UI, Gate B, stage, or schema work; 10-B now consumes its boundary. Deterministic
+    `test_ai_service.py` (11 checks), compile, summary-gate unit
     (7), contract-template, and diff checks pass. The serialized summary-gate run exercised 39 assertions
     but was **LIMITED** by cleanup after an already-absent fictional auth user; real Gemini smoke is also
     opt-in and **LIMITED** this run.
@@ -46,7 +69,7 @@ up exactly where the last one left off, with zero context lost.
     payloads are not participant-readable; direct client signing/request writes are revoked.
   - **Phase-10 honesty:** `phase10_alignment_check` is an explicit no-op seam. No `extracted_terms`
     rows are fabricated and B3-026 remains Phase 10 work.
-  - **Schema:** migrations 019–024 are applied and verified on development. 020 creates the private
+  - **Schema:** migrations 019–025 are applied and verified on development. 020 creates the private
     bucket + contract version uniqueness; 021 adds held-action linkage; 022–024 add atomic RPCs,
     signer/side uniqueness, owner-only wet upload, service-only held payloads, safe column grants,
     and backend-only write grants. Public schema is now 44 tables.
@@ -61,9 +84,9 @@ up exactly where the last one left off, with zero context lost.
     pretending it read chat. A two-side, audit-logged manual override can clear one missing item.
   - **9.10 DONE (B3-019):** a creator, brand admin, or maker can request only after the checklist
     is complete; an eligible opposite side confirms or says Not yet. The row-locked Gate-A RPC
-    makes duplicate taps idempotent and calls the Phase-10 `ai_service` generation seam once.
-    State honestly stays **ready for generation / parser pending**: no `ai_summaries`, no
-    `term_approvals`, and no Chatting → Approval transition.
+    makes duplicate taps idempotent. After confirmation, 10-B now extracts and atomically persists one
+    pending summary; a failed attempt remains retryable under the same generation identity. No
+    `term_approvals` or Chatting → Approval transition is created.
   - **Schema correction:** additive migration `019_summary_gate.sql` adds the service-only
     `deal_summary_gates` state row (43 tables total) because the specified Gate-A/override state
     was omitted. It does not misuse `term_approvals` or create a placeholder AI summary.
@@ -308,13 +331,13 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **Phase 10 — 10-B parser output contract:** after #1 is founder-reviewed and merged/reconciled,
-   define the locked 22-field schema and prompt, validate real Gemini output, and persist it without
-   weakening the provider boundary.
-2. **Phase 10 — all-party summary sign-off:** after 10-B, use `term_approvals` and advance
-   Chatting → Approval only on the real Gate-B evidence.
-3. **Phase 10 — contract alignment (B3-026):** populate real `extracted_terms`, run the deterministic
-   normalised comparison, and replace the named no-op seam without changing the signing service shape.
+1. **Founder review — Workplan #2 / 10-B:** review and merge the factory draft PR; this is the
+   dependency for any later Phase-10 ticket.
+2. **Phase 10 — all-party summary sign-off:** only after #2 merges and the founder releases #3,
+   use `term_approvals` and advance Chatting → Approval only on the real Gate-B evidence.
+3. **Phase 10 — contract alignment (B3-026):** only after #3 merges and the founder releases #4,
+   populate real `extracted_terms`, run the deterministic normalised comparison, and replace the
+   named no-op seam without changing the signing service shape.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
 
