@@ -17,7 +17,7 @@ up exactly where the last one left off, with zero context lost.
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
 - **Current phase:** Phase 10 — AI Contract Parser (Bucket 4). **10-A / B4-001 is built, independently
-  QA/security reviewed, and awaiting founder review in its draft pull request.**
+  QA/security reviewed, and awaiting its draft pull request for founder review.**
   - **10.1–10.2 BUILT (B4-001):** `backend/services/ai_service.py` now exposes the typed,
     provider-neutral `AIRequest` / `AIResult` / `AIError` contract and an internal Gemini provider
     using the maintained `google-genai` SDK.
@@ -26,8 +26,9 @@ up exactly where the last one left off, with zero context lost.
     failure produce stable friendly errors without raw details. The existing Gate-A methods deliberately
     still return `not_discussed` / `parser_pending`: no extraction, persistence, UI, Gate B, stage, or
     schema work was added. Deterministic `test_ai_service.py` (11 checks), compile, summary-gate unit
-    (7), serialized summary-gate integration (39), contract-template, and diff checks pass. Real Gemini
-    smoke is opt-in and **LIMITED** this run.
+    (7), contract-template, and diff checks pass. The serialized summary-gate run exercised 39 assertions
+    but was **LIMITED** by cleanup after an already-absent fictional auth user; real Gemini smoke is also
+    opt-in and **LIMITED** this run.
   - **9.11 DONE (B3-023):** participant-scoped FastAPI generation from the latest approved
     `ai_summaries` row only while the deal is in Approval. A row-locked reservation + unique
     `(deal_id, version)` index makes concurrent generation one version-1 contract; Jinja2 escapes
@@ -650,9 +651,10 @@ here in one line so I can review or reverse it later.*
 - **Security:** switched to maintained constrained `google-genai`; SDK imports remain isolated to
   `ai_service.py`, keys stay ignored/backend-only, clients close after each call, and no parsing,
   persistence, UI, stage, schema, or migration work entered the block.
-- **Verify:** compile; AI service 11/11; summary-gate unit 7/7; serialized summary-gate integration
-  39/39; contract template; diff hygiene; and independent QA/security reviews all pass. Live fictional
-  Gemini smoke is opt-in and LIMITED this run.
+- **Verify:** compile; AI service 11/11; summary-gate unit 7/7; contract template; diff hygiene; and
+  independent QA/security reviews all pass. The serialized summary-gate run exercised 39 assertions but
+  is LIMITED by cleanup after an already-absent fictional auth user. Live fictional Gemini smoke is
+  opt-in and LIMITED this run.
 
 ### 2026-08-26 — Phase 9: platform contract generation + three-mode signing (9.11/9.12)
 - **Backend:** private, idempotent version-1 generation from approved summary; escaped Jinja2 template
