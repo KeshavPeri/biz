@@ -41,8 +41,8 @@ Turn at most one reviewed GitHub workplan issue into a tested draft pull request
 1. After all required reviews pass, invoke `$biz-wrap` to update `docs/progress.md` and only the RTM rows supported by evidence.
 2. Run the required commands from `factory/PROJECT-CONFIG.md`, inspect the final diff, scan intended files for secrets, and renew the factory lock before shipping.
 3. Invoke `$biz-ship` to stage only the block files, create a conventional commit, and push the feature branch. Do not push unrelated work.
-4. Open or update a draft pull request using `factory/REVIEW-PACKET.md`. Link the workplan and RTM IDs, exact tests, review outcomes, limitations, risks, and the shortest owner review path.
-5. Replace `factory:building` with `factory:review` and link the draft PR on the issue.
+4. Open or update a draft pull request using `factory/REVIEW-PACKET.md`. Link the workplan and RTM IDs, exact tests, review outcomes, limitations, risks, and the shortest owner review path. Include exactly one standalone `Closes #<issue-number>` line for the selected workplan issue; never reference an adjacent ticket with a closing keyword.
+5. Re-read the draft PR and verify GitHub reports the selected issue in `closingIssuesReferences`. If not, repair the PR body before continuing. Then replace `factory:building` with `factory:review` and link the draft PR on the issue. The issue remains open until the founder merges the PR, when GitHub closes it automatically.
 6. Release the factory lock with the original owner token, then stop. The founder reviews and decides whether to merge.
 
 ## Invariants

@@ -94,6 +94,7 @@ Use these sections. Combine sections only when the result remains equally clear.
 
 - Exact `docs/progress.md` and RTM reconciliation expected.
 - Required branch, commit, draft-PR, evidence, and queue-state outcome.
+- The draft PR must contain `Closes #<this-ticket-number>` and GitHub must expose that ticket in `closingIssuesReferences`, so the ticket closes only when the founder merges the PR.
 
 ## Quality gate
 

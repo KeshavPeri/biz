@@ -9,6 +9,12 @@ What user-visible or system-level behaviour changed?
 - Included RTM IDs:
 - Issue:
 
+## Issue closure
+
+Closes #<issue-number>
+
+Replace the placeholder with the selected ticket's number. Before moving the ticket to `factory:review`, verify that GitHub lists it in the pull request's `closingIssuesReferences`. Do not use a closing keyword for any adjacent ticket.
+
 ## Acceptance evidence
 
 Map every acceptance criterion to observed evidence. Do not use a general statement such as “tests pass” in place of criterion-level evidence.

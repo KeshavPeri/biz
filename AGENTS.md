@@ -62,6 +62,7 @@ If code contradicts a locked spec, follow the spec and call out the mismatch. Ke
 - Read-only agents may run in parallel when their scopes are independent. Never run concurrent code-writing agents in the same worktree.
 - Allow at most two focused implementation revisions after review failures. Then preserve the branch and mark the issue blocked with evidence.
 - A direct request to run `$biz-workplan-factory` authorizes the feature-branch commit, push, and draft pull request defined by that skill. It never authorizes merging, production deployment, billing, account creation, secret changes, or destructive data operations.
+- Every factory pull request must contain the standalone GitHub closing line `Closes #<issue-number>` for its one workplan ticket. The issue stays open during draft/review and closes automatically only when the PR is merged into the default branch.
 - `Checklist_new_rows.xlsx` is protected unrelated user material: never edit, stage, move, delete, or include it in a factory branch.
 
 ## Factory worktrees
