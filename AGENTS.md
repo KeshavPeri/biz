@@ -52,6 +52,7 @@ If code contradicts a locked spec, follow the spec and call out the mismatch. Ke
 
 ## Workplan factory
 
+- Founder-facing operating instructions live in `factory/USER-GUIDE.md`.
 - Use `$biz-workplan-factory` only when asked to process the next ready workplan block or run the factory.
 - GitHub workflow labels are `factory:ready`, `factory:building`, `factory:review`, and `factory:blocked`.
 - Process at most one build block per run. The primary Codex agent owns queue state, branches, commits, pushes, pull requests, recovery, and the final report.
