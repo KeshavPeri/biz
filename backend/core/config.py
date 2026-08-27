@@ -16,6 +16,8 @@ class Settings:
     SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini").strip().lower()
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
     RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
     RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "")
     DATABASE_URL = os.getenv("DATABASE_URL", "")
