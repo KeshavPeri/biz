@@ -135,7 +135,7 @@ def main() -> None:
             'Gemini SDK receives model, prompt, timeout, and closes its client',
             sdk_request.get('model') == 'fake-model'
             and sdk_request.get('contents') == request.prompt
-            and sdk_request.get('config').http_options.timeout == request.timeout_seconds
+            and sdk_request.get('config').http_options.timeout == 7000
             and FakeGeminiClient.captured.get('closed') is True,
         )
 

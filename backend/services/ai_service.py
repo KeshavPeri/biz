@@ -106,7 +106,8 @@ class GeminiProvider:
                 model=self.model,
                 contents=request.prompt,
                 config=types.GenerateContentConfig(
-                    http_options=types.HttpOptions(timeout=request.timeout_seconds),
+                    # The maintained Gemini SDK expects this transport timeout in milliseconds.
+                    http_options=types.HttpOptions(timeout=int(request.timeout_seconds * 1000)),
                 ),
             )
         finally:
