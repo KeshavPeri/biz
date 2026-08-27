@@ -12,6 +12,7 @@ This file is the command and environment source of truth for factory runs. Agent
 
 ## Worktree setup
 
+- **Factory run lock:** `./scripts/factory-run-lock.sh acquire|renew|release <owner-token>`; `status` is read-only. Exit 75 means another run owns the shared lock. The stale timeout is 18 hours.
 - **Setup command:** `./scripts/setup-worktree.sh`
 - The managed worktree receives ignored `.env` and `frontend/.env` through `.worktreeinclude`. Never print, stage, or commit either file.
 - Homebrew Pango is required on the local Mac for WeasyPrint and is already installed on the primary machine.
