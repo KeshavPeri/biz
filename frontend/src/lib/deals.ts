@@ -183,6 +183,68 @@ export const proposeChecklistOverride = (dealId: string, fieldKey: string) =>
 export const confirmChecklistOverride = (dealId: string, fieldKey: string) =>
   summaryPost(dealId, `summary-checklist/${fieldKey}/confirm-override`);
 
+/* ── Versioned 22-field review + all-participant Gate B (workplan 10-C) ── */
+
+export type TermsReviewField = {
+  key: string;
+  label: string;
+  status: ChecklistStatus;
+  value: unknown;
+  evidence: { message_id: string; quote: string }[];
+  applicable: boolean;
+  blocks_approval: boolean;
+};
+
+export type TermsApprover = {
+  profile_id: string;
+  display_name: string;
+  role: ParticipantRole;
+  status: 'pending' | 'approved' | 'changes_requested';
+  comment: string | null;
+  decided_at: string | null;
+};
+
+export type TermsReviewState = {
+  deal_id: string;
+  stage: DealStage;
+  summary: {
+    id: string;
+    status: 'pending_approval' | 'approved' | 'issue_raised';
+    schema_version: string;
+    generated_at: string;
+    fields: TermsReviewField[];
+    unresolved_fields: string[];
+    approvers: TermsApprover[];
+  } | null;
+};
+
+export async function fetchTermsReview(
+  dealId: string,
+): Promise<{ ok: true; data: TermsReviewState } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await getJson<TermsReviewState>(`/deals/${dealId}/terms-summary`, token);
+  return result.ok ? { ok: true, data: result.data } : { ok: false, message: result.message };
+}
+
+export async function decideTermsSummary(
+  dealId: string,
+  summaryId: string,
+  decision: 'approved' | 'issue_raised',
+  comment?: string,
+): Promise<{ ok: true; transitioned: boolean; idempotent: boolean } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<{ transitioned: boolean; idempotent: boolean }>(
+    `/deals/${dealId}/approve-summary`,
+    { summary_id: summaryId, decision, comment: comment?.trim() || null },
+    token,
+  );
+  return result.ok
+    ? { ok: true, transitioned: result.data.transitioned, idempotent: result.data.idempotent }
+    : { ok: false, message: result.message };
+}
+
 export type ContractSignatureState = {
   signer_id: string;
   signer_name: string;
@@ -627,6 +689,31 @@ export function subscribeToDealMessages(
     )
     .subscribe();
 
+  return () => {
+    void channel.unsubscribe();
+    void supabase?.removeChannel(channel);
+  };
+}
+
+/**
+ * Approval INSERTs are refresh hints, never authority. RLS limits delivery to
+ * participants and every callback refetches the authenticated API state.
+ */
+export function subscribeToTermApprovals(
+  summaryId: string,
+  accessToken: string | null,
+  onChange: () => void,
+): () => void {
+  if (!supabase) return () => {};
+  if (accessToken) supabase.realtime.setAuth(accessToken);
+  const channel = supabase
+    .channel(`terms:${summaryId}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'term_approvals', filter: `summary_id=eq.${summaryId}` },
+      onChange,
+    )
+    .subscribe();
   return () => {
     void channel.unsubscribe();
     void supabase?.removeChannel(channel);
