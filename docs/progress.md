@@ -16,9 +16,40 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 10 — AI Contract Parser (Bucket 4). **10-A / B4-001 is merged; 10-B /
-  B4-002 is built, independently QA/security reviewed, and pending its factory draft pull request
-  for founder review.**
+- **Current phase:** Phase 10 — AI Contract Parser (Bucket 4). **10-A / B4-001 and 10-B / B4-002
+  are merged. 10-C / B4-004 + B3-020/B3-021 is built; post-repair security review passes and QA is
+  LIMITED only by the pre-declared two-device Realtime visual check. It is ready for its draft PR.**
+  - **10.6 BUILT (all-participant Gate B):** migration `026_term_approval_gate_b.sql` revokes the
+    historical direct authenticated `term_approvals` insert path and exposes one backend-only locked
+    decision RPC. It also revokes authenticated table-wide deal updates and restricts a participant-row
+    update to the caller's own `last_read_at` column, closing direct stage/identity and cross-deal/role/
+    profile pivots. Creator, brand admin, brand maker, and brand checker each decide only for their own
+    authenticated profile and the active immutable summary version. Decisions remain append-only, with
+    a monotonic sequence making latest status deterministic; retries are idempotent and stale/wrong-deal/
+    outsider/forged requests fail safely.
+  - **Atomic decision and recovery:** applicable `not_discussed` or any applicable `ambiguous` field
+    blocks approval server-side; conditional children of explicit `false` parents are non-applicable.
+    A bounded explained issue marks only that summary `issue_raised`, leaves Chatting unchanged, preserves
+    history, and resets Gate A for a new generation. The last current-participant approval atomically
+    marks the summary approved and writes exactly one Chatting → Approval transition plus decision/stage
+    audits. The Stage Engine remains the application entry path through a handled Gate-B guard and never
+    calls its generic transition apply after the atomic decision RPC. Only a non-idempotent transition
+    emits notifications, so concurrent completion and later retries produce one notification set.
+  - **Review UI + refresh:** the deal room renders all 22 fields with values/status/evidence, approval
+    blockers, whole-summary controls, and pending/approved/changes-requested roster. `term_approvals`
+    Realtime INSERTs trigger an authenticated refetch; focus and every action also refetch, so Realtime
+    is never authority. The approved roster stays read-only in Approval and Creating.
+  - **10-C verification:** migration 026 applied/reapplied on development; Gate-B acceptance **32/32**
+    after security repair (including direct stage/identity denial with no artifacts, immutable participant
+    identity/role/deal columns with retained read marker, participant-vs-outsider Realtime RLS evaluation,
+    and exactly one concurrent-completion notification set plus retry);
+    extraction unit **29/29** and DB **20/20**; summary-gate unit **7/7** and integration **39/39**;
+    AI boundary **11/11**; Stage Engine **23/23**; maker-checker **10/10**; contract flow **28/28**;
+    contract-template PASS; Python compile, strict
+    TypeScript, lint (0 errors; 3 pre-existing signature-pad warnings), 36-route Expo web export, and
+    diff checks pass. All fictional users/data were cleaned. QA's two-device Realtime/visual check is
+    **LIMITED** because external websocket delivery was unavailable; publication, installed Realtime RLS
+    authorization, authoritative API state, focus/action refetch, and outsider denial are automated and passing.
   - **10.3–10.5 BUILT (B4-002 chat slice):** `backend/services/term_extraction.py` owns the strict
     provider-neutral prompt (`chat-terms-extraction.v1`) and Pydantic schema (`chat-terms-22.v1`)
     for exactly 22 `found` / `not_discussed` / `ambiguous` envelopes. It forbids coercion/extras,
@@ -331,11 +362,9 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **Founder review — Workplan #2 / 10-B:** review and merge the factory draft PR; this is the
-   dependency for any later Phase-10 ticket.
-2. **Phase 10 — all-party summary sign-off:** only after #2 merges and the founder releases #3,
-   use `term_approvals` and advance Chatting → Approval only on the real Gate-B evidence.
-3. **Phase 10 — contract alignment (B3-026):** only after #3 merges and the founder releases #4,
+1. **Founder review — Workplan #3 / 10-C:** inspect the draft PR and merge only when the Gate-B
+   field/roster experience is accepted; complete the two-device Realtime visual refresh check.
+2. **Phase 10 — contract alignment (B3-026):** only after #3 merges and the founder releases #4,
    populate real `extracted_terms`, run the deterministic normalised comparison, and replace the
    named no-op seam without changing the signing service shape.
 
@@ -344,6 +373,12 @@ up exactly where the last one left off, with zero context lost.
 *Claude: when you hit a STOP-and-flag situation (destructive ops, anything paid, live/prod,
 real secrets, big architectural change, irreversible + low confidence), describe it here and
 do not proceed. I'll resolve these at the start of my next session.*
+
+- **2026-08-28 — Gate-B two-device refresh is LIMITED:** migration/publication, the installed Realtime RLS
+  evaluator's participant delivery/outsider exclusion, authenticated API state, refetch-on-focus, and
+  refetch-after-action are automated and passing. External websocket delivery was unavailable during the
+  QA/dev probe, so two simultaneously signed-in devices still need the founder manual check to confirm
+  visible roster refresh and the 22-field review layout on device.
 
 - **2026-08-26 — Manual device check remains:** the Approval contract card, drawn-signature gesture,
   native document picker/private PDF upload, signed-link opening, and maker/checker two-device refresh
@@ -368,6 +403,13 @@ do not proceed. I'll resolve these at the start of my next session.*
 
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
+
+- 2026-08-28 — **Gate-B atomicity and applicability.** The Stage Engine's Chatting → Approval guard
+  returns a handled outcome from one service-only locked RPC, because the last approval, summary status,
+  transition row, deal stage, and audits cannot be split across transactions. Every current
+  `deal_participants` row is required. Ambiguous/applicable-not-discussed fields block; conditional
+  children of an explicit false parent and payment/milestone children excluded by the validated parent
+  are non-applicable. An issue clears Gate-A request/generation/override state, not prior evidence.
 
 - 2026-08-27 — **AI provider boundary.** Gemini remains the MVP provider behind a typed backend-only
   interface. `AI_PROVIDER` and `GEMINI_MODEL` are reversible backend configuration, while callers
@@ -666,6 +708,28 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-28 — Phase 10: all-participant summary review and Gate B (10.6)
+- **Independent review:** post-repair security review PASS; QA automated checks PASS with the only
+  limitation being the explicitly founder-owned two-device Realtime/visual confirmation.
+- **Security repair round 1:** revoked authenticated `deals` UPDATE; limited participant UPDATE to own
+  `last_read_at`; proved direct stage/identity and participant deal/role/profile pivots fail without
+  artifacts or access gain; and suppressed Stage Engine notification emission for idempotent handled
+  transitions. The dev Gate-B suite now passes 32/32, including installed Realtime RLS visibility and
+  exactly one notification set under concurrent completion plus later retry.
+- **Backend/schema:** added participant-safe 22-field review, derived latest approver roster, strict
+  version/role/ownership/completeness checks, append-only decisions, issue recovery, and one atomic final
+  Chatting → Approval transaction. Revoked authenticated writes/RPC execution and published only
+  participant-RLS approval INSERTs as Realtime refresh hints.
+- **Frontend:** field/status/value/evidence review with blockers and bounded changes explanation;
+  pending/approved/changes-requested roster; action/focus/Realtime refetch; read-only checklist retained
+  through Approval and Creating.
+- **Verify:** development migration applied/reapplied; Gate B 32/32; extraction 29/29 + 20/20; Gate A
+  7/7 + 39/39; AI boundary 11/11; Stage Engine 23/23; maker-checker 10/10; contract template PASS;
+  contract flow 28/28; compile, TypeScript,
+  lint (0 errors), 36-route web export, diff hygiene, and fictional cleanup pass. Two-device visual/
+  Realtime behavior remains LIMITED to a manual two-device check for independent QA/founder review;
+  publication, database Realtime authorization, API state, and fallback refetches pass automatically.
 
 ### 2026-08-27 — Phase 10: AI service and Gemini provider boundary (10.1/10.2)
 - **Did:** added the provider-neutral `AIRequest` / `AIResult` / `AIError` contract and a backend-only

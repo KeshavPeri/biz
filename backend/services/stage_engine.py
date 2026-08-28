@@ -100,11 +100,13 @@ def _exclusivity_warning(client: Client, creator_id: str) -> str | None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Guards — each transition's precondition check. Three outcomes:
+# Guards — each transition's precondition check. Four outcomes:
 #   allow(...)         → proceed to apply
 #   deny(status, msg)  → reject with a clean error
 #   needs_input(...)   → soft-stop: return a payload, DON'T transition (e.g. the
 #                        warn-only exclusivity acknowledgement)
+#   handled(...)       → the guard's locked RPC handled decision + optional
+#                        transition atomically; the engine must not apply again
 # Guards for features built in LATER tasks return not_yet_available() so the later
 # task drops its real check into the guard body WITHOUT touching the engine shape.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -121,7 +123,7 @@ class GuardContext:
 
 @dataclass
 class GuardOutcome:
-    kind: str  # 'allow' | 'deny' | 'needs_input'
+    kind: str  # 'allow' | 'deny' | 'needs_input' | 'handled'
     status: int = 409
     message: str | None = None
     payload: dict[str, Any] | None = None
@@ -138,6 +140,10 @@ def deny(status: int, message: str) -> GuardOutcome:
 
 def needs_input(payload: dict[str, Any]) -> GuardOutcome:
     return GuardOutcome("needs_input", payload=payload)
+
+
+def handled(payload: dict[str, Any]) -> GuardOutcome:
+    return GuardOutcome("handled", payload=payload)
 
 
 def not_yet_available() -> GuardOutcome:
@@ -173,6 +179,34 @@ def _guard_stub(ctx: GuardContext) -> GuardOutcome:
     """Placeholder for a transition whose precondition data is built in a later
     task (see the registry notes). Cleanly reports 'not available yet'."""
     return not_yet_available()
+
+
+def _guard_summary_gate_b(ctx: GuardContext) -> GuardOutcome:
+    """Chatting → Approval summary decision.
+
+    Gate B is special: its final participant decision, summary status, stage,
+    transition log, and audits must be one Postgres transaction. The guard's
+    backend-only RPC therefore returns ``handled`` so request_transition never
+    calls the generic transition RPC a second time.
+    """
+    from services.term_approvals import apply_gate_b_decision
+
+    summary_id = ctx.params.get("summary_id")
+    decision = ctx.params.get("decision")
+    if not isinstance(summary_id, str) or not summary_id:
+        raise DealError(422, "Choose the summary you reviewed before deciding.")
+    if decision not in {"approved", "issue_raised"}:
+        raise DealError(422, "That summary decision is not valid.")
+    result = apply_gate_b_decision(
+        ctx.client,
+        ctx.deal["id"],
+        summary_id,
+        ctx.user_id,
+        decision,
+        ctx.params.get("comment"),
+        ctx.params.get("ip_address", "unknown"),
+    )
+    return handled(result)
 
 
 def _guard_contract_executed(ctx: GuardContext) -> GuardOutcome:
@@ -230,8 +264,8 @@ REGISTRY: dict[tuple[str, str], Transition] = {
         "pending", "declined", "accept-gate", RESPONDER_ROLES, True, False, _guard_decline, "deal_decline"
     ),
     # STUBS — role/stage checks are real; the guard fills in with its feature task.
-    ("chatting", "approval"): Transition(  # task 9.10: AI summary + all-party sign-off
-        "chatting", "approval", "mutual-gate", ALL_PARTICIPANT_ROLES, False, False, _guard_stub, "deal_summary_approved"
+    ("chatting", "approval"): Transition(  # workplan 10-C: versioned all-party Gate B
+        "chatting", "approval", "mutual-gate", ALL_PARTICIPANT_ROLES, False, False, _guard_summary_gate_b, "deal_summary_approved"
     ),
     ("chatting", "cancelled"): Transition(  # mutual cancel, pre-signing
         "chatting", "cancelled", "mutual-gate", RESPONDER_ROLES, False, False, _guard_stub, "deal_cancelled"
@@ -290,6 +324,7 @@ def request_transition(
     *,
     system: bool = False,
     params: dict[str, Any] | None = None,
+    _client: Client | None = None,
 ) -> dict[str, Any]:
     """Validate + apply a stage transition. The ONE path for every stage change.
 
@@ -301,7 +336,9 @@ def request_transition(
       (d) the transition's guard conditions are met
     Only then: apply atomically (RPC), then fire the notification seam.
     """
-    client = get_supabase()
+    # Tests may supply an independent service client to model separate backend
+    # workers. Application callers always use the configured singleton.
+    client = _client or get_supabase()
     params = params or {}
 
     # (a) deal exists & caller is a participant
@@ -312,7 +349,16 @@ def request_transition(
 
     # (b/c) legal-move lookup: forward-only / no-skip / no-backward / registry-only.
     # (from == current stage always, so a mismatched current stage lands here too.)
-    transition = REGISTRY.get((deal["stage"], target_stage))
+    # A network retry after the final Gate-B transaction may arrive after the
+    # deal is already Approval/Creating. Route only that explicit decision back
+    # through the same handled guard so Postgres can prove idempotency; no other
+    # backward/same-stage request receives this exception.
+    gate_b_retry = (
+        target_stage == "approval"
+        and params.get("gate_b") is True
+        and deal["stage"] in {"approval", "creating"}
+    )
+    transition = REGISTRY.get(("chatting", "approval")) if gate_b_retry else REGISTRY.get((deal["stage"], target_stage))
     if transition is None:
         raise _classify_invalid_move(deal["stage"], target_stage)
 
@@ -331,6 +377,11 @@ def request_transition(
         return {"transitioned": False, **(outcome.payload or {})}
     if outcome.kind == "deny":
         raise DealError(outcome.status, outcome.message or "That action isn't allowed right now.")
+    if outcome.kind == "handled":
+        result = outcome.payload or {"transitioned": False}
+        if result.get("transitioned") and not result.get("idempotent"):
+            _emit_transition_notification(client, deal, transition, user_id)
+        return result
 
     # Apply atomically: conditional stage UPDATE + transition log + audit, one txn.
     _apply_transition(client, transition, deal_id, user_id, outcome.audit_metadata, ip_address)

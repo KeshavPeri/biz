@@ -28,7 +28,7 @@ Actions, their target stage, and which per-deal role may call each (rbac.md):
   ───────────────  ─────────────────────  ────────────────────────────  ──────
   accept           pending  → chatting     recipient (creator/admin/maker) LIVE
   decline          pending  → declined     recipient (creator/admin/maker) LIVE
-  approve-summary  chatting → approval      any participant                 stub → 409 (Gate B / 9.11)
+  approve-summary  chatting → approval      any participant                 LIVE (versioned Gate B)
   cancel           chatting → cancelled     creator/admin/maker             stub → 409 (mutual cancel)
                    approval → cancelled     creator/admin/maker             stub → 409
   submit-live      creating → posted        creator                         stub → 409 (task 9.13)
@@ -40,16 +40,16 @@ Actions, their target stage, and which per-deal role may call each (rbac.md):
 
 Chatting Gate A is separate: GET `/{id}/summary-checklist`, then POST
 `/{id}/request-summary` and `/confirm-summary-request` persist the 12-field
-checklist/other-side confirmation. `approve-summary` remains Gate B and stays a
-stub until all-party term approvals exist. Other "stub → 409" endpoints are
-wired to the engine now (role + stage checks are real); their guard returns "not
-available yet" until the owning task fills it in.
+checklist/other-side confirmation. GET `/{id}/terms-summary` and POST
+`/{id}/approve-summary` own the later immutable all-participant Gate B. Other
+"stub → 409" endpoints remain wired to the engine (role + stage checks are real).
 """
 
 from typing import Any, Literal
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from core.auth import get_current_user_id
 from services.deals import DealError, accept_deal, connect_deal, decline_deal
@@ -63,6 +63,7 @@ from services.summary_gate import (
     request_summary,
 )
 from services.contract_service import contract_status, generate_contract, sign_contract, signed_url
+from services.term_approvals import get_terms_review
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
@@ -82,6 +83,14 @@ class ContractSignBody(BaseModel):
     svg: str | None = None
     bypass_reason: str | None = None
     physical_doc_path: str | None = None
+
+
+class SummaryDecisionBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    summary_id: UUID
+    decision: Literal['approved', 'issue_raised']
+    comment: str | None = None
 
 
 def _client_ip(request: Request) -> str:
@@ -144,15 +153,37 @@ def decline(
 @router.post("/{deal_id}/approve-summary")
 def approve_summary(
     deal_id: str,
+    body: SummaryDecisionBody,
     request: Request,
     user_id: str = Depends(get_current_user_id),
 ) -> dict[str, Any]:
-    return _transition(deal_id, user_id, "approval", request)
+    try:
+        return request_transition(
+            deal_id,
+            user_id,
+            "approval",
+            _client_ip(request),
+            params={
+                'gate_b': True,
+                'summary_id': str(body.summary_id),
+                'decision': body.decision,
+                'comment': body.comment,
+                'ip_address': _client_ip(request),
+            },
+        )
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
-# Gate A: the request + opposite-side confirmation that happens before any AI
-# output exists. Gate B remains POST /approve-summary in its intentional 409 stub
-# until Phase 10/9.11 builds all-party term approvals.
+@router.get('/{deal_id}/terms-summary')
+def terms_summary(deal_id: str, user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
+    try:
+        return get_terms_review(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+# Gate A: the request + opposite-side confirmation that happens before AI output.
 @router.get("/{deal_id}/summary-checklist")
 async def summary_checklist(deal_id: str, user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
     return await _summary_action(get_summary_checklist(deal_id, user_id))

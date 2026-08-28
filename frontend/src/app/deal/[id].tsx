@@ -217,7 +217,12 @@ export default function DealRoomScreen() {
           />
 
           {/* Sticky action bar (task 9.7) — stage- + role-aware transition requests. */}
-          <StickyActionBar thread={thread} userId={userId ?? ''} onTransitioned={loadThread} />
+          <StickyActionBar
+            thread={thread}
+            userId={userId ?? ''}
+            accessToken={session?.access_token ?? null}
+            onTransitioned={loadThread}
+          />
 
           {sendError ? (
             <Text className="px-4 pb-1 font-geist text-[12px] text-status-critical">{sendError}</Text>

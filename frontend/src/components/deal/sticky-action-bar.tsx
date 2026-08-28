@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { ContractSignSheet } from '@/components/deal/contract-sign-sheet';
+import { TermsReviewCard } from '@/components/deal/terms-review-card';
 
 import {
   acceptDeal,
@@ -9,17 +11,21 @@ import {
   declineDeal,
   decideContractSigning,
   deferTermsSummaryRequest,
+  decideTermsSummary,
   fetchContract,
   fetchSummaryChecklist,
+  fetchTermsReview,
   generateContract,
   getContractDownload,
   proposeChecklistOverride,
   requestDealTransition,
   requestTermsSummary,
   signContract,
+  subscribeToTermApprovals,
   type DealThread,
   type ContractState,
   type SummaryChecklist,
+  type TermsReviewState,
   type TransitionAction,
 } from '@/lib/deals';
 
@@ -41,10 +47,12 @@ import {
 export function StickyActionBar({
   thread,
   userId,
+  accessToken,
   onTransitioned,
 }: {
   thread: DealThread;
   userId: string;
+  accessToken: string | null;
   onTransitioned: () => void;
 }) {
   const [acting, setActing] = useState(false);
@@ -52,6 +60,9 @@ export function StickyActionBar({
   // Set when accept returns a warn-only exclusivity notice (needs re-confirm).
   const [exclusivityWarning, setExclusivityWarning] = useState<string | null>(null);
   const [summary, setSummary] = useState<SummaryChecklist | null>(null);
+  const [terms, setTerms] = useState<TermsReviewState | null>(null);
+  const [termsLoading, setTermsLoading] = useState(false);
+  const [termsError, setTermsError] = useState<string | null>(null);
   const [contract, setContract] = useState<ContractState | null>(null);
   const [contractLoading, setContractLoading] = useState(false);
   const [signing, setSigning] = useState(false);
@@ -66,6 +77,24 @@ export function StickyActionBar({
   useEffect(() => {
     void loadSummary();
   }, [loadSummary]);
+
+  const loadTerms = useCallback(async (showLoading = false) => {
+    if (!['chatting', 'approval', 'creating'].includes(thread.stage)) return;
+    if (showLoading) setTermsLoading(true);
+    const result = await fetchTermsReview(thread.dealId);
+    if (result.ok) {
+      setTerms(result.data);
+      setTermsError(null);
+    } else {
+      setTermsError(result.message);
+    }
+    setTermsLoading(false);
+  }, [thread.dealId, thread.stage]);
+
+  useEffect(() => {
+    if (['chatting', 'approval', 'creating'].includes(thread.stage)) void loadTerms(true);
+    else setTerms(null);
+  }, [loadTerms, thread.stage]);
   const loadContract = useCallback(async () => {
     if (thread.stage !== 'approval') return;
     setContractLoading(true);
@@ -79,6 +108,25 @@ export function StickyActionBar({
     if (thread.stage === 'approval') void loadContract();
     else setContract(null);
   }, [loadContract, thread.stage]);
+
+  // Focus is the authoritative fallback when Realtime is disconnected or the
+  // final event raced navigation. It also keeps the existing contract state fresh.
+  useFocusEffect(
+    useCallback(() => {
+      void loadTerms();
+      if (thread.stage === 'chatting') void loadSummary();
+      if (thread.stage === 'approval') void loadContract();
+    }, [loadContract, loadSummary, loadTerms, thread.stage]),
+  );
+
+  useEffect(() => {
+    const summaryId = terms?.summary?.id;
+    if (!summaryId) return;
+    return subscribeToTermApprovals(summaryId, accessToken, () => {
+      void loadTerms();
+      onTransitioned();
+    });
+  }, [accessToken, loadTerms, onTransitioned, terms?.summary?.id]);
 
   const run = useCallback(
     async (fn: () => Promise<{ ok: true } | { ok: false; message: string }>) => {
@@ -127,6 +175,22 @@ export function StickyActionBar({
       setActing(false);
     },
     [acting, loadSummary],
+  );
+
+  const runTermsDecision = useCallback(
+    async (decision: 'approved' | 'issue_raised', comment?: string) => {
+      const summaryId = terms?.summary?.id;
+      if (!summaryId || acting) return;
+      setActing(true);
+      setError(null);
+      const result = await decideTermsSummary(thread.dealId, summaryId, decision, comment);
+      if (!result.ok) setError(result.message);
+      await loadTerms();
+      if (!result.ok || !result.transitioned) await loadSummary();
+      if (result.ok && result.transitioned) onTransitioned();
+      setActing(false);
+    },
+    [acting, loadSummary, loadTerms, onTransitioned, terms?.summary?.id, thread.dealId],
   );
 
   const runContract = useCallback(
@@ -182,6 +246,28 @@ export function StickyActionBar({
   // Checker can't accept/decline/cancel/close (rbac.md "Deal flow — by stage").
   const canRespond = myRole === 'creator' || isBrandActor;
 
+  const termsReview = (readOnly: boolean): ReactNode => {
+    if (termsLoading && !terms) return <Waiting text="Loading the terms review…" />;
+    if (termsError && !terms) {
+      return (
+        <Actions label="Terms review" error={termsError}>
+          <InlineButton label="Retry" onPress={() => void loadTerms(true)} disabled={termsLoading} />
+        </Actions>
+      );
+    }
+    if (!terms?.summary) return null;
+    return (
+      <TermsReviewCard
+        summary={terms.summary}
+        userId={userId}
+        readOnly={readOnly}
+        acting={acting}
+        error={error}
+        onDecision={runTermsDecision}
+      />
+    );
+  };
+
   const body = () => {
     switch (stage) {
       case 'pending':
@@ -211,42 +297,51 @@ export function StickyActionBar({
         return <Waiting text={`Waiting for a response${thread.expiresAt ? ` · expires in ${hoursUntil(thread.expiresAt)}h` : ''}`} />;
 
       case 'chatting':
-        return <SummaryGate summary={summary} dealId={thread.dealId} userId={userId} acting={acting} error={error} onAction={runSummary} />;
+        return termsReview(false) ?? <SummaryGate summary={summary} dealId={thread.dealId} userId={userId} acting={acting} error={error} onAction={runSummary} />;
 
       case 'approval':
-        if (contractLoading && !contract) return <Waiting text="Loading the contract…" />;
+        if (contractLoading && !contract) return <View className="gap-2.5">{termsReview(true)}<Waiting text="Loading the contract…" /></View>;
         if (!contract?.contract) {
           return (
-            <Actions label="Approval — contract" error={error}>
-              <PrimaryButton label={acting ? 'Generating…' : 'Generate contract'} onPress={() => runContract(() => generateContract(thread.dealId))} disabled={acting} />
-            </Actions>
+            <View className="gap-2.5">
+              {termsReview(true)}
+              <Actions label="Approval — contract" error={error}>
+                <PrimaryButton label={acting ? 'Generating…' : 'Generate contract'} onPress={() => runContract(() => generateContract(thread.dealId))} disabled={acting} />
+              </Actions>
+            </View>
           );
         }
         return (
-          <Actions label="Approval — contract" error={error}>
-            <ContractCard
-              state={contract}
-              myRole={myRole}
-              userId={userId}
-              acting={acting}
-              onDownload={download}
-              onSign={() => setSigning(true)}
-              onDecision={(requestId, decision) => runContract(() => decideContractSigning(requestId, decision))}
-            />
-          </Actions>
+          <View className="gap-2.5">
+            {termsReview(true)}
+            <Actions label="Approval — contract" error={error}>
+              <ContractCard
+                state={contract}
+                myRole={myRole}
+                userId={userId}
+                acting={acting}
+                onDownload={download}
+                onSign={() => setSigning(true)}
+                onDecision={(requestId, decision) => runContract(() => decideContractSigning(requestId, decision))}
+              />
+            </Actions>
+          </View>
         );
 
       case 'creating':
         if (isCreator) {
           return (
-            <Actions label="Creating — posting gate" error={error}>
-              <ButtonRow>
-                <PrimaryButton label="Submit live link" onPress={() => onTransition('submit-live')} disabled={acting} />
-              </ButtonRow>
-            </Actions>
+            <View className="gap-2.5">
+              {termsReview(true)}
+              <Actions label="Creating — posting gate" error={error}>
+                <ButtonRow>
+                  <PrimaryButton label="Submit live link" onPress={() => onTransition('submit-live')} disabled={acting} />
+                </ButtonRow>
+              </Actions>
+            </View>
           );
         }
-        return <Waiting text="Reviewing the creator’s work." />;
+        return <View className="gap-2.5">{termsReview(true)}<Waiting text="Reviewing the creator’s work." /></View>;
 
       case 'posted':
         if (isBrandActor) {
