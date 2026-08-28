@@ -210,8 +210,7 @@ def _guard_summary_gate_b(ctx: GuardContext) -> GuardOutcome:
 
 
 def _guard_contract_executed(ctx: GuardContext) -> GuardOutcome:
-    """Approval → Creating only after the contract service has executed v1.
-    The Phase-10 contract-vs-chat alignment check remains intentionally deferred."""
+    """Approval → Creating only after aligned contract v1 is executed."""
     contracts = (
         ctx.client.table("contracts")
         .select("id")
@@ -223,6 +222,9 @@ def _guard_contract_executed(ctx: GuardContext) -> GuardOutcome:
     )
     if not contracts:
         return deny(409, "The contract still needs all required signatures.")
+    from services.contract_alignment import assert_alignment_ready
+
+    assert_alignment_ready(ctx.client, ctx.deal["id"], contracts[0]["id"])
     return allow({"contract_id": contracts[0]["id"]})
 
 

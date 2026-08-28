@@ -330,14 +330,23 @@ def _json_object_without_duplicates(text: str) -> dict[str, Any]:
     return value
 
 
-def _validate_evidence(terms: TermsExtraction, messages: list[ChatMessage]) -> None:
-    bodies = {message.message_id: message.body for message in messages}
+def validate_evidence_sources(terms: TermsExtraction, sources: dict[str, str]) -> None:
+    """Require every evidence quote to be an exact substring of its source.
+
+    The envelope key remains ``message_id`` to preserve the locked chat schema.
+    Contract extraction supplies stable page IDs (for example
+    ``contract-page-1``) through the same source map.
+    """
     for field_name in TermsExtraction.model_fields:
         envelope = getattr(terms, field_name)
         for evidence in envelope.evidence:
-            body = bodies.get(evidence.message_id)
+            body = sources.get(evidence.message_id)
             if body is None or evidence.quote not in body:
-                raise ValueError('evidence must quote a supplied message verbatim')
+                raise ValueError('evidence must quote a supplied source verbatim')
+
+
+def _validate_evidence(terms: TermsExtraction, messages: list[ChatMessage]) -> None:
+    validate_evidence_sources(terms, {message.message_id: message.body for message in messages})
 
 
 def parse_terms(text: str, messages: list[ChatMessage]) -> tuple[TermsExtraction, dict[str, Any]]:

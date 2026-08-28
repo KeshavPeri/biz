@@ -5,6 +5,7 @@ Migration 026 must be applied first.
 """
 
 import copy
+import hashlib
 import os
 import re
 import sys
@@ -22,6 +23,10 @@ load_dotenv(BACKEND_DIR.parent / '.env')
 
 from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
+from services.contract_alignment import (  # noqa: E402
+    PROMPT_VERSION as ALIGNMENT_PROMPT_VERSION,
+    SCHEMA_VERSION as ALIGNMENT_SCHEMA_VERSION,
+)
 from services.stage_engine import request_transition  # noqa: E402
 from services.term_extraction import PROMPT_VERSION, SCHEMA_VERSION, TermsExtraction  # noqa: E402
 
@@ -169,6 +174,55 @@ def persist_summary(deal_id: str, ids: dict[str, str], terms: dict) -> str:
         'p_model': 'fictional-test-model',
         'p_ip_address': 'fictional-test',
     }).execute().data['id']
+
+
+def mark_contract_aligned(deal_id: str, summary_id: str, actor_id: str, token: str) -> None:
+    """Create the generated v1 fixture and record a deterministic clear alignment."""
+    generated = call('POST', f'/deals/{deal_id}/contract', token)
+    if generated.status_code != 200:
+        raise RuntimeError(f'Could not generate the fictional v1 contract: {generated.status_code}')
+
+    contract = admin.table('contracts').select('id,storage_path,generated_from_summary_id').eq(
+        'deal_id', deal_id
+    ).eq('version', 1).single().execute().data
+    summary = admin.table('ai_summaries').select('id,structured_terms').eq(
+        'id', summary_id
+    ).single().execute().data
+    if contract['generated_from_summary_id'] != summary['id']:
+        raise RuntimeError('Generated fictional contract is not bound to the approved summary.')
+
+    source = admin.storage.from_('contracts').download(contract['storage_path'])
+    reserved = admin.rpc('reserve_contract_alignment', {
+        'p_deal_id': deal_id,
+        'p_contract_id': contract['id'],
+        'p_summary_id': summary['id'],
+        'p_source_sha256': hashlib.sha256(source).hexdigest(),
+        'p_actor_id': actor_id,
+        'p_ip_address': 'fictional-term-approvals-alignment',
+    }).execute().data
+    if reserved['outcome'] == 'succeeded':
+        return
+    if reserved['outcome'] != 'reserved':
+        raise RuntimeError(f"Could not reserve fictional contract alignment: {reserved['outcome']}")
+
+    completed = admin.rpc('complete_contract_alignment', {
+        'p_attempt_token': reserved['attempt_token'],
+        'p_raw_output': summary['structured_terms'],
+        'p_structured_terms': summary['structured_terms'],
+        'p_conflicts': [],
+        'p_schema_version': ALIGNMENT_SCHEMA_VERSION,
+        'p_prompt_version': ALIGNMENT_PROMPT_VERSION,
+        'p_provider': 'deterministic-regression-fixture',
+        'p_model': 'deterministic-regression-fixture',
+        'p_ip_address': 'fictional-term-approvals-alignment',
+    }).execute().data
+    if completed['outcome'] != 'succeeded':
+        raise RuntimeError('Could not complete fictional contract alignment.')
+
+    # This legacy fixture directly moves the deal into Creating solely to verify
+    # checklist visibility. Keep that synthetic state behind the same execution
+    # gate production uses; migration 027 verifies the clear alignment above.
+    admin.table('contracts').update({'status': 'executed'}).eq('id', contract['id']).execute()
 
 
 def decide(deal_id: str, summary_id: str, token: str, decision: str = 'approved', comment: str | None = None):
@@ -405,6 +459,7 @@ def main() -> None:
         retry_notifications = admin.table('notifications').select('profile_id').eq('deal_id', main_deal).execute().data
         check('post-completion retry is friendly/idempotent with no duplicate transition or notifications', retry_final.status_code == 200 and retry_final.json()['idempotent'] is True and len(admin.table('deal_stage_transitions').select('id').eq('deal_id', main_deal).eq('to_stage', 'approval').execute().data) == 1 and retry_notifications == notifications)
         approved_review = call('GET', f'/deals/{main_deal}/terms-summary', tokens['C']).json()['summary']
+        mark_contract_aligned(main_deal, main_summary, ids['C'], tokens['C'])
         admin.table('deals').update({'stage': 'creating'}).eq('id', main_deal).execute()
         creating_review = call('GET', f'/deals/{main_deal}/terms-summary', tokens['C']).json()['summary']
         check('approver checklist remains readable in Approval and Creating', approved_review['status'] == 'approved' and creating_review['status'] == 'approved' and all(row['status'] == 'approved' for row in creating_review['approvers']))

@@ -17,8 +17,22 @@ up exactly where the last one left off, with zero context lost.
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
 - **Current phase:** Phase 10 — AI Contract Parser (Bucket 4). **10-A / B4-001 and 10-B / B4-002
-  are merged. 10-C / B4-004 + B3-020/B3-021 is built; post-repair security review passes and QA is
-  LIMITED only by the pre-declared two-device Realtime visual check. It is ready for its draft PR.**
+  are merged. 10-C / B4-004 + B3-020/B3-021 is built; its two-device Realtime visual check remains
+  founder-owned. 10.7 / B4-003 + B4-005 + B3-026 is built, independently QA/security-reviewed, and
+  passed its complete fictional-data regression; both workplans await draft-PR founder review.**
+  - **10.7 BUILT (contract alignment):** migration `027_contract_alignment.sql` stores one immutable,
+    service-role-only alignment attempt and extracted result for the exact generated v1 PDF, bound to its
+    approved summary, source hash, schema/prompt provenance and contract version. The backend extracts the
+    locked 22 fields from bounded PDF text, compares deterministically, shows safe conflicts, and requires
+    both eligible sides to confirm an override. Clear or jointly overridden alignment gates signing,
+    held maker actions, execution, and Approval → Creating both in services and database triggers; private
+    paths, draft hashes, raw output and provenance remain unavailable to participants.
+  - **10.7 verification:** migration 027 applied/reapplied on development; alignment unit **13/13** and
+    integration **13/13**; contract flow **28/28**; Gate-B acceptance **32/32** (including the recovered
+    aligned/executed fixture); AI boundary **11/11**; extraction unit **29/29** and DB **20/20**;
+    Gate-A unit **7/7** and integration **39/39**; Stage Engine **23/23**; maker-checker **10/10**;
+    RLS **4/4**; contract template PASS; compile, strict TypeScript, lint (0 errors; 3 pre-existing
+    warnings), 36-route Expo web export, and diff hygiene pass. No live Gemini or private data was used.
   - **10.6 BUILT (all-participant Gate B):** migration `026_term_approval_gate_b.sql` revokes the
     historical direct authenticated `term_approvals` insert path and exposes one backend-only locked
     decision RPC. It also revokes authenticated table-wide deal updates and restricts a participant-row
@@ -98,13 +112,14 @@ up exactly where the last one left off, with zero context lost.
     pages), then reconciles the system-only Approval → Creating transition through the stage engine.
     Retries and races produce one executed contract and one transition. IP/signature snapshots and held
     payloads are not participant-readable; direct client signing/request writes are revoked.
-  - **Phase-10 honesty:** `phase10_alignment_check` is an explicit no-op seam. No `extracted_terms`
-    rows are fabricated and B3-026 remains Phase 10 work.
-  - **Schema:** migrations 019–025 are applied and verified on development. 020 creates the private
+  - **Phase-10 alignment:** `phase10_alignment_check` now asserts the immutable clear-or-both-overridden
+    alignment result for the exact generated v1 contract. No placeholder `extracted_terms` rows are used.
+  - **Schema:** migrations 019–027 are applied and verified on development. 020 creates the private
     bucket + contract version uniqueness; 021 adds held-action linkage; 022–024 add atomic RPCs,
     signer/side uniqueness, owner-only wet upload, service-only held payloads, safe column grants,
     and backend-only write grants. Public schema is now 44 tables.
-  - **Verify:** `TEST-CONTRACT-FLOW` **28/28**, `TEST-CONTRACT-TEMPLATE` PASS,
+  - **Verify:** `TEST-CONTRACT-FLOW` **28/28**, `TEST-CONTRACT-ALIGNMENT` **13/13**,
+    `TEST-CONTRACT-ALIGNMENT-UNIT` **13/13**, `TEST-CONTRACT-TEMPLATE` PASS,
     `TEST-SUMMARY-GATE` **39/39**, `TEST-STAGE-ENGINE` **23/23**, and
     `test_maker_checker.py` **10/10**. Python compile clean; strict TypeScript clean; Expo web export
     clean (36 routes). All development test users/data/Storage objects cleaned up.
@@ -364,9 +379,8 @@ up exactly where the last one left off, with zero context lost.
 
 1. **Founder review — Workplan #3 / 10-C:** inspect the draft PR and merge only when the Gate-B
    field/roster experience is accepted; complete the two-device Realtime visual refresh check.
-2. **Phase 10 — contract alignment (B3-026):** only after #3 merges and the founder releases #4,
-   populate real `extracted_terms`, run the deterministic normalised comparison, and replace the
-   named no-op seam without changing the signing service shape.
+2. **Founder review — Workplan #4 / 10.7:** inspect the draft PR; confirm the conflict card and
+   signing lock experience, then merge only when accepted. No deployment is part of this workplan.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
 
@@ -403,6 +417,11 @@ do not proceed. I'll resolve these at the start of my next session.*
 
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
+
+- 2026-08-28 — **10.7 recovery fixture.** The legacy Gate-B checklist test generates a fictional v1
+  contract, uses the production alignment reservation/completion RPCs with the exact private bytes and
+  approved 22-field summary, then marks the synthetic contract executed. Both migration-027 triggers
+  still enforce alignment; no production gate, schema, permission, or provider behavior is bypassed.
 
 - 2026-08-28 — **Gate-B atomicity and applicability.** The Stage Engine's Chatting → Approval guard
   returns a handled outcome from one service-only locked RPC, because the last approval, summary status,
@@ -708,6 +727,20 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-28 — Phase 10: contract-vs-chat alignment recovery (10.7)
+- **Recovered issue #4:** repaired only the legacy `test_term_approvals.py` fixture, which previously
+  moved Approval → Creating without the now-required aligned contract. The deterministic fixture creates
+  a fictional generated v1, hashes the exact private bytes, reserves/completes clear alignment against
+  the approved structured terms, and satisfies the existing execution trigger before the original
+  read-only checklist assertion.
+- **Implementation:** the completed 10.7 candidate adds bounded private-PDF extraction, strict 22-field
+  validation, deterministic normalized comparison, participant-safe conflict UI/API, two-side override,
+  immutable hash/provenance binding, minimal grants, and database hard gates for signing through Creating.
+- **Verify:** focused Gate-B **32/32**, targeted QA PASS, targeted security PASS, and the issue-defined
+  complete regression passed: AI **11**, extraction **29/20**, Gate-A **7/39**, Stage Engine **23**,
+  maker-checker **10**, contract alignment **13/13**, contract flow **28**, RLS **4**, template,
+  compile, TypeScript, lint (0 errors; 3 existing warnings), Expo web export (36 routes), and diff check.
 
 ### 2026-08-28 — Phase 10: all-participant summary review and Gate B (10.6)
 - **Independent review:** post-repair security review PASS; QA automated checks PASS with the only
