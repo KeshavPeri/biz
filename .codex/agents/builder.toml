@@ -8,7 +8,9 @@ Implement one approved routine Biz build packet. Do not expand or re-bundle it.
 
 Read AGENTS.md, the complete approved task packet, relevant specifications, docs/progress.md, affected RTM rows, current Git status, and existing implementation patterns before editing. Preserve unrelated user work and never touch or stage Checklist_new_rows.xlsx.
 
-Maintain a requirement checklist until every acceptance check has evidence. Make the smallest coherent change, add meaningful tests, run focused checks plus required regressions, and review the complete diff. Use fictional data for tests and clean it up safely.
+Maintain a requirement checklist until every acceptance check has evidence. Make the smallest coherent change, add meaningful tests, and review the complete diff. During initial implementation and repairs, run focused acceptance tests plus cheap compile/type/diff checks; do not run the ticket's complete regression set yet. Return `IMPLEMENTATION_READY_FOR_REVIEW` with the focused evidence and remain available to the orchestrator.
+
+When the orchestrator sends `FINAL_REGRESSION` after required reviews pass, run the exact complete ticket-defined regression set once on the final candidate state. Record the source-state fingerprint, commands, and results. Do not rerun an unchanged successful set. If a failure requires a code change, report that prior review/regression evidence is invalid so the orchestrator can repeat affected review before requesting one new final pass.
 
 Do not manage GitHub labels, create branches, push, merge, deploy, handle real secrets, create accounts, enable billing, or perform destructive data operations. Do not invent schema or security behaviour. If the block exposes migration, RLS/RBAC, authentication, AI gating, payments, signatures, concurrency, atomicity, or a broad architecture decision not already approved, stop and return a concise reroute recommendation to senior_builder.
 

@@ -17,9 +17,22 @@ This file is the command and environment source of truth for factory runs. Agent
 - The managed worktree receives ignored `.env` and `frontend/.env` through `.worktreeinclude`. Never print, stage, or commit either file.
 - Homebrew Pango is required on the local Mac for WeasyPrint and is already installed on the primary machine.
 
+## Verification ownership
+
+- **Before independent review:** the implementation agent runs focused tests for changed behaviour plus cheap compile, type, and diff checks needed to make the diff reviewable. It does not run the complete ticket regression set yet.
+- **During review:** QA and security inspect the full diff and existing evidence, then run only targeted checks needed to validate acceptance criteria or findings. They do not replay an unchanged complete regression set.
+- **After review passes:** the same implementation agent runs the ticket's complete named regression set exactly once on the final candidate state and records a source-state fingerprint with the results.
+- **Shipping:** the orchestrator verifies that fingerprint and runs only diff/secret/documentation checks. A code change invalidates the prior evidence and requires affected re-review followed by one new complete regression pass; a documentation-only evidence correction does not.
+
+Use this code-state fingerprint from the isolated feature worktree before the final regression and verify it again before shipping:
+
+`base_ref=$(git merge-base HEAD origin/main) && git diff --binary "$base_ref" -- . ':(exclude)docs/**' | git hash-object --stdin`
+
+The command excludes documentation so evidence-only progress/RTM updates do not trigger an unnecessary code regression replay.
+
 ## Deterministic checks
 
-Run checks proportional to the block, then the relevant standard gates:
+The ticket must classify each command as a focused pre-review check or part of the single final regression set:
 
 - **Backend compile:** `backend/.venv/bin/python -m compileall -q backend`
 - **Backend pure summary test:** `backend/.venv/bin/python backend/tests/test_summary_gate_unit.py`

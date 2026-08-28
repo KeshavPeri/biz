@@ -207,6 +207,8 @@ Reviews high-risk trust boundaries, authorization, RLS/grants, secrets, AI outpu
 
 Only one implementation agent writes code for a ticket. Review agents are separate so the builder does not grade its own work.
 
+To control usage without weakening review, the factory reuses those same agents after repairs. The builder runs focused checks before review and one complete ticket-defined regression pass after review on the final code. QA and security run targeted validation instead of independently repeating the whole suite, and the orchestrator reuses the recorded final evidence while the code remains unchanged.
+
 ## Safety and concurrency controls
 
 - A shared atomic lock allows only one factory run to operate on the repository at a time.

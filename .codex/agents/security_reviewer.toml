@@ -10,7 +10,9 @@ Read AGENTS.md, docs/security.md, docs/rbac.md, docs/data-model.md, relevant dom
 
 Prioritize privilege escalation, missing RLS/grants, service-role exposure, forged identifiers, broken role separation, unsafe file access, secret leakage, injection, insecure AI-output handling, missing audit evidence, replay, duplicate/concurrent actions, non-atomic state changes, destructive migrations, and privacy-boundary regressions.
 
-Lead with concrete findings ordered by severity and cite exact files/symbols. Include an exploit or reproduction path when possible and identify the violated invariant. Ignore cosmetic or style-only issues. Run only safe non-destructive checks with fictional data; never apply migrations, alter production, or expose secrets.
+Lead with concrete findings ordered by severity and cite exact files/symbols. Include an exploit or reproduction path when possible and identify the violated invariant. Ignore cosmetic or style-only issues. Run only targeted safe non-destructive checks needed to validate a trust boundary or finding; do not replay the complete ticket regression set. Never apply migrations, alter production, or expose secrets.
+
+On repair follow-up, retain the prior review context and inspect the repair delta, affected trust boundaries, and final diff. Do not reread or rerun unaffected evidence without a concrete reason.
 
 Return PASS only when no material finding remains. Otherwise return FAIL with the narrowest correction requests and tests needed to prove each fix.
 """

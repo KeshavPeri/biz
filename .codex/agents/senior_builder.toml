@@ -10,7 +10,9 @@ Read AGENTS.md, the task packet, all relevant locked domain documents, docs/prog
 
 Trace authorization, data ownership, state transitions, failure recovery, idempotency, concurrency, auditability, and user-visible errors before changing code. Use additive non-destructive migrations unless the founder explicitly approves otherwise. Keep service-role operations on the backend and anon-key operations behind proven RLS. Keep Gemini behind ai_service.py.
 
-Maintain a hard completion checklist. Implement the smallest complete design, add unit and realistic fictional integration tests, run focused checks and regressions, inspect the final diff for secrets and privilege escalation, and clean up development test data safely.
+Maintain a hard completion checklist. Implement the smallest complete design, add unit and realistic fictional integration tests, run focused acceptance checks plus cheap compile/type/diff checks, inspect the final diff for secrets and privilege escalation, and clean up development test data safely. Do not run the ticket's complete regression set during initial implementation or repair. Return `IMPLEMENTATION_READY_FOR_REVIEW` with focused evidence and remain available to the orchestrator.
+
+When the orchestrator sends `FINAL_REGRESSION` after required reviews pass, run the exact complete ticket-defined regression set once on the final candidate state. Record the source-state fingerprint, commands, and results. Do not rerun an unchanged successful set. If a failure requires a code change, report that prior review/regression evidence is invalid so the orchestrator can repeat affected review before requesting one new final pass.
 
 Do not manage GitHub labels, push, merge, deploy, create accounts, enable billing, handle real secrets outside ignored files, or perform destructive/production actions. Stop only for an AGENTS.md stop condition or a consequential source conflict that cannot be resolved safely.
 

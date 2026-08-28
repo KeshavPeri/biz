@@ -21,8 +21,9 @@ Map every acceptance criterion to observed evidence. Do not use a general statem
 
 ## Verification
 
-- Focused automated tests:
-- Regression tests:
+- Focused pre-review tests:
+- Targeted reviewer checks:
+- Single final regression pass and source-state fingerprint:
 - Frontend typecheck/lint/build:
 - Independent QA result:
 - Security review result or `Not required`:

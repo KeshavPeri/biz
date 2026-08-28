@@ -36,20 +36,23 @@ Turn at most one reviewed GitHub workplan issue into a tested draft pull request
 2. Reuse a safe existing branch or create `codex/workplan-<issue-number>-<short-slug>` from current `main`.
 3. Record any material reversible decision in the issue and `docs/progress.md` before implementation.
 4. Spawn exactly one implementation agent named by the approved packet: `builder` for routine work or `senior_builder` for high-risk work. Never run concurrent writers in the worktree.
-5. Keep the implementation agent working until every acceptance item has evidence or it returns a genuine AGENTS.md blocker. Renew the factory lock immediately after implementation returns.
+5. Keep the implementation agent available for the whole run. During initial implementation it runs focused acceptance checks and cheap compile/type/diff gates, but not the complete ticket regression set. Renew the factory lock immediately after it returns `IMPLEMENTATION_READY_FOR_REVIEW` or a genuine AGENTS.md blocker.
 
 ## Review and repair
 
-1. Ask `qa` to review the packet, specifications, complete diff, and test evidence.
-2. When the packet requires security review, also ask `security_reviewer` for an independent pass. Read-only reviews may run in parallel.
-3. If either review fails, send one consolidated, concrete correction request to the same implementation agent, then repeat every required review.
-4. Allow at most two implementation revisions. After the second failed revision, preserve the branch, comment with remaining findings and reproduction steps, replace `factory:building` with `factory:blocked`, and stop.
-5. A named device, live-AI, Realtime, or external-service check may be recorded as LIMITED only when the packet says it belongs to founder review and the missing evidence does not invalidate the automated acceptance checks. Never invent evidence.
+1. Ask `qa` to review the packet, specifications, complete diff, and focused test evidence. QA may run targeted checks needed to validate a criterion or finding, but must not replay the complete regression set.
+2. When the packet requires security review, ask `security_reviewer` for an independent pass under the same targeted-check rule. Read-only reviews may run in parallel.
+3. Keep the handles for the implementation, QA, and security agents. Use the longest bounded wait supported by the active environment and do not poll repository status, interrogate an agent, or narrate unchanged waits. Send a follow-up only for completion, a blocker, a review finding, or a materially exceeded expected completion window.
+4. If either review fails, send one consolidated correction request to the same implementation agent. After the repair's focused tests pass, send the affected review back to the same QA and security agents; do not spawn `qa_repair` or `security_repair`. A replacement is allowed only if the original agent failed or is unavailable, and the final report must say so.
+5. Allow at most two implementation revisions. After the second failed revision, preserve the branch, comment with remaining findings and reproduction steps, replace `factory:building` with `factory:blocked`, and stop.
+6. After every required reviewer returns PASS or an allowed LIMITED result, send `FINAL_REGRESSION` to the same implementation agent with the exact ticket-defined regression commands from `factory/PROJECT-CONFIG.md`. Run the complete set once on the final candidate state and record the source-state fingerprint and results. QA, security, and the orchestrator must rely on this evidence while that state remains unchanged.
+7. If final regression fails, use the same implementation agent for the repair. Any code change invalidates the prior reviews and regression evidence: repeat only the affected reviews with the same reviewers, then run one new complete final regression on the new candidate state. Documentation-only evidence corrections do not invalidate code checks.
+8. A named device, live-AI, Realtime, or external-service check may be recorded as LIMITED only when the packet says it belongs to founder review and the missing evidence does not invalidate the automated acceptance checks. Never invent evidence.
 
 ## Reconcile and prepare review
 
 1. After all required reviews pass, invoke `$biz-wrap` to update `docs/progress.md` and only the RTM rows supported by evidence.
-2. Run the required commands from `factory/PROJECT-CONFIG.md`, inspect the final diff, scan intended files for secrets, and renew the factory lock before shipping.
+2. Verify that the recorded final-regression fingerprint still matches the candidate state. Do not replay its successful commands. Run only diff hygiene, secret review, and any documentation-only validation needed for shipping, then renew the factory lock.
 3. Invoke `$biz-ship` to stage only the block files, create a conventional commit, and push the feature branch. Do not push unrelated work.
 4. Open or update a draft pull request using `factory/REVIEW-PACKET.md`. Link the workplan and RTM IDs, exact tests, review outcomes, limitations, risks, and the shortest owner review path. Include exactly one standalone `Closes #<issue-number>` line for the selected workplan issue; never reference an adjacent ticket with a closing keyword.
 5. Re-read the draft PR and verify GitHub reports the selected issue in `closingIssuesReferences`. If not, repair the PR body before continuing. Then replace `factory:building` with `factory:review` and link the draft PR on the issue. The issue remains open until the founder merges the PR, when GitHub closes it automatically.

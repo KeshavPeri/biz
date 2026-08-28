@@ -61,6 +61,8 @@ If code contradicts a locked spec, follow the spec and call out the mismatch. Ke
 - When no open workplan issue remains, the locked factory run may ask `workplan_manager` to author exactly one next safe ticket from current evidence and create it as `factory:planned`. It must never add `factory:ready`; the founder remains the release gate.
 - Delegate implementation to exactly one of `builder` or `senior_builder`, as required by `factory/BUNDLING-RULES.md`. Never run both on the same block.
 - Delegate independent verification to `qa`. Also use `security_reviewer` when the task packet requires it.
+- Reuse the same implementation, QA, and security agents for every repair and re-review in a run. Wait on them without repeated status probes; create a replacement only when the original agent is genuinely unavailable.
+- Before review, the implementation agent runs focused acceptance checks. After all required reviews pass, that same agent owns one complete ticket-defined regression pass on the final candidate state. Reviewers and the orchestrator run only targeted checks and never replay an unchanged successful full regression.
 - Read-only agents may run in parallel when their scopes are independent. Never run concurrent code-writing agents in the same worktree.
 - Allow at most two focused implementation revisions after review failures. Then preserve the branch and mark the issue blocked with evidence.
 - A direct request to run `$biz-workplan-factory` authorizes the feature-branch commit, push, and draft pull request defined by that skill. It never authorizes merging, production deployment, billing, account creation, secret changes, or destructive data operations.

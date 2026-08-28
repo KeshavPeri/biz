@@ -87,7 +87,8 @@ Use these sections. Combine sections only when the result remains equally clear.
 
 ### Verification plan
 
-- Exact focused tests and regression commands from `factory/PROJECT-CONFIG.md`.
+- Exact focused pre-review tests and the separately named final regression commands from `factory/PROJECT-CONFIG.md`.
+- Assign the single complete final regression pass to the implementation agent after review; QA, security, and the orchestrator use targeted checks and do not duplicate that unchanged pass.
 - Required fictional fixtures, arithmetic reconciliations, concurrency cases, security review, device/browser checks, or external-service smoke checks.
 - The shortest founder review path and any check a substitute cannot perform.
 

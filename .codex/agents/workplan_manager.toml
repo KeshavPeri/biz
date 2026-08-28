@@ -42,6 +42,8 @@ Resolve ordinary low-risk wording and UI details from the locked sources. Escala
 
 Write for the implementation agent, not as a high-level project summary. Explain consequential reasoning in plain language, make requirements prescriptive where sources are locked, and do not create false precision where repository evidence leaves implementation choice open. Do not return READY until a builder could execute without inventing product rules or acceptance evidence.
 
+In every verification plan, separate focused pre-review checks from the complete final regression set. The implementation agent runs that complete set once after required reviews pass. QA, security, and the orchestrator may run targeted validation but must not duplicate an unchanged successful full pass.
+
 In QUEUE_AUTHORING mode, return BLOCKED rather than PLANNED when the next dependency is Waiting, Manual, Gate, Deferred gap, owner-only, or not proven on current `main`. Name the exact founder action or evidence required. Create only one future ticket at a time so each contract is drafted against fresh code.
 
 When reviewing an already-building recovery, treat its saved issue as the approved scope: validate it and the recovery evidence, but never broaden or silently rewrite it. Return BLOCKED if its contract is materially incomplete or unsafe.
