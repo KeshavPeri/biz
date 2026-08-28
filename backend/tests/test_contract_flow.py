@@ -8,6 +8,7 @@ maker-checker release, and the stage engine.
 from __future__ import annotations
 
 import io
+import hashlib
 import os
 import re
 import sys
@@ -28,6 +29,8 @@ load_dotenv(BACKEND_DIR.parent / ".env")
 from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
 from services.contract_service import _pdf  # noqa: E402
+from services.contract_alignment import PROMPT_VERSION, SCHEMA_VERSION  # noqa: E402
+from test_contract_alignment_unit import payload as alignment_payload  # noqa: E402
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
@@ -109,17 +112,15 @@ def make_deal(label: str) -> str:
             {"deal_id": deal_id, "profile_id": ids["checker"], "participant_role": "brand_checker"},
         ]
     ).execute()
+    structured_terms = alignment_payload()
+    structured_terms["payment_amount"]["value"]["amount"] = 42000
+    structured_terms["milestone_schedule"]["value"][0]["amount"]["amount"] = 12000
+    structured_terms["creative_guidance"]["value"]["text"] = "Show <script>alert('x')</script> safely"
     admin.table("ai_summaries").insert(
         {
             "deal_id": deal_id,
             "raw_output": {"source": "fictional integration test"},
-            "structured_terms": {
-                "payment_amount": {"status": "found", "value": 42000},
-                "deliverables": {"status": "found", "value": ["One Reel", "Three Stories"]},
-                "creative_guidance": {"status": "found", "value": "Show <script>alert('x')</script> safely"},
-                "exclusivity": {"status": "found", "value": False},
-                "revision_rounds": {"status": "found", "value": 2},
-            },
+            "structured_terms": structured_terms,
             "status": "approved",
         }
     ).execute()
@@ -128,6 +129,40 @@ def make_deal(label: str) -> str:
 
 def contract_for(deal_id: str) -> dict[str, Any]:
     return admin.table("contracts").select("*").eq("deal_id", deal_id).single().execute().data
+
+
+def mark_contract_aligned(deal_id: str) -> None:
+    contract = contract_for(deal_id)
+    summary = admin.table("ai_summaries").select("id,structured_terms").eq(
+        "id", contract["generated_from_summary_id"]
+    ).single().execute().data
+    source = admin.storage.from_("contracts").download(contract["storage_path"])
+    reserved = admin.rpc(
+        "reserve_contract_alignment",
+        {
+            "p_deal_id": deal_id,
+            "p_contract_id": contract["id"],
+            "p_summary_id": summary["id"],
+            "p_source_sha256": hashlib.sha256(source).hexdigest(),
+            "p_actor_id": ids["creator"],
+            "p_ip_address": IP,
+        },
+    ).execute().data
+    if reserved["outcome"] == "reserved":
+        admin.rpc(
+            "complete_contract_alignment",
+            {
+                "p_attempt_token": reserved["attempt_token"],
+                "p_raw_output": summary["structured_terms"],
+                "p_structured_terms": summary["structured_terms"],
+                "p_conflicts": [],
+                "p_schema_version": SCHEMA_VERSION,
+                "p_prompt_version": PROMPT_VERSION,
+                "p_provider": "deterministic-regression-fixture",
+                "p_model": "deterministic-regression-fixture",
+                "p_ip_address": IP,
+            },
+        ).execute()
 
 
 def upload_wet_pdf(deal_id: str, contract_id: str, *, valid: bool = True) -> str:
@@ -255,6 +290,7 @@ def main() -> None:
         contracts = admin.table("contracts").select("id,status,storage_path").eq("deal_id", deal_a).execute().data
         generation_audits = admin.table("audit_log").select("id").eq("entity_id", deal_a).eq("action", "contract_generated").execute().data
         check("exactly one version-1 contract and generation audit", len(contracts) == 1 and len(generation_audits) == 1)
+        mark_contract_aligned(deal_a)
         draft = admin.storage.from_("contracts").download(contracts[0]["storage_path"])
         draft_text = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(draft)).pages)
         check("draft is a valid escaped PDF from the approved summary", draft.startswith(b"%PDF") and "42,000" in draft_text and "<script>" in draft_text and "alert" in draft_text)
@@ -304,6 +340,7 @@ def main() -> None:
         # Print bypass: fake uploaded bytes rejected, real private PDF accepted and appended.
         deal_b = make_deal("Wet-sign fictional campaign")
         check("second contract generates", call("POST", f"/deals/{deal_b}/contract", "creator", {}).status_code == 200)
+        mark_contract_aligned(deal_b)
         contract_b = contract_for(deal_b)
         invalid_path = upload_wet_pdf(deal_b, contract_b["id"], valid=False)
         invalid_sign = call("POST", f"/deals/{deal_b}/contract/sign", "creator", {"mode": "print_bypass", "bypass_reason": "Signed while travelling", "physical_doc_path": invalid_path})
@@ -347,6 +384,7 @@ def main() -> None:
         admin.table("maker_checker_config").update({"requires_checker": True}).eq("brand_id", brand_id).eq("action_type", "contract_signing").execute()
         deal_c = make_deal("Maker-checker fictional campaign")
         call("POST", f"/deals/{deal_c}/contract", "creator", {})
+        mark_contract_aligned(deal_c)
         call("POST", f"/deals/{deal_c}/contract/sign", "creator", {"mode": "drawn", "svg": VALID_SVG})
         held = call("POST", f"/deals/{deal_c}/contract/sign", "maker", {"mode": "stored"})
         held_state = held.json()
@@ -375,8 +413,8 @@ def main() -> None:
         audits = admin.table("audit_log").select("action,metadata,ip_address").in_("entity_id", [deal_a, deal_b, deal_c]).execute().data
         actions = [row["action"] for row in audits]
         check("generation, signing, execution, download and IP audit records exist", all(action in actions for action in ["contract_generated", "contract_signature_applied", "contract_executed", "contract_download_link_issued"]) and all(row["ip_address"] for row in audits))
-        extracted = admin.table("extracted_terms").select("id").in_("deal_id", [deal_a, deal_b, deal_c]).execute().data
-        check("Phase 10 seam remains honest (no fabricated extracted_terms)", extracted == [])
+        extracted = admin.table("extracted_terms").select("id,conflicts_detected").in_("deal_id", [deal_a, deal_b, deal_c]).execute().data
+        check("contract flow uses one clear immutable alignment per generated v1", len(extracted) == 3 and all(row["conflicts_detected"] == [] for row in extracted))
     finally:
         cleanup()
 

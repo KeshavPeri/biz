@@ -63,6 +63,7 @@ from services.summary_gate import (
     request_summary,
 )
 from services.contract_service import contract_status, generate_contract, sign_contract, signed_url
+from services.contract_alignment import confirm_contract_alignment, start_contract_alignment
 from services.term_approvals import get_terms_review
 
 router = APIRouter(prefix="/deals", tags=["deals"])
@@ -91,6 +92,12 @@ class SummaryDecisionBody(BaseModel):
     summary_id: UUID
     decision: Literal['approved', 'issue_raised']
     comment: str | None = None
+
+
+class AlignmentOverrideBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    extraction_id: UUID
 
 
 def _client_ip(request: Request) -> str:
@@ -236,6 +243,31 @@ def generate_current_contract(deal_id: str, request: Request, user_id: str = Dep
 def get_contract_status(deal_id: str, user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
     try:
         return contract_status(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post("/{deal_id}/contract/alignment")
+async def run_contract_alignment(
+    deal_id: str,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return await start_contract_alignment(deal_id, user_id, _client_ip(request))
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post("/{deal_id}/contract/alignment/override")
+def override_contract_alignment(
+    deal_id: str,
+    body: AlignmentOverrideBody,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return confirm_contract_alignment(deal_id, str(body.extraction_id), user_id, _client_ip(request))
     except DealError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 

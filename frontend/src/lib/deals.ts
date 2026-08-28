@@ -267,6 +267,26 @@ export type ContractApprovalState = {
   can_decide: boolean;
 };
 
+export type ContractAlignmentConflict = {
+  field_key: string;
+  label: string;
+  reason: 'approved_summary_unresolved' | 'contract_field_unresolved' | 'value_mismatch';
+  approved_value: unknown;
+  contract_value: unknown;
+  contract_status: ChecklistStatus;
+};
+
+export type ContractAlignmentState = {
+  status: 'not_started' | 'processing' | 'failed' | 'clear' | 'conflict' | 'overridden';
+  signing_enabled: boolean;
+  failure_message: string | null;
+  extraction_id: string | null;
+  conflicts: ContractAlignmentConflict[];
+  creator_confirmation: { confirmed: boolean; actor_id: string | null; confirmed_at: string | null };
+  brand_confirmation: { confirmed: boolean; actor_id: string | null; confirmed_at: string | null };
+  can_override: boolean;
+};
+
 export type ContractState = {
   contract: {
     id: string;
@@ -277,6 +297,7 @@ export type ContractState = {
   signatures: ContractSignatureState[];
   required_signatures: { creator: 'pending' | 'held' | 'signed'; brand: 'pending' | 'held' | 'signed' };
   maker_checker: ContractApprovalState | null;
+  alignment: ContractAlignmentState;
 };
 
 export async function fetchContract(dealId: string): Promise<{ ok: true; data: ContractState } | { ok: false; message: string }> {
@@ -287,6 +308,22 @@ export async function fetchContract(dealId: string): Promise<{ ok: true; data: C
 }
 
 export const generateContract = (dealId: string) => summaryPost(dealId, 'contract');
+
+export const runContractAlignment = (dealId: string) => summaryPost(dealId, 'contract/alignment');
+
+export async function overrideContractAlignment(
+  dealId: string,
+  extractionId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<ContractState>(
+    `/deals/${dealId}/contract/alignment/override`,
+    { extraction_id: extractionId },
+    token,
+  );
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
+}
 
 export type ContractSignPayload = {
   mode: 'stored' | 'drawn' | 'print_bypass';

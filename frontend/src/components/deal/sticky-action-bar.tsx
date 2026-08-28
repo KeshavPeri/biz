@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { ContractSignSheet } from '@/components/deal/contract-sign-sheet';
+import { ContractAlignmentCard } from '@/components/deal/contract-alignment-card';
 import { TermsReviewCard } from '@/components/deal/terms-review-card';
 
 import {
@@ -17,9 +18,11 @@ import {
   fetchTermsReview,
   generateContract,
   getContractDownload,
+  overrideContractAlignment,
   proposeChecklistOverride,
   requestDealTransition,
   requestTermsSummary,
+  runContractAlignment,
   signContract,
   subscribeToTermApprovals,
   type DealThread,
@@ -66,6 +69,7 @@ export function StickyActionBar({
   const [contract, setContract] = useState<ContractState | null>(null);
   const [contractLoading, setContractLoading] = useState(false);
   const [signing, setSigning] = useState(false);
+  const alignmentStartRef = useRef<string | null>(null);
 
   const loadSummary = useCallback(async () => {
     if (thread.stage !== 'chatting') return;
@@ -108,6 +112,19 @@ export function StickyActionBar({
     if (thread.stage === 'approval') void loadContract();
     else setContract(null);
   }, [loadContract, thread.stage]);
+
+  // Generation is followed by one authoritative alignment start. The backend
+  // reservation makes concurrent participants/idempotent refreshes safe.
+  useEffect(() => {
+    const contractId = contract?.contract?.id;
+    if (!contractId || contract.alignment.status !== 'not_started' || alignmentStartRef.current === contractId) return;
+    alignmentStartRef.current = contractId;
+    void (async () => {
+      const result = await runContractAlignment(thread.dealId);
+      if (!result.ok) setError(result.message);
+      await loadContract();
+    })();
+  }, [contract, loadContract, thread.dealId]);
 
   // Focus is the authoritative fallback when Realtime is disconnected or the
   // final event raced navigation. It also keeps the existing contract state fresh.
@@ -323,6 +340,11 @@ export function StickyActionBar({
                 onDownload={download}
                 onSign={() => setSigning(true)}
                 onDecision={(requestId, decision) => runContract(() => decideContractSigning(requestId, decision))}
+                onAlignmentRetry={() => runContract(() => runContractAlignment(thread.dealId))}
+                onAlignmentOverride={() => {
+                  const extractionId = contract.alignment.extraction_id;
+                  if (extractionId) void runContract(() => overrideContractAlignment(thread.dealId, extractionId));
+                }}
               />
             </Actions>
           </View>
@@ -401,6 +423,8 @@ function ContractCard({
   onDownload,
   onSign,
   onDecision,
+  onAlignmentRetry,
+  onAlignmentOverride,
 }: {
   state: ContractState;
   myRole: DealThread['myRole'];
@@ -409,6 +433,8 @@ function ContractCard({
   onDownload: () => void;
   onSign: () => void;
   onDecision: (requestId: string, decision: 'approve' | 'reject') => void;
+  onAlignmentRetry: () => void;
+  onAlignmentOverride: () => void;
 }) {
   const creator = state.required_signatures.creator;
   const brand = state.required_signatures.brand;
@@ -416,7 +442,7 @@ function ContractCard({
   const isBrand = myRole === 'brand_admin' || myRole === 'brand_maker';
   const isCreator = myRole === 'creator';
   const mySideSigned = (isCreator && creator === 'signed') || (isBrand && brand === 'signed');
-  const maySign = state.contract?.status === 'awaiting_signatures' && (isCreator || isBrand) && !mySideSigned && !(isBrand && brand === 'held');
+  const maySign = state.contract?.status === 'awaiting_signatures' && state.alignment.signing_enabled && (isCreator || isBrand) && !mySideSigned && !(isBrand && brand === 'held');
 
   return (
     <View className="gap-2.5 rounded-2xl border border-hairline bg-surface-card p-3">
@@ -435,6 +461,13 @@ function ContractCard({
         <View className="my-2 h-px bg-hairline" />
         <SignerRow label="Brand" status={brand} signature={state.signatures.find((item) => item.side === 'brand')} />
       </View>
+
+      <ContractAlignmentCard
+        alignment={state.alignment}
+        acting={acting}
+        onRetry={onAlignmentRetry}
+        onOverride={onAlignmentOverride}
+      />
 
       {approval ? (
         <View className={`rounded-xl px-3 py-2 ${approval.status === 'rejected' ? 'bg-status-critical-tint' : approval.status === 'approved' ? 'bg-status-good-tint' : 'bg-cane-1'}`}>
@@ -456,6 +489,9 @@ function ContractCard({
       ) : null}
 
       {maySign ? <PrimaryButton label="Review and sign" onPress={onSign} disabled={acting} /> : null}
+      {!state.alignment.signing_enabled && state.alignment.status !== 'processing' && state.alignment.status !== 'not_started' ? (
+        <Text className="text-center font-geist text-[11px] text-ink-2">Review and signing stay disabled until alignment is clear or overridden.</Text>
+      ) : null}
       {mySideSigned ? <Text className="text-center font-geist-medium text-[12px] text-status-good-label">Your side is signed.</Text> : null}
       {approval?.status === 'rejected' && approval.maker_id === userId ? (
         <Text className="text-center font-geist text-[11px] text-ink-2">Choose Review and sign to correct and retry.</Text>

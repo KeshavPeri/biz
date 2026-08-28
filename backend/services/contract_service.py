@@ -1,11 +1,11 @@
-"""Approval-stage contract generation, signing, and execution (Phase 9.11/9.12).
+"""Approval-stage contract generation, alignment, signing, and execution.
 
 The service-role client bypasses RLS, so every public entry point verifies deal
 participation and RBAC. Migration 022 owns transaction/concurrency boundaries;
 deterministic private Storage paths make file steps safe to retry.
 
-Phase 10 intentionally remains a named no-op seam. This module never fabricates
-``extracted_terms`` or claims contract-vs-chat parsing has run.
+Workplan 10-D replaces the former no-op with an immutable generated-v1 alignment
+gate owned by ``services.contract_alignment`` and migration 027.
 """
 
 from __future__ import annotations
@@ -112,9 +112,11 @@ def _pdf(html: str) -> bytes:
         raise DealError(500, "The contract PDF could not be generated. Please try again.") from exc
 
 
-def phase10_alignment_check(*_args: Any) -> None:
-    """Honest Phase-10 seam: extraction/conflict comparison is not implemented here."""
-    return None
+def phase10_alignment_check(client: Any, deal_id: str, contract_id: str) -> None:
+    """Fail closed unless the exact v1 result is clear or overridden."""
+    from services.contract_alignment import assert_alignment_ready
+
+    assert_alignment_ready(client, deal_id, contract_id)
 
 
 def _display_value(value: Any) -> str:
@@ -193,6 +195,8 @@ def _rpc_data(client: Any, name: str, params: dict[str, Any]) -> Any:
 
 def _friendly_database_error(exc: Exception, *, duplicate_message: str) -> DealError:
     text = str(exc).lower()
+    if "contract_alignment_required" in text:
+        return DealError(409, "Contract signing is locked until the alignment check is clear or both sides accept every conflict.")
     if "unique" in text or "duplicate" in text or "23505" in text:
         return DealError(409, duplicate_message)
     if "not_awaiting" in text or "required_signatures_missing" in text:
@@ -218,11 +222,12 @@ def generate_contract(deal_id: str, user_id: str, ip_address: str) -> dict[str, 
             _upload_pdf(client, path, pdf)
             _rpc_data(
                 client,
-                "complete_contract_generation",
+                "complete_contract_generation_v1",
                 {
                     "p_contract_id": contract["id"],
                     "p_actor_id": user_id,
                     "p_storage_path": path,
+                    "p_source_sha256": hashlib.sha256(pdf).hexdigest(),
                     "p_ip_address": ip_address,
                 },
             )
@@ -265,13 +270,23 @@ def _latest_signing_request(client: Any, deal_id: str, contract_id: str) -> dict
     return next((row for row in rows if (row.get("action_payload") or {}).get("contract_id") == contract_id), None)
 
 
-def _public_state(client: Any, deal: dict[str, Any], user_id: str, contract: dict[str, Any] | None, signatures: list[dict[str, Any]]) -> dict[str, Any]:
+def _public_state(
+    client: Any,
+    deal: dict[str, Any],
+    user_id: str,
+    role: str,
+    contract: dict[str, Any] | None,
+    signatures: list[dict[str, Any]],
+) -> dict[str, Any]:
+    from services.contract_alignment import alignment_state
+
     if not contract:
         return {
             "contract": None,
             "signatures": [],
             "required_signatures": {"creator": "pending", "brand": "pending"},
             "maker_checker": None,
+            "alignment": alignment_state(client, deal, role, None),
         }
     ids = {row["signer_id"] for row in signatures}
     request = _latest_signing_request(client, deal["id"], contract["id"])
@@ -314,18 +329,19 @@ def _public_state(client: Any, deal: dict[str, Any], user_id: str, contract: dic
             "brand": "signed" if brand_signed else ("held" if public_request and public_request["status"] == "pending" else "pending"),
         },
         "maker_checker": public_request,
+        "alignment": alignment_state(client, deal, role, contract),
     }
 
 
 @_serialized
 def contract_status(deal_id: str, user_id: str, *, reconcile_ip: str = "system-retry") -> dict[str, Any]:
     client = get_supabase()
-    deal, _ = _deal(client, deal_id, user_id)
+    deal, role = _deal(client, deal_id, user_id)
     contract, signatures = _contract_rows(client, deal_id)
     if contract and contract["status"] in {"awaiting_signatures", "executed"}:
         _finalize_if_ready(client, deal, contract, signatures, user_id, reconcile_ip)
         contract, signatures = _contract_rows(client, deal_id)
-    return _public_state(client, deal, user_id, contract, signatures)
+    return _public_state(client, deal, user_id, role, contract, signatures)
 
 
 @_serialized
@@ -499,6 +515,7 @@ def sign_contract(
         raise DealError(409, "The creator side has already signed this contract.")
     if role in {"brand_admin", "brand_maker"} and any(row.get("on_behalf_of_brand_id") for row in signatures):
         raise DealError(409, "The brand side has already signed this contract.")
+    phase10_alignment_check(client, deal_id, contract["id"])
     payload = _signature_payload(client, deal_id, contract["id"], user_id, mode, ip_address, svg, bypass_reason, physical_doc_path)
     if role in {"brand_admin", "brand_maker"}:
         try:
@@ -634,7 +651,7 @@ def _finalize_if_ready(
 ) -> None:
     if not _signatures_ready(deal, signatures):
         return
-    phase10_alignment_check(contract, signatures)
+    phase10_alignment_check(client, deal["id"], contract["id"])
     if contract["status"] == "awaiting_signatures":
         try:
             summary = _approved_summary(client, deal["id"], contract["generated_from_summary_id"])
