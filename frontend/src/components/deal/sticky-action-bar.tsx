@@ -4,9 +4,11 @@ import { useFocusEffect } from 'expo-router';
 import { ContractSignSheet } from '@/components/deal/contract-sign-sheet';
 import { ContractAlignmentCard } from '@/components/deal/contract-alignment-card';
 import { TermsReviewCard } from '@/components/deal/terms-review-card';
+import { CreativeBriefCard } from '@/components/deal/creative-brief-card';
 
 import {
   acceptDeal,
+  acknowledgeCreativeBrief,
   confirmChecklistOverride,
   confirmTermsSummaryRequest,
   declineDeal,
@@ -14,9 +16,11 @@ import {
   deferTermsSummaryRequest,
   decideTermsSummary,
   fetchContract,
+  fetchCreativeBriefs,
   fetchSummaryChecklist,
   fetchTermsReview,
   generateContract,
+  createCreativeBriefVersion,
   getContractDownload,
   overrideContractAlignment,
   proposeChecklistOverride,
@@ -27,6 +31,8 @@ import {
   subscribeToTermApprovals,
   type DealThread,
   type ContractState,
+  type CreativeBriefContent,
+  type CreativeBriefState,
   type SummaryChecklist,
   type TermsReviewState,
   type TransitionAction,
@@ -68,6 +74,9 @@ export function StickyActionBar({
   const [termsError, setTermsError] = useState<string | null>(null);
   const [contract, setContract] = useState<ContractState | null>(null);
   const [contractLoading, setContractLoading] = useState(false);
+  const [briefs, setBriefs] = useState<CreativeBriefState | null>(null);
+  const [briefsLoading, setBriefsLoading] = useState(false);
+  const [briefsError, setBriefsError] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
   const alignmentStartRef = useRef<string | null>(null);
 
@@ -113,6 +122,24 @@ export function StickyActionBar({
     else setContract(null);
   }, [loadContract, thread.stage]);
 
+  const loadBriefs = useCallback(async (showLoading = false) => {
+    if (thread.stage !== 'creating') return;
+    if (showLoading) setBriefsLoading(true);
+    const result = await fetchCreativeBriefs(thread.dealId);
+    if (result.ok) {
+      setBriefs(result.data);
+      setBriefsError(null);
+    } else {
+      setBriefsError(result.message);
+    }
+    setBriefsLoading(false);
+  }, [thread.dealId, thread.stage]);
+
+  useEffect(() => {
+    if (thread.stage === 'creating') void loadBriefs(true);
+    else setBriefs(null);
+  }, [loadBriefs, thread.stage]);
+
   // Generation is followed by one authoritative alignment start. The backend
   // reservation makes concurrent participants/idempotent refreshes safe.
   useEffect(() => {
@@ -133,7 +160,8 @@ export function StickyActionBar({
       void loadTerms();
       if (thread.stage === 'chatting') void loadSummary();
       if (thread.stage === 'approval') void loadContract();
-    }, [loadContract, loadSummary, loadTerms, thread.stage]),
+      if (thread.stage === 'creating') void loadBriefs();
+    }, [loadBriefs, loadContract, loadSummary, loadTerms, thread.stage]),
   );
 
   useEffect(() => {
@@ -255,6 +283,32 @@ export function StickyActionBar({
     setActing(false);
   }, [acting, thread.dealId]);
 
+  const createBriefVersion = useCallback(async (expectedVersion: number, content: CreativeBriefContent) => {
+    if (acting) return;
+    setActing(true);
+    setBriefsError(null);
+    const result = await createCreativeBriefVersion(thread.dealId, expectedVersion, content);
+    if (result.ok) setBriefs(result.data);
+    else {
+      setBriefsError(result.message);
+      await loadBriefs();
+    }
+    setActing(false);
+  }, [acting, loadBriefs, thread.dealId]);
+
+  const acknowledgeBrief = useCallback(async (briefId: string) => {
+    if (acting) return;
+    setActing(true);
+    setBriefsError(null);
+    const result = await acknowledgeCreativeBrief(thread.dealId, briefId);
+    if (result.ok) setBriefs(result.data);
+    else {
+      setBriefsError(result.message);
+      await loadBriefs();
+    }
+    setActing(false);
+  }, [acting, loadBriefs, thread.dealId]);
+
   // ── Role / relationship derivations (rbac.md + deal-engine.md) ──
   const { stage, myRole, isDisputed } = thread;
   const isInitiator = thread.createdBy === userId;
@@ -351,19 +405,27 @@ export function StickyActionBar({
         );
 
       case 'creating':
-        if (isCreator) {
-          return (
-            <View className="gap-2.5">
-              {termsReview(true)}
-              <Actions label="Creating — posting gate" error={error}>
-                <ButtonRow>
-                  <PrimaryButton label="Submit live link" onPress={() => onTransition('submit-live')} disabled={acting} />
-                </ButtonRow>
+        return (
+          <View className="gap-2.5">
+            {termsReview(true)}
+            {briefs ? (
+              <CreativeBriefCard
+                state={briefs}
+                acting={acting}
+                error={briefsError}
+                onCreateVersion={(expectedVersion, content) => void createBriefVersion(expectedVersion, content)}
+                onAcknowledge={(briefId) => void acknowledgeBrief(briefId)}
+              />
+            ) : briefsLoading ? (
+              <Waiting text="Loading the campaign brief…" />
+            ) : (
+              <Actions label="Campaign brief" error={briefsError}>
+                <Text className="font-geist text-[12px] text-ink-3">Brief status is temporarily unavailable.</Text>
               </Actions>
-            </View>
-          );
-        }
-        return <View className="gap-2.5">{termsReview(true)}<Waiting text="Reviewing the creator’s work." /></View>;
+            )}
+            <Waiting text={isCreator ? 'Content submission will open in the next Creating update.' : 'Content review will open in the next Creating update.'} />
+          </View>
+        );
 
       case 'posted':
         if (isBrandActor) {

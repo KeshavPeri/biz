@@ -49,7 +49,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from core.auth import get_current_user_id
 from services.deals import DealError, accept_deal, connect_deal, decline_deal
@@ -65,6 +65,7 @@ from services.summary_gate import (
 from services.contract_service import contract_status, generate_contract, sign_contract, signed_url
 from services.contract_alignment import confirm_contract_alignment, start_contract_alignment
 from services.term_approvals import get_terms_review
+from services.brief_service import acknowledge_brief, create_brief, get_briefs
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
@@ -98,6 +99,52 @@ class AlignmentOverrideBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     extraction_id: UUID
+
+
+class BriefContentBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    objective: str = Field(min_length=1, max_length=500)
+    guidelines: str = Field(default='', max_length=2000)
+    dos: list[str] = Field(default_factory=list, max_length=20)
+    donts: list[str] = Field(default_factory=list, max_length=20)
+    hashtags: list[str] = Field(default_factory=list, max_length=20)
+    caption_guidance: str = Field(default='', max_length=2000)
+
+    @field_validator('objective', 'guidelines', 'caption_guidance')
+    @classmethod
+    def strip_text(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator('dos', 'donts')
+    @classmethod
+    def bounded_list_items(cls, value: list[str]) -> list[str]:
+        cleaned = [item.strip() for item in value]
+        if any(not item or len(item) > 200 for item in cleaned):
+            raise ValueError('Each item must be between 1 and 200 characters.')
+        return cleaned
+
+    @field_validator('hashtags')
+    @classmethod
+    def bounded_hashtags(cls, value: list[str]) -> list[str]:
+        cleaned = [item.strip() for item in value]
+        if any(not item or len(item) > 100 for item in cleaned):
+            raise ValueError('Each hashtag must be between 1 and 100 characters.')
+        return cleaned
+
+    @field_validator('objective')
+    @classmethod
+    def objective_not_blank(cls, value: str) -> str:
+        if not value:
+            raise ValueError('Objective must not be blank.')
+        return value
+
+
+class BriefCreateBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    expected_version: int = Field(ge=0)
+    content: BriefContentBody
 
 
 def _client_ip(request: Request) -> str:
@@ -186,6 +233,46 @@ def approve_summary(
 def terms_summary(deal_id: str, user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
     try:
         return get_terms_review(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get('/{deal_id}/briefs')
+def creative_briefs(deal_id: str, user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
+    try:
+        return get_briefs(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post('/{deal_id}/briefs')
+def share_creative_brief(
+    deal_id: str,
+    body: BriefCreateBody,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return create_brief(
+            deal_id,
+            user_id,
+            body.expected_version,
+            body.content.model_dump(mode='json'),
+            _client_ip(request),
+        )
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post('/{deal_id}/briefs/{brief_id}/acknowledge')
+def acknowledge_latest_creative_brief(
+    deal_id: str,
+    brief_id: UUID,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return acknowledge_brief(deal_id, str(brief_id), user_id, _client_ip(request))
     except DealError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
