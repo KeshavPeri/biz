@@ -245,6 +245,80 @@ export async function decideTermsSummary(
     : { ok: false, message: result.message };
 }
 
+/* ── Versioned creative brief (workplan 9.13-A) ── */
+
+export type CreativeBriefContent = {
+  objective: string;
+  guidelines: string;
+  dos: string[];
+  donts: string[];
+  hashtags: string[];
+  caption_guidance: string;
+};
+
+export type CreativeBriefVersion = {
+  id: string;
+  version: number;
+  content: CreativeBriefContent;
+  created_by: string | null;
+  created_by_display_name: string;
+  created_at: string;
+  acknowledged_by_creator: boolean;
+  acknowledged_by: string | null;
+  acknowledged_by_display_name: string | null;
+  acknowledged_at: string | null;
+};
+
+export type CreativeBriefState = {
+  deal_id: string;
+  stage: DealStage;
+  latest: CreativeBriefVersion | null;
+  history: CreativeBriefVersion[];
+  history_order: 'newest_first';
+  allowed_actions: {
+    can_create_version: boolean;
+    can_acknowledge_latest: boolean;
+  };
+};
+
+export async function fetchCreativeBriefs(
+  dealId: string,
+): Promise<{ ok: true; data: CreativeBriefState } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await getJson<CreativeBriefState>(`/deals/${dealId}/briefs`, token);
+  return result.ok ? { ok: true, data: result.data } : { ok: false, message: result.message };
+}
+
+export async function createCreativeBriefVersion(
+  dealId: string,
+  expectedVersion: number,
+  content: CreativeBriefContent,
+): Promise<{ ok: true; data: CreativeBriefState } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<CreativeBriefState>(
+    `/deals/${dealId}/briefs`,
+    { expected_version: expectedVersion, content },
+    token,
+  );
+  return result.ok ? { ok: true, data: result.data } : { ok: false, message: result.message };
+}
+
+export async function acknowledgeCreativeBrief(
+  dealId: string,
+  briefId: string,
+): Promise<{ ok: true; data: CreativeBriefState } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<CreativeBriefState>(
+    `/deals/${dealId}/briefs/${briefId}/acknowledge`,
+    {},
+    token,
+  );
+  return result.ok ? { ok: true, data: result.data } : { ok: false, message: result.message };
+}
+
 export type ContractSignatureState = {
   signer_id: string;
   signer_name: string;

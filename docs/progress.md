@@ -16,14 +16,38 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 10 — AI Contract Parser (Bucket 4) is complete. PRs #5–#8 are merged;
+- **Current phase:** Phase 9 — workplan 9.13-A creative briefs is built and independently verified; the
+  founder's draft-PR review and short fictional role-switch UI walkthrough remain. Phase 10
+  remains complete; PRs #5–#8 are merged;
   B4-001–B4-005 and the linked B3-020/B3-021/B3-026 slices are Built and reconciled. The founder
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Return point:** resume Phase 9 at **9.13 — Creating: brief, content and revisions**. Its Phase 10
-  dependency is now satisfied, and the factory may prepare the next detailed planned ticket from the
-  current `main`. B3-021 is already Built and must not be duplicated in that packet.
+- **Return point:** continue Phase 9 at the next separately reviewed **9.13 Creating slice**, starting
+  with the B3-032 deliverable foundation before per-deliverable submission/revision behavior. B3-029 is
+  Built in 9.13-A; B3-028 remains In progress and B3-030–B3-032 remain Not started.
+  - **9.13-A BUILT (B3-029 creative briefs):** migration `028_creative_briefs.sql` removes authenticated
+    participant and direct service-role table writes, retains least-privilege participant/service reads,
+    adds nullable historical-compatible author/
+    acknowledgment provenance, unique positive per-deal versions, structured-content safeguards and an
+    immutable-update plus direct-delete guards. Parent deal deletion still performs its legitimate FK
+    cascade. Backend-only row-locked RPCs serialize version creation and latest-only, one-way creator
+    acknowledgment with metadata-only audit rows; authorization precedes stage errors. FastAPI exposes participant-safe
+    latest/newest-first history plus role/stage-derived actions; strict bounded bodies reject extras.
+  - **Creating UI:** all current participants see the latest brief, author, version, acknowledgment state
+    and immutable history. Brand admin/maker can share v1 or prefill a new version; the named creator can
+    acknowledge only the unacknowledged latest version; checker stays read-only. Action and focus refetch
+    are authoritative. The approved terms-review card remains visible, and the premature live-link action
+    is replaced by an honest notice that content submission/review belongs to the next Creating slice.
+  - **9.13-A verification:** development migration 028 applied after confirming live migration-027
+    markers and zero historical/duplicate brief rows. `TEST-BRIEF-FLOW` covers 28 JWT/API/database checks,
+    including exact content/provenance, concurrency, stale conflicts, role/stage denials, direct-client
+    write denial, immutable prior versions, idempotent acknowledgment, participant-safe reads, audit
+    privacy and safe fictional cleanup. Independent QA and security both passed after two focused repairs;
+    the complete final regression passed unchanged: brief flow **28/28**, Stage Engine **23/23**, summary
+    gate **39/39**, term approvals **32/32**, maker-checker **10/10**, contract flow **28/28**, RLS
+    **4/4**, backend compile, strict TypeScript, lint (0 errors; 3 pre-existing warnings), Expo web export
+    (36 routes), and diff hygiene.
   - **10.7 BUILT (contract alignment):** migration `027_contract_alignment.sql` stores one immutable,
     service-role-only alignment attempt and extracted result for the exact generated v1 PDF, bound to its
     approved summary, source hash, schema/prompt provenance and contract version. The backend extracts the
@@ -118,7 +142,7 @@ up exactly where the last one left off, with zero context lost.
     payloads are not participant-readable; direct client signing/request writes are revoked.
   - **Phase-10 alignment:** `phase10_alignment_check` now asserts the immutable clear-or-both-overridden
     alignment result for the exact generated v1 contract. No placeholder `extracted_terms` rows are used.
-  - **Schema:** migrations 019–027 are applied and verified on development. 020 creates the private
+  - **Schema:** migrations 019–028 are applied and verified on development. 020 creates the private
     bucket + contract version uniqueness; 021 adds held-action linkage; 022–024 add atomic RPCs,
     signer/side uniqueness, owner-only wet upload, service-only held payloads, safe column grants,
     and backend-only write grants. Public schema is now 44 tables.
@@ -381,8 +405,8 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **9.13 — Creating:** brief, content submission/approval, revision loop, and the remaining B3-028
-   content slice plus B3-029–B3-032. Do not duplicate already-Built B3-021.
+1. **9.13 — Creating:** add the B3-032 deliverable foundation, then content submission/approval,
+   revision handling and the remaining B3-028 content slice. B3-029 and B3-021 are already Built.
 2. **9.14 — Posted:** live-URL hard gate after 9.13 is merged.
 3. **9.15 — Payment:** manual payment tracking and states after 9.14 is merged.
 
@@ -725,6 +749,22 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-29 — Phase 9: versioned creative briefs (9.13-A)
+- **Trust boundary:** removed direct participant and service-role brief writes and added one backend-only
+  atomic RPC path for immutable next-version creation plus latest-only, one-way creator acknowledgment.
+  Direct DELETE/TRUNCATE is denied while the existing deal FK cascade remains safe. Authorization is
+  evaluated before stage errors; deal locks, expected versions and a unique index make concurrent
+  same-version submissions produce one winner and one 409.
+- **Product path:** added strict participant-safe brief APIs and a Creating card/editor with newest-first
+  history, author/version/ack state, brand admin/maker share controls, creator acknowledgment, checker
+  read-only behavior, and focus/action refetch. Terms review remains; premature live-link UI is gone.
+- **Verify:** migration 028 applied to development after compatibility checks; QA and security passed after
+  two focused security repairs. The final unchanged candidate passed brief flow **28/28**, Stage Engine
+  **23/23**, summary gate **39/39**, term approvals **32/32**, maker-checker **10/10**, contract flow
+  **28/28**, RLS **4/4**, compile, strict TypeScript, lint, Expo web export and diff hygiene. The founder
+  still performs the short fictional role-switch UI walkthrough before merge; no instantaneous two-device
+  refresh is claimed.
 
 ### 2026-08-29 — Phase 10 close-out and factory refinement
 - **Closed Phase 10:** confirmed PRs #5–#8 merged, reconciled B4-001–B4-005 and linked Phase 9 Gate-B/
