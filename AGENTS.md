@@ -57,22 +57,25 @@ If code contradicts a locked spec, follow the spec and call out the mismatch. Ke
 - GitHub workflow labels are `factory:planned`, `factory:ready`, `factory:building`, `factory:review`, and `factory:blocked`.
 - Process at most one build block per run. The primary Codex agent owns queue state, branches, commits, pushes, pull requests, recovery, and the final report.
 - Before touching GitHub or queue state, every factory run must acquire the shared lock with `scripts/factory-run-lock.sh`; an overlapping run reports `Factory already running` and stops.
-- Delegate evidence-based ticket authoring and readiness review to the Sol High `workplan_manager`. No builder starts until the saved GitHub issue passes `factory/TICKET-CONTRACT.md`.
+- Delegate evidence-based ticket authoring and readiness review to the Sol High `workplan_manager`. A queue-authored ticket is already the full build contract: readiness review keeps it unchanged when current evidence still supports it and rewrites it only for material drift. No builder starts until the saved GitHub issue passes `factory/TICKET-CONTRACT.md`.
 - When no open workplan issue remains, the locked factory run may ask `workplan_manager` to author exactly one next safe ticket from current evidence and create it as `factory:planned`. It must never add `factory:ready`; the founder remains the release gate.
 - Delegate implementation to exactly one of `builder` or `senior_builder`, as required by `factory/BUNDLING-RULES.md`. Never run both on the same block.
 - Delegate independent verification to `qa`. Also use `security_reviewer` when the task packet requires it.
+- Spawn every role with no inherited conversation history and an explicit model/effort override from `factory/PROJECT-CONFIG.md`. Tell it to read its exact `.codex/agents/<role>.toml` role contract, then give it only the repository/worktree path, issue/mode, base commit, durable evidence links, role-specific acceptance evidence, and required output. Never rely on parent-model inheritance or paste the entire orchestration transcript into a role handoff.
 - Reuse the same implementation, QA, and security agents for every repair and re-review in a run. Wait on them without repeated status probes; create a replacement only when the original agent is genuinely unavailable.
-- Before review, the implementation agent runs focused acceptance checks. After all required reviews pass, that same agent owns one complete ticket-defined regression pass on the final candidate state. Reviewers and the orchestrator run only targeted checks and never replay an unchanged successful full regression.
+- After worktree setup and before review, run `scripts/factory-preflight.sh`, calculate the conservative floor from `scripts/factory-affected-tests.sh`, and execute the de-duplicated union of that floor and ticket-specific focused tests exactly once per candidate state. After all required reviews pass, the same implementation agent owns one complete ticket-defined regression pass on the final candidate state. Reviewers and the orchestrator run only targeted checks and never replay an unchanged successful full regression.
 - Read-only agents may run in parallel when their scopes are independent. Never run concurrent code-writing agents in the same worktree.
+- If Codex reports a usage/rate limit, preserve a compact recovery comment and the worktree, keep the issue `factory:building`, release the lock, and stop. Do not wait for the reset or recreate the full agent roster in the same run.
 - Allow at most two focused implementation revisions after review failures. Then preserve the branch and mark the issue blocked with evidence.
 - A direct request to run `$biz-workplan-factory` authorizes the feature-branch commit, push, and draft pull request defined by that skill. It never authorizes merging, production deployment, billing, account creation, secret changes, or destructive data operations.
 - Every factory pull request must contain the standalone GitHub closing line `Closes #<issue-number>` for its one workplan ticket. The issue stays open during draft/review and closes automatically only when the PR is merged into the default branch.
+- Every factory pull request must open with a concrete plain-language founder summary covering what was built, the user/system before-and-after, and what to look out for. Keep the full technical evidence, tests, risks, migrations, owner review, and safety sections from `factory/REVIEW-PACKET.md`.
 - `Checklist_new_rows.xlsx` is protected unrelated user material: never edit, stage, move, delete, or include it in a factory branch.
 
 ## Factory worktrees
 
 - Run each factory build block in its own Codex-managed worktree or isolated feature branch.
-- Use `scripts/setup-worktree.sh` for dependencies. `.worktreeinclude` copies only the two ignored environment files needed for the existing local development setup; they remain untracked and must never be printed or committed.
+- Use `scripts/setup-worktree.sh` for dependencies. `.worktreeinclude` or the setup script makes available only the two approved ignored environment files needed for local development; they remain untracked and must never be printed or committed.
 - Serialize development-Supabase migrations and integration tests across active Biz blocks.
 - Do not start a second writing block that depends on, migrates, or edits the same core contracts as an active block.
 

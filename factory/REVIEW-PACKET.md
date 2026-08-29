@@ -1,3 +1,13 @@
+## Founder summary — plain language
+
+### What was built
+
+Explain the completed feature as if speaking to a non-technical founder. State what the user can now do, what the system now does automatically, and the main before/after difference. Be concrete and specific to this pull request; do not use generic wording such as “implemented the ticket” or lead with file names.
+
+### What to look out for
+
+State the two to five behaviours, screens, edge cases, or limitations the founder should pay attention to when reviewing or testing. Separate expected limitations from possible warning signs. If there is genuinely nothing unusual, say `No special concerns beyond the Owner review steps below.`
+
 ## Outcome
 
 What user-visible or system-level behaviour changed?

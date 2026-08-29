@@ -27,7 +27,7 @@ Each scheduled run starts independently, so the system rebuilds its understandin
 | Prepare the next block | Nothing | When no open workplan issue remains, Sol High authors exactly one current, detailed `factory:planned` ticket |
 | Release the next block | Confirm its dependency is satisfied, replace `factory:planned` with `factory:ready` | Nothing starts before you apply `factory:ready` |
 | Scheduled start | Keep the Mac powered on and the ChatGPT desktop app running | The factory checks the queue at the next scheduled time |
-| Ticket preparation | Nothing | Sol High inspects the current code and rewrites the ticket into a prescriptive build contract |
+| Ticket preparation | Nothing | Sol High authors the prescriptive contract once; at release it validates and keeps the body unless the code materially changed |
 | Build | Nothing unless a blocker requires a founder decision | The factory creates an isolated worktree and assigns one appropriate builder |
 | Verification | Nothing for automated checks | QA runs independently; security review is added for high-risk work; failed checks receive up to two repair rounds |
 | Draft pull request | Nothing | The branch is committed, pushed, and opened as a draft PR with evidence and `Closes #<ticket>` |
@@ -77,7 +77,7 @@ Recommended rule: mark only one ticket `factory:ready` at a time. The factory ca
 
 ### Ticket creation versus ticket preparation
 
-Once an existing issue receives `factory:ready`, the Sol High Workplan Manager rechecks and, when needed, rewrites it into a detailed, code-aware build contract before implementation begins.
+Once an existing issue receives `factory:ready`, the Sol High Workplan Manager rechecks its dependencies and code assumptions. It keeps an already detailed queue-authored contract unchanged when it remains valid and rewrites it only when material repository drift requires a correction.
 
 When the final open workplan ticket closes, the next scheduled run asks the Sol High Workplan Manager to inspect current code, specifications, workplan/RTM evidence, and all issue/PR history. It creates exactly one fresh `factory:planned` ticket and stops; it never marks that ticket ready or builds it in the same run.
 
@@ -102,18 +102,20 @@ No founder action is normally required during the build. The factory will:
 2. Recover an interrupted `factory:building` ticket before considering new work.
 3. Otherwise select the oldest open `factory:ready` ticket.
 4. If there is no building or ready ticket, either wait on an existing planned/review/blocked workplan ticket or prepare one new `factory:planned` ticket when none remains, then stop.
-5. For a ready ticket, ask the Sol High Workplan Manager to inspect current code, specifications, migrations, tests, dependencies, and recent history.
-6. Rewrite and save a detailed GitHub ticket that passes the ticket quality contract.
+5. For a ready ticket, ask the Sol High Workplan Manager to validate current code, specifications, migrations, tests, dependencies, and recent history.
+6. Keep the saved detailed contract when valid; replace it only when evidence has materially changed.
 7. Change the ticket from `factory:ready` to `factory:building`.
 8. Create an isolated feature branch/worktree based on current `origin/main`.
-9. Route the implementation to one builder.
-10. Run independent QA and any required security review.
-11. Allow up to two focused repair rounds if a review fails.
-12. Update progress and RTM evidence.
-13. Commit and push the feature branch.
-14. Create or update a draft PR containing `Closes #<ticket-number>`.
-15. Verify that GitHub recognizes the closing link.
-16. Change the issue to `factory:review` and report the PR URL.
+9. Quietly prepare dependencies, verify the approved ignored test environment, and calculate a conservative affected-test floor.
+10. Route the implementation to one builder using a compact no-history handoff and the explicitly configured model.
+11. Run independent QA and any required security review in parallel when safe.
+12. Allow up to two focused repair rounds if a review fails.
+13. Run one complete final regression after the reviews pass; independent deterministic lanes may run concurrently, while database work remains serial.
+14. Update progress and RTM evidence.
+15. Commit and push the feature branch.
+16. Create or update a draft PR containing `Closes #<ticket-number>`.
+17. Verify that GitHub recognizes the closing link.
+18. Change the issue to `factory:review` and report the PR URL.
 
 ### Step 5: Review the draft pull request
 
@@ -121,6 +123,9 @@ When the factory reports that a PR is ready:
 
 1. Open the PR URL from the scheduled-run report.
 2. Read these PR sections:
+   - Founder summary — plain language
+     - What was built
+     - What to look out for
    - Outcome
    - Acceptance evidence
    - Verification
@@ -209,6 +214,8 @@ Only one implementation agent writes code for a ticket. Review agents are separa
 
 To control usage without weakening review, the factory reuses those same agents after repairs. The builder runs focused checks before review and one complete ticket-defined regression pass after review on the final code. QA and security run targeted validation instead of independently repeating the whole suite, and the orchestrator reuses the recorded final evidence while the code remains unchanged.
 
+Role handoffs do not inherit the orchestrator's full conversation. Each receives only the issue, worktree, base commit, relevant evidence, and exact role output. Model routing is explicit: Workplan Manager, Senior Builder, and Security Reviewer use Sol High; Orchestrator, routine Builder, and QA use Terra High. This reduces repeated context without removing specifications, acceptance criteria, reviewer independence, or tests.
+
 ## Safety and concurrency controls
 
 - A shared atomic lock allows only one factory run to operate on the repository at a time.
@@ -264,6 +271,12 @@ Your action: read whether the limitation blocks review. Perform the named founde
 Meaning: the scheduled task may have crashed, the Mac may have slept, or an external service may have failed.
 
 Your action: normally none. Durable state remains in GitHub, the branch, the worktree, commits, comments, and the draft PR. The next run recovers an open `factory:building` issue before taking new work. If no later run can recover it, bring the issue/PR number to the orchestrator chat.
+
+### A run reaches the Codex usage limit
+
+Meaning: the account's current usage window ended; this is not treated as a product or test failure.
+
+Your action: none. The factory records one compact recovery comment, preserves the worktree, keeps the issue recoverable, releases the shared lock, and stops instead of waiting for hours or creating replacement agents. The next scheduled run resumes only the unfinished roles from durable evidence.
 
 ## What remains deliberately manual
 

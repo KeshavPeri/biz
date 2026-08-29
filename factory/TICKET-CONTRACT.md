@@ -23,6 +23,12 @@ When no open workplan issue remains, the Workplan Manager may draft exactly one 
 
 Return BLOCKED and create no coding ticket when the next honest workplan step is Waiting, Manual, Gate, Deferred gap, owner-only, or unsupported by current repository evidence.
 
+Every queue-authored body begins with hidden metadata in this exact form, using the current 40-character base commit:
+
+`<!-- biz-factory-ticket:v1 base=<commit> -->`
+
+When the founder later releases the issue, READY_REVIEW validates the saved body against current evidence. It returns `ticket_action: KEEP` and does not regenerate the detailed contract when it remains valid. It returns `ticket_action: REPLACE` with one complete revised body only when material repository drift makes a change necessary. This preserves ticket quality while avoiding repeated authoring and rereading.
+
 ## Required ticket body
 
 Use these sections. Combine sections only when the result remains equally clear.
@@ -88,6 +94,7 @@ Use these sections. Combine sections only when the result remains equally clear.
 ### Verification plan
 
 - Exact focused pre-review tests and the separately named final regression commands from `factory/PROJECT-CONFIG.md`.
+- Require the implementation agent to combine the conservative output of `scripts/factory-affected-tests.sh` with ticket-specific focused checks, de-duplicate them, and run each command once per candidate state before review. Ticket-specific checks may add to this floor but never replace or subtract from it.
 - Assign the single complete final regression pass to the implementation agent after review; QA, security, and the orchestrator use targeted checks and do not duplicate that unchanged pass.
 - Required fictional fixtures, arithmetic reconciliations, concurrency cases, security review, device/browser checks, or external-service smoke checks.
 - The shortest founder review path and any check a substitute cannot perform.
@@ -120,3 +127,4 @@ Return BLOCKED rather than READY unless all are true:
 - The ticket is specific because the evidence is specific, not because it guesses implementation details.
 - The workplan/RTM IDs do not duplicate any open issue or already merged scope.
 - A queue-authored ticket is the single next safe block and is saved as `factory:planned`, never auto-released or auto-built.
+- A queue-authored ticket contains the versioned base-commit metadata needed for efficient READY validation.

@@ -39,12 +39,12 @@
 |---|---|---|---|
 | Bucket 1 — Identity & Trust | Phase 7 | 18 | 12 / 18 |
 | Bucket 2 — Discovery (Placeholder) | Phase 8 | 13 | 13 / 13 |
-| Bucket 3 — Deal Engine | Phase 9 | 32 | 11 / 32 |
-| Bucket 4 — AI Contract Parser | Phase 10 | 5 | 1 / 5 |
+| Bucket 3 — Deal Engine | Phase 9 | 32 | 14 / 32 |
+| Bucket 4 — AI Contract Parser | Phase 10 | 5 | 5 / 5 |
 | Bucket 5 — Tracking | Phase 11 | 15 | 0 / 15 |
 | Cross-cutting: Security | Phase 12 (throughout) | 6 | 0 / 6 |
 | Cross-cutting: Notifications | Phase 12 (throughout) | 4 | 0 / 4 |
-| **Total** | | **93** | **36 / 93** |
+| **Total** | | **93** | **44 / 93** |
 
 > **Phase 6 — Frontend Foundation (infrastructure, not a tracked feature): BUILT ✅ (2026-07-13).**
 > The 93 rows above are the MVP *features* (Phases 7–12); Phase 6 is the shared scaffold they all

@@ -7,10 +7,11 @@ Run every factory build block in a Codex-managed worktree based on current `main
 ## Setup
 
 1. Create the worktree from current `main` in the Codex app.
-2. Run `./scripts/setup-worktree.sh` or configure it as the project's worktree setup command.
-3. Confirm `.env` and `frontend/.env` exist but remain ignored.
-4. Confirm `git status` does not contain another block's changes.
-5. Run the factory prompt from `factory/AUTOMATION-PROMPT.md`.
+2. Run `./scripts/setup-worktree.sh` or configure it as the project's worktree setup command. Successful dependency output is intentionally quiet; detailed logs appear only on failure.
+3. Setup copies only approved ignored `.env` and `frontend/.env` from the primary checkout when needed; it never prints their contents.
+4. Run `./scripts/factory-preflight.sh --require-integration-env` for a ticket with development-Supabase tests, otherwise run it without the flag.
+5. Confirm `git status` does not contain another block's changes.
+6. Run the factory prompt from `factory/AUTOMATION-PROMPT.md`.
 
 ## Branch and queue rules
 

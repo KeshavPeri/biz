@@ -1,8 +1,8 @@
 # Biz executable workplan map
 
-**Snapshot date:** 2026-08-27
+**Snapshot date:** 2026-08-29
 **Workbook reviewed:** `/Users/keshav/Downloads/App MVP - Build Workplan.xlsx`
-**Repository baseline:** `08d72f7 Merge pull request #5 from KeshavPeri/codex/workplan-1-ai-provider-20260827`
+**Repository baseline:** `85a3919 Merge pull request #8 from KeshavPeri/codex/workplan-4-contract-alignment`
 **Purpose:** give future Codex factory runs a versioned dependency and evidence map. This file is a planning index, not a replacement for the locked specifications, RTM, tests, or Git history.
 
 Block formation is controlled by `factory/BUNDLING-RULES.md`. The workplan map determines what is ready; the bundling rules determine how much of that ready work may enter one build ticket.
@@ -46,8 +46,8 @@ Only rows marked **Ready** may enter the `factory:ready` GitHub queue. GitHub is
 | Phases 0–6 | Workplan complete | Repository scaffold, locked specifications, `docs/rtm.md`, migrations, FastAPI and Expo foundation. |
 | Phase 7 | Workplan 7.1–7.14 complete; Bucket 1 is 12/18 | `docs/progress.md`; RTM Bucket 1. |
 | Phase 8 | Workplan 8.1–8.6 complete; Bucket 2 is 13/13 | `docs/progress.md`; RTM Bucket 2. |
-| Phase 9 | 9.1–9.12 complete; 9.13–9.19 pending | Commits through `7257508`; RTM Bucket 3 is 11/32. |
-| Phase 10 | 10.1–10.2 complete; 10.3–10.9 pending | Merged PR #5; `docs/progress.md`; B4-001 is Built in RTM. |
+| Phase 9 | 9.1–9.12 complete; 9.13 ready; 9.14–9.19 pending | Merged PRs #5–#8 satisfy the Phase 10 dependency; RTM Bucket 3 is 14/32. |
+| Phase 10 | 10.1–10.9 complete; Bucket 4 is 5/5 | Merged PRs #5–#8; `docs/progress.md`; B4-001–B4-005 are Built in RTM. Founder accepted the manual test as non-blocking and can run `docs/LOCAL-APP-TESTING.md` later. |
 | Phases 11–14 | Not started | Workbook, progress, and RTM. |
 
 ## Phases 0–6 — completed foundation
@@ -121,7 +121,7 @@ These require future factory tickets rather than reopening the historical workpl
 | 9.10 | Two-side summary request | 9.9 | Same | Complete | B3-019 Gate A only; real AI output/Gate B deliberately deferred to Phase 10. |
 | 9.11 | WeasyPrint contract generation | 9.10, 5.11 | Same | Complete | B3-023; `7257508`; `TEST-CONTRACT-FLOW` and template test. |
 | 9.12 | Three-mode contract signing | 9.11, 7.9 | Same | Complete | B3-025 plus contract slice of B3-028; exactly-once execution and Approval → Creating. |
-| 9.13 | Creating: brief, content and revisions | 9.12 | **10.9** | Waiting | B3-021, B3-028 content slice, B3-029–B3-032. Requires real Phase 10 terms and alignment evidence first. |
+| 9.13 | Creating: brief, content and revisions | 9.12 | **10.9** | **Ready** | B3-028 content slice and B3-029–B3-032. B3-021 is already Built; merged Phase 10 terms/alignment now satisfy the dependency. |
 | 9.14 | Posted: live URL hard gate | 9.13 | Same | Waiting | B3-033. |
 | 9.15 | Payment tracking and states | 9.14 | Same | Waiting | B3-034 and B3-035. Automated reminders B3-037 also depend on Phase 12/deployment scheduling. |
 | 9.16 | Payment dispute overlay | 9.15 | Same | Waiting | B3-039. |
@@ -139,13 +139,13 @@ The normal G4 device check remains for the Approval contract card, drawn-signatu
 |---|---|---|---|---|---|
 | 10.1 | AI service abstraction | 9.19, 3.8 | **9.12, 3.8** | Complete | B4-001; merged PR #5 provides the typed provider-neutral boundary. |
 | 10.2 | Connect Gemini | 10.1, 0.7 | Same | Complete | B4-001; merged PR #5 provides the backend-only maintained Google Gen AI adapter. |
-| 10.3 | Build the fixed 22-field prompt/schema | 10.2, 3.8 | Same | **Ready** | B4-002; exact schema is locked in `docs/ai-parser.md`. |
-| 10.4 | Parse source text into validated JSON | 10.3, 9.10 | Same | Waiting | B4-002 for chat and B4-003 for generated-contract text; retry once on invalid model output. |
-| 10.5 | Persist extracted fields | 10.4, 5.6 | Same | Waiting | B4-002/B4-003 persistence into real `ai_summaries` and `extracted_terms`. |
-| 10.6 | Confirmation UI and Gate B | 10.5 | Same | Waiting | B4-004 plus B3-020/B3-021; all-party `term_approvals` and Chatting → Approval. |
-| 10.7 | Contract-vs-chat alignment | 10.6 | Same | Waiting | B4-005 plus B3-026; deterministic normalized comparison, not a second AI judgment. |
-| 10.8 | Test varied fictional contracts | 10.7 | Same | Manual | Real Gemini evaluation using fictional data; no hard-coded AI responses. |
-| 10.9 | RTM and commit Phase 10 | 10.8 | Same | Gate waiting | Reconcile B4-001–B4-005 and the Phase 9 Gate-B/alignment rows. |
+| 10.3 | Build the fixed 22-field prompt/schema | 10.2, 3.8 | Same | Complete | B4-002; strict `chat-terms-22.v1` schema and prompt shipped in PR #6. |
+| 10.4 | Parse source text into validated JSON | 10.3, 9.10 | Same | Complete | B4-002 chat extraction shipped in PR #6; B4-003 generated-contract extraction shipped in PR #8. |
+| 10.5 | Persist extracted fields | 10.4, 5.6 | Same | Complete | Atomic `ai_summaries` persistence shipped in PR #6; immutable `extracted_terms` provenance shipped in PR #8. |
+| 10.6 | Confirmation UI and Gate B | 10.5 | Same | Complete | B4-004 plus B3-020/B3-021 shipped in PR #7 with 32/32 Gate-B checks. |
+| 10.7 | Contract-vs-chat alignment | 10.6 | Same | Complete | B4-003/B4-005 plus B3-026 shipped in PR #8; deterministic comparison and hard signing gates pass. |
+| 10.8 | Test varied fictional contracts | 10.7 | Same | Complete | Founder explicitly accepted this manual gate as non-blocking on 2026-08-29. No live-Gemini/device pass is claimed; follow `docs/LOCAL-APP-TESTING.md` when convenient. |
+| 10.9 | RTM and commit Phase 10 | 10.8 | Same | Gate complete | B4-001–B4-005 and B3-020/B3-021/B3-026 reconciled; Phase 10 close-out committed after merged PRs #5–#8. |
 
 ## Phase 11 — Tracking
 

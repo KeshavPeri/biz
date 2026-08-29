@@ -10,16 +10,30 @@ This file is the command and environment source of truth for factory runs. Agent
 - **Data:** Supabase Postgres, Auth, Realtime, and private Storage.
 - **Package managers:** npm and Python venv/pip.
 
+## Role routing and compact handoffs
+
+| Role | Model | Effort | History |
+|---|---|---|---|
+| Orchestrator | `gpt-5.6-terra` | High | Current run only |
+| Workplan Manager | `gpt-5.6-sol` | High | None |
+| Routine Builder | `gpt-5.6-terra` | High | None |
+| Senior Builder | `gpt-5.6-sol` | High | None |
+| QA | `gpt-5.6-terra` | High | None |
+| Security Reviewer | `gpt-5.6-sol` | High | None |
+
+For every subagent spawn, explicitly set the model and High reasoning and use `fork_turns="none"`; never rely on parent inheritance. Tell the agent to read its exact `.codex/agents/<role>.toml` role contract. The handoff then contains only the role/mode, repository or worktree path, issue number/URL, base commit, relevant durable file links, changed-file list and focused evidence needed by that role. Agents read the approved issue and relevant repository sources directly. Do not paste the parent conversation, repeated global rules, full tool output, or unrelated specifications into the handoff.
+
 ## Worktree setup
 
 - **Factory run lock:** `./scripts/factory-run-lock.sh acquire|renew|release <owner-token>`; `status` is read-only. Exit 75 means another run owns the shared lock. The stale timeout is 18 hours.
 - **Setup command:** `./scripts/setup-worktree.sh`
-- The managed worktree receives ignored `.env` and `frontend/.env` through `.worktreeinclude`. Never print, stage, or commit either file.
+- Setup quietly installs dependencies and copies only approved ignored `.env` and `frontend/.env` from the primary checkout when a manually created worktree did not receive `.worktreeinclude`. It prints detailed dependency logs only on failure. Never print, stage, or commit either environment file.
+- **Preflight:** `./scripts/factory-preflight.sh`; add `--require-integration-env` when the ticket names development-Supabase tests.
 - Homebrew Pango is required on the local Mac for WeasyPrint and is already installed on the primary machine.
 
 ## Verification ownership
 
-- **Before independent review:** the implementation agent runs focused tests for changed behaviour plus cheap compile, type, and diff checks needed to make the diff reviewable. It does not run the complete ticket regression set yet.
+- **Before independent review:** the implementation agent obtains `./scripts/factory-affected-tests.sh --list <base-commit>`, combines that conservative floor with ticket-focused tests, de-duplicates the commands, and runs each once per candidate state. The ticket may add tests but may not remove the floor. `--run` is a convenience only when the ticket adds no extra command. It does not run the complete ticket regression set yet.
 - **During review:** QA and security inspect the full diff and existing evidence, then run only targeted checks needed to validate acceptance criteria or findings. They do not replay an unchanged complete regression set.
 - **After review passes:** the same implementation agent runs the ticket's complete named regression set exactly once on the final candidate state and records a source-state fingerprint with the results.
 - **Shipping:** the orchestrator verifies that fingerprint and runs only diff/secret/documentation checks. A code change invalidates the prior evidence and requires affected re-review followed by one new complete regression pass; a documentation-only evidence correction does not.
@@ -29,6 +43,14 @@ Use this code-state fingerprint from the isolated feature worktree before the fi
 `base_ref=$(git merge-base HEAD origin/main) && git diff --binary "$base_ref" -- . ':(exclude)docs/**' | git hash-object --stdin`
 
 The command excludes documentation so evidence-only progress/RTM updates do not trigger an unnecessary code regression replay.
+
+Independent deterministic lanes may run in parallel to reduce wall time: one backend pure/compile lane and one frontend type/lint/export lane. Commands within a lane remain ordered and each result is recorded separately. Development-Supabase tests, migrations, shared fixtures, and any stateful external check always run serially. Parallelism changes scheduling only; it never removes a command or merges its evidence.
+
+Successful command output should be summarized to the command, exit status, and final assertion/count lines. Preserve complete logs locally during execution and print the relevant tail on failure instead of feeding routine install/test noise back into model context.
+
+## Usage-limit boundary
+
+On an explicit Codex usage/rate-limit response, do not wait for the reset or recreate the role roster. Write the compact `FACTORY_RECOVERY_V1` issue comment defined by the factory skill, including the saved issue-body hash; preserve the worktree, keep `factory:building`, release the lock, and stop. The next run resumes from durable evidence and spawns only the roles still needed when that hash/base/worktree remain unchanged.
 
 ## Deterministic checks
 
@@ -54,8 +76,11 @@ These use the development Supabase project, realistic fictional data, and safe c
 - `backend/.venv/bin/python backend/tests/test_connect.py`
 - `backend/.venv/bin/python backend/tests/test_accept_decline.py`
 - `backend/.venv/bin/python backend/tests/test_stage_engine.py`
+- `backend/.venv/bin/python backend/tests/test_term_extraction_db.py`
+- `backend/.venv/bin/python backend/tests/test_term_approvals.py`
 - `backend/.venv/bin/python backend/tests/test_summary_gate.py`
 - `backend/.venv/bin/python backend/tests/test_maker_checker.py`
+- `backend/.venv/bin/python backend/tests/test_contract_alignment.py`
 - `backend/.venv/bin/python backend/tests/test_contract_flow.py`
 - `backend/.venv/bin/python backend/tests/test_rls.py`
 

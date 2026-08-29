@@ -16,10 +16,14 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 10 — AI Contract Parser (Bucket 4). **10-A / B4-001 and 10-B / B4-002
-  are merged. 10-C / B4-004 + B3-020/B3-021 is built; its two-device Realtime visual check remains
-  founder-owned. 10.7 / B4-003 + B4-005 + B3-026 is built, independently QA/security-reviewed, and
-  passed its complete fictional-data regression; both workplans await draft-PR founder review.**
+- **Current phase:** Phase 10 — AI Contract Parser (Bucket 4) is complete. PRs #5–#8 are merged;
+  B4-001–B4-005 and the linked B3-020/B3-021/B3-026 slices are Built and reconciled. The founder
+  accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
+  scheduling decision, not invented test evidence. Crisp later-testing steps live in
+  `docs/LOCAL-APP-TESTING.md`.
+- **Return point:** resume Phase 9 at **9.13 — Creating: brief, content and revisions**. Its Phase 10
+  dependency is now satisfied, and the factory may prepare the next detailed planned ticket from the
+  current `main`. B3-021 is already Built and must not be duplicated in that packet.
   - **10.7 BUILT (contract alignment):** migration `027_contract_alignment.sql` stores one immutable,
     service-role-only alignment attempt and extracted result for the exact generated v1 PDF, bound to its
     approved summary, source hash, schema/prompt provenance and contract version. The backend extracts the
@@ -377,27 +381,16 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **Founder review — Workplan #3 / 10-C:** inspect the draft PR and merge only when the Gate-B
-   field/roster experience is accepted; complete the two-device Realtime visual refresh check.
-2. **Founder review — Workplan #4 / 10.7:** inspect the draft PR; confirm the conflict card and
-   signing lock experience, then merge only when accepted. No deployment is part of this workplan.
+1. **9.13 — Creating:** brief, content submission/approval, revision loop, and the remaining B3-028
+   content slice plus B3-029–B3-032. Do not duplicate already-Built B3-021.
+2. **9.14 — Posted:** live-URL hard gate after 9.13 is merged.
+3. **9.15 — Payment:** manual payment tracking and states after 9.14 is merged.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
 
 *Claude: when you hit a STOP-and-flag situation (destructive ops, anything paid, live/prod,
 real secrets, big architectural change, irreversible + low confidence), describe it here and
 do not proceed. I'll resolve these at the start of my next session.*
-
-- **2026-08-28 — Gate-B two-device refresh is LIMITED:** migration/publication, the installed Realtime RLS
-  evaluator's participant delivery/outsider exclusion, authenticated API state, refetch-on-focus, and
-  refetch-after-action are automated and passing. External websocket delivery was unavailable during the
-  QA/dev probe, so two simultaneously signed-in devices still need the founder manual check to confirm
-  visible roster refresh and the 22-field review layout on device.
-
-- **2026-08-26 — Manual device check remains:** the Approval contract card, drawn-signature gesture,
-  native document picker/private PDF upload, signed-link opening, and maker/checker two-device refresh
-  need the normal G4 Expo Go pass. TypeScript + 36-route web export are clean; this is visual/device
-  validation, not a known functional failure.
 
 - **2026-07-13 — RESOLVED: Supabase project resumed; live anon connection VERIFIED.** The paused
   dev project was resumed; `govozzmbcynoeijlqmxp.supabase.co` now resolves (Cloudflare
@@ -417,6 +410,11 @@ do not proceed. I'll resolve these at the start of my next session.*
 
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
+
+- 2026-08-29 — **Phase 10 manual gate deferred without blocking development.** The founder explicitly
+  marked workplan 10.8 complete for sequencing and will perform the Expo Go/two-device/live-Gemini checks
+  later using `docs/LOCAL-APP-TESTING.md`. Automated evidence remains valid, but no omitted manual check
+  is represented as passed.
 
 - 2026-08-28 — **10.7 recovery fixture.** The legacy Gate-B checklist test generates a fictional v1
   contract, uses the production alignment reservation/completion RPCs with the exact private bytes and
@@ -727,6 +725,14 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-29 — Phase 10 close-out and factory refinement
+- **Closed Phase 10:** confirmed PRs #5–#8 merged, reconciled B4-001–B4-005 and linked Phase 9 Gate-B/
+  alignment rows, accepted manual 10.8 as a non-blocking founder-deferred check, and made 9.13 Ready.
+- **Founder testing:** added `docs/LOCAL-APP-TESTING.md` with the local backend, Expo Go, two-device,
+  22-field review, contract-alignment, signing, and optional fictional live-Gemini path.
+- **Factory:** reduced repeated context/tests, added durable usage-limit recovery and early affected-test
+  coverage, and strengthened draft PRs with plain-language “What was built” and “What to look out for”.
 
 ### 2026-08-28 — Phase 10: contract-vs-chat alignment recovery (10.7)
 - **Recovered issue #4:** repaired only the legacy `test_term_approvals.py` fixture, which previously
