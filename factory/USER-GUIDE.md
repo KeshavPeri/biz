@@ -4,11 +4,11 @@ This guide explains the Biz/Inflo autonomous build system in plain language. It 
 
 ## The short version
 
-1. **The factory prepares the next detailed ticket automatically** when no open workplan ticket remains.
+1. **You ask the standing orchestrator chat to prepare the next detailed ticket** when the workplan queue is empty.
 2. **You decide when that ticket may start** by replacing `factory:planned` with `factory:ready`.
 3. **The factory builds one ticket automatically** and produces a tested draft pull request.
 4. **You review and merge the pull request.** The factory never merges for you.
-5. **GitHub closes the ticket automatically**; an existing planned successor waits, or the next run prepares one when the queue is empty.
+5. **GitHub closes the ticket automatically**; you return to the standing orchestrator when you want the next ticket prepared.
 
 The normal state flow is:
 
@@ -18,16 +18,16 @@ If the factory cannot proceed safely:
 
 `factory:ready` or `factory:building` → `factory:blocked`
 
-Each scheduled run starts independently, so the system rebuilds its understanding from GitHub, the repository, specifications, and durable evidence rather than relying on an earlier chat's memory.
+The standing orchestrator performs the heavy product/code inspection once while preparing the ticket. Each scheduled build run uses the released ticket as its contract and performs only cheap execution-safety checks before starting.
 
 ## Responsibilities at a glance
 
 | Stage | What you do | What happens automatically |
 |---|---|---|
-| Prepare the next block | Nothing | When no open workplan issue remains, Sol High authors exactly one current, detailed `factory:planned` ticket |
+| Prepare the next block | Ask the standing orchestrator to prepare one ticket | The orchestrator inspects current evidence and creates exactly one detailed `factory:planned` ticket |
 | Release the next block | Confirm its dependency is satisfied, replace `factory:planned` with `factory:ready` | Nothing starts before you apply `factory:ready` |
 | Scheduled start | Keep the Mac powered on and the ChatGPT desktop app running | The factory checks the queue at the next scheduled time |
-| Ticket preparation | Nothing | Sol High authors the prescriptive contract once; at release it validates and keeps the body unless the code materially changed |
+| Ticket preparation | Review the planned ticket | The standing orchestrator owns its prescriptive contract and records the exact base, dependency, builder route, and review route |
 | Build | Nothing unless a blocker requires a founder decision | The factory creates an isolated worktree and assigns one appropriate builder |
 | Verification | Nothing for automated checks | QA runs independently; security review is added for high-risk work; failed checks receive up to two repair rounds |
 | Draft pull request | Nothing | The branch is committed, pushed, and opened as a draft PR with evidence and `Closes #<ticket>` |
@@ -37,7 +37,7 @@ Each scheduled run starts independently, so the system rebuilds its understandin
 
 ## Current schedule
 
-The `biz-workplan-factory` scheduled task runs every day at these Singapore times:
+The `biz-workplan-factory` task is currently paused. Its preserved schedule, when active, is every day at these Singapore times:
 
 - 12:30 AM
 - 9:30 AM
@@ -73,15 +73,17 @@ In GitHub:
 6. Add the label `factory:ready`.
 7. Leave later dependent tickets unreleased.
 
-Recommended rule: mark only one ticket `factory:ready` at a time. The factory can select the oldest ready issue, but releasing one at a time keeps your intent unambiguous.
+Mark only one ticket `factory:ready` at a time. The factory now requires exactly one ready issue and stops if several are released.
 
-### Ticket creation versus ticket preparation
+### Ticket preparation is separate from building
 
-Once an existing issue receives `factory:ready`, the Sol High Workplan Manager rechecks its dependencies and code assumptions. It keeps an already detailed queue-authored contract unchanged when it remains valid and rewrites it only when material repository drift requires a correction.
+When no open workplan ticket remains, ask the standing orchestrator chat to prepare the next ticket. It inspects current code, specifications, workplan/RTM evidence, and issue/PR history, then creates exactly one fresh `factory:planned` ticket. It never marks that ticket ready or starts implementation.
 
-When the final open workplan ticket closes, the next scheduled run asks the Sol High Workplan Manager to inspect current code, specifications, workplan/RTM evidence, and all issue/PR history. It creates exactly one fresh `factory:planned` ticket and stops; it never marks that ticket ready or builds it in the same run.
+The ticket begins with a hidden execution header recording the exact `main` commit, immediate dependency, builder route, and whether security review is required. When you later apply `factory:ready`, the scheduled build verifies only that small header and current queue safety; it does not pay Sol High to review or rewrite the detailed contract.
 
-If the next honest step is a manual test, phase gate, waiting dependency, deferred gap, or owner decision, the factory creates no coding ticket and reports the exact action needed. It never skips a gate merely to keep coding.
+If `main` changed after ticket preparation, the build run marks the ticket blocked and returns it to the standing orchestrator. The orchestrator—not the build factory—decides whether the change matters and updates the ticket when needed.
+
+If the next honest step is a manual test, phase gate, waiting dependency, deferred gap, or owner decision, the standing orchestrator creates no coding ticket and reports the exact action needed. It never skips a gate merely to keep coding.
 
 ### Step 3: Keep the local runner available
 
@@ -100,22 +102,21 @@ No founder action is normally required during the build. The factory will:
 
 1. Acquire the repository-wide lock.
 2. Recover an interrupted `factory:building` ticket before considering new work.
-3. Otherwise select the oldest open `factory:ready` ticket.
-4. If there is no building or ready ticket, either wait on an existing planned/review/blocked workplan ticket or prepare one new `factory:planned` ticket when none remains, then stop.
-5. For a ready ticket, ask the Sol High Workplan Manager to validate current code, specifications, migrations, tests, dependencies, and recent history.
-6. Keep the saved detailed contract when valid; replace it only when evidence has materially changed.
-7. Change the ticket from `factory:ready` to `factory:building`.
-8. Create an isolated feature branch/worktree based on current `origin/main`.
-9. Quietly prepare dependencies, verify the approved ignored test environment, and calculate a conservative affected-test floor.
-10. Route the implementation to one builder using a compact no-history handoff and the explicitly configured model.
-11. Run independent QA and any required security review in parallel when safe.
-12. Allow up to two focused repair rounds if a review fails.
-13. Run one complete final regression after the reviews pass; independent deterministic lanes may run concurrently, while database work remains serial.
-14. Update progress and RTM evidence.
-15. Commit and push the feature branch.
-16. Create or update a draft PR containing `Closes #<ticket-number>`.
-17. Verify that GitHub recognizes the closing link.
-18. Change the issue to `factory:review` and report the PR URL.
+3. Otherwise require exactly one open `factory:ready` ticket; with none or several, stop without starting work.
+4. Run one deterministic preflight that verifies only the ticket's execution header, exact local/GitHub `main`, merged dependency, route values, and absence of a conflicting active factory branch, worktree, issue, or draft PR.
+5. If the recorded base differs from current `main`, mark the ticket blocked for standing-orchestrator revalidation; do not perform a deep ticket review.
+6. Change the ticket from `factory:ready` to `factory:building`.
+7. Create an isolated feature branch/worktree based on the verified `main` commit.
+8. Quietly prepare dependencies, verify the approved ignored test environment, and calculate a conservative affected-test floor.
+9. Route the implementation to one builder using a compact no-history handoff and the explicitly configured model.
+10. Run independent QA and any required security review in parallel when safe.
+11. Allow up to two focused repair rounds if a review fails.
+12. Run one complete final regression after the reviews pass; independent deterministic lanes may run concurrently, while database work remains serial.
+13. Update progress and RTM evidence.
+14. Commit and push the feature branch.
+15. Create or update a draft PR containing `Closes #<ticket-number>`.
+16. Verify that GitHub recognizes the closing link.
+17. Change the issue to `factory:review` and report the PR URL.
 
 ### Step 5: Review the draft pull request
 
@@ -165,7 +166,7 @@ For a new product decision or material scope change, do not relabel the ticket a
 
 After the PR is merged and its issue is closed:
 
-1. Open the existing next `factory:planned` ticket. If none exists, the next scheduled run prepares one when no open workplan ticket remains.
+1. If no planned ticket exists, ask the standing orchestrator chat to prepare the next one.
 2. Confirm the ticket's dependency is satisfied.
 3. Replace `factory:planned` with `factory:ready` when you want work to begin.
 4. Repeat the cycle.
@@ -186,13 +187,13 @@ There is no need to rush this step. Leaving all tickets without `factory:ready` 
 
 ## What the agents do
 
-### Main orchestrator — Terra High
+### Standing product orchestrator — Sol High for ticket preparation
+
+Answers founder questions and prepares one detailed planned ticket when asked. It performs the workplan, product, code, dependency, risk, and acceptance-quality review once before creating the issue. It is not part of the scheduled build run.
+
+### Build orchestrator — Terra High
 
 Owns the run, lock, issue selection, labels, worktree, branch, commits, push, PR, recovery, and final report. It does not normally write feature code.
-
-### Workplan Manager — Sol High, read-only
-
-Turns the selected workplan block into the detailed GitHub ticket. It inspects real repository evidence and defines context, scope, exclusions, risks, likely files, silent-failure traps, numbered acceptance criteria, and exact verification. It returns `BLOCKED` instead of guessing a material product or architecture decision.
 
 ### Builder — Terra High
 
@@ -214,7 +215,7 @@ Only one implementation agent writes code for a ticket. Review agents are separa
 
 To control usage without weakening review, the factory reuses those same agents after repairs. The builder runs focused checks before review and one complete ticket-defined regression pass after review on the final code. QA and security run targeted validation instead of independently repeating the whole suite, and the orchestrator reuses the recorded final evidence while the code remains unchanged.
 
-Role handoffs do not inherit the orchestrator's full conversation. Each receives only the issue, worktree, base commit, relevant evidence, and exact role output. Model routing is explicit: Workplan Manager, Senior Builder, and Security Reviewer use Sol High; Orchestrator, routine Builder, and QA use Terra High. This reduces repeated context without removing specifications, acceptance criteria, reviewer independence, or tests.
+Role handoffs do not inherit the orchestrator's full conversation. Each receives only the issue, worktree, base commit, relevant evidence, and exact role output. Model routing is explicit: Senior Builder and Security Reviewer use Sol High; the build Orchestrator, routine Builder, and QA use Terra High. The scheduled run does not spawn a ticket-authoring or readiness-review agent.
 
 ## Safety and concurrency controls
 
@@ -232,15 +233,15 @@ Role handoffs do not inherit the orchestrator's full conversation. Each receives
 
 ### `Nothing ready`
 
-Meaning: no open issue has `factory:building` or `factory:ready`, but an open workplan issue is still planned, under review, blocked, or otherwise waiting.
+Meaning: no open issue has `factory:building` or `factory:ready`. The scheduled build never creates a successor ticket.
 
-Your action: read the reported issue state. If it is an eligible `factory:planned` ticket and you want work to start, replace that label with `factory:ready`.
+Your action: release an eligible `factory:planned` ticket, or ask the standing orchestrator chat to prepare the next ticket when the queue is empty.
 
-### `Ticket prepared`
+### `Ticket stale`
 
-Meaning: the previous workplan queue was empty, so Sol High authored one fresh detailed ticket and the factory saved it as `factory:planned`.
+Meaning: the ticket's recorded base no longer matches current `main`, so the factory stopped before starting a builder.
 
-Your action: review its dependency, then replace `factory:planned` with `factory:ready` when you want the next build to start.
+Your action: bring the blocked ticket to the standing orchestrator chat. It will decide whether the change matters and revise or revalidate the contract against current evidence.
 
 ### `Factory already running`
 

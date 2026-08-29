@@ -15,13 +15,18 @@ This file is the command and environment source of truth for factory runs. Agent
 | Role | Model | Effort | History |
 |---|---|---|---|
 | Orchestrator | `gpt-5.6-terra` | High | Current run only |
-| Workplan Manager | `gpt-5.6-sol` | High | None |
 | Routine Builder | `gpt-5.6-terra` | High | None |
 | Senior Builder | `gpt-5.6-sol` | High | None |
 | QA | `gpt-5.6-terra` | High | None |
 | Security Reviewer | `gpt-5.6-sol` | High | None |
 
 For every subagent spawn, explicitly set the model and High reasoning and use `fork_turns="none"`; never rely on parent inheritance. Tell the agent to read its exact `.codex/agents/<role>.toml` role contract. The handoff then contains only the role/mode, repository or worktree path, issue number/URL, base commit, relevant durable file links, changed-file list and focused evidence needed by that role. Agents read the approved issue and relevant repository sources directly. Do not paste the parent conversation, repeated global rules, full tool output, or unrelated specifications into the handoff.
+
+Ticket authoring is not a factory role. The standing orchestrator normally uses Sol High, performs the full evidence and ticket-quality review once, and creates a founder-gated `factory:planned` issue. A build run never spawns a Workplan Manager or revalidates the ticket's prose and sections.
+
+## Minimal build-start checks
+
+Before claiming a new `factory:ready` issue, the build orchestrator runs `./scripts/factory-ticket-preflight.sh <issue-number>`. It checks only the shared lock-independent ticket invariants: one-ticket queue state, the `biz-factory-ticket:v2` execution header, exact local/GitHub `main` equality, the recorded merged dependency, and conflicts with another active factory branch, worktree, issue, or draft PR. Any base mismatch is returned to the standing orchestrator; the build run does not spend tokens determining whether drift is material.
 
 ## Worktree setup
 

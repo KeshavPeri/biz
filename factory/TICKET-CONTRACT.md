@@ -17,17 +17,21 @@ The ticket author must inspect, not merely cite:
 5. Any active or planned block that may own the same files, migration sequence, or contracts.
 6. Every open and closed `[Workplan ...]` issue and merged pull request needed to prove the proposed workplan/RTM IDs are not duplicated.
 
-## Queue-authored ticket state
+## Standing-orchestrator ticket state
 
-When no open workplan issue remains, the Workplan Manager may draft exactly one next safe ticket. The orchestrator creates it with `factory:planned`, never `factory:ready`, and stops that run without implementation. The founder alone releases it by replacing `factory:planned` with `factory:ready`.
+Ticket authoring is a separate standing-orchestrator task, normally using Sol High. When explicitly asked and no open workplan issue remains, the standing orchestrator may draft and create exactly one next safe ticket. It creates the issue with `factory:planned`, never `factory:ready`, then stops without implementation. The founder alone releases it by replacing `factory:planned` with `factory:ready`.
 
 Return BLOCKED and create no coding ticket when the next honest workplan step is Waiting, Manual, Gate, Deferred gap, owner-only, or unsupported by current repository evidence.
 
-Every queue-authored body begins with hidden metadata in this exact form, using the current 40-character base commit:
+Immediately before creating or materially revising the GitHub issue, the standing orchestrator acquires the shared factory lock. It releases only its own lock after the saved issue and labels are verified.
 
-`<!-- biz-factory-ticket:v1 base=<commit> -->`
+Every ticket body begins with hidden execution metadata in this exact form, using the current 40-character `main` commit:
 
-When the founder later releases the issue, READY_REVIEW validates the saved body against current evidence. It returns `ticket_action: KEEP` and does not regenerate the detailed contract when it remains valid. It returns `ticket_action: REPLACE` with one complete revised body only when material repository drift makes a change necessary. This preserves ticket quality while avoiding repeated authoring and rereading.
+`<!-- biz-factory-ticket:v2 base=<commit> dependency=<none|issue-number> route=<builder|senior_builder> security=<required|not-required> -->`
+
+The header exists only for cheap build routing. `dependency` names the one immediate prerequisite GitHub issue whose merged pull request must be on `main`, or `none` when all dependencies were already part of the authored base. `route` and `security` must match `factory/BUNDLING-RULES.md`.
+
+When the founder releases the issue, the build factory compares this header to current repository and GitHub state. It does not re-read the broad product context, verify the ticket sections, or spawn a planning agent. Any base mismatch is blocked and returned to the standing orchestrator for revalidation or revision.
 
 ## Required ticket body
 
@@ -126,5 +130,5 @@ Return BLOCKED rather than READY unless all are true:
 - No unresolved founder decision is hidden as an implementation detail.
 - The ticket is specific because the evidence is specific, not because it guesses implementation details.
 - The workplan/RTM IDs do not duplicate any open issue or already merged scope.
-- A queue-authored ticket is the single next safe block and is saved as `factory:planned`, never auto-released or auto-built.
-- A queue-authored ticket contains the versioned base-commit metadata needed for efficient READY validation.
+- A standing-orchestrator ticket is the single next safe block and is saved as `factory:planned`, never auto-released or built during ticket preparation.
+- The ticket contains the exact v2 execution metadata needed for cheap build-start validation and routing.

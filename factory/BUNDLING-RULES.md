@@ -20,7 +20,7 @@ Before proposing a block, read:
 
 Do not bundle a row marked Waiting, Manual, Gate, or Deferred gap unless the founder explicitly approves a separate remediation block.
 
-When the open workplan issue queue is empty, author exactly one next safe block rather than a speculative batch. Save it as `factory:planned` and stop; ticket creation and implementation must occur in different runs. If the next honest step is Manual, Gate, Waiting, Deferred, owner-only, or unproven, report that blocker instead of skipping ahead.
+When explicitly asked and the open workplan issue queue is empty, the standing orchestrator authors exactly one next safe block rather than a speculative batch. It saves the issue as `factory:planned` and stops; ticket preparation and factory implementation are separate tasks. If the next honest step is Manual, Gate, Waiting, Deferred, owner-only, or unproven, report that blocker instead of skipping ahead.
 
 ## Bundle rows only when all conditions hold
 
@@ -87,7 +87,7 @@ If uncertain between the two, route to `senior_builder`; do not enlarge the bloc
 
 ## Required task-packet fields
 
-The Workplan Manager must return a complete GitHub ticket that passes `factory/TICKET-CONTRACT.md` before a coding agent is dispatched. At minimum it includes:
+The standing orchestrator must create a complete GitHub ticket that passes `factory/TICKET-CONTRACT.md` before the founder releases it. The build factory trusts that released contract and does not repeat this quality review. At minimum the ticket includes:
 
 - block title and one-sentence outcome;
 - included workplan IDs and RTM IDs;

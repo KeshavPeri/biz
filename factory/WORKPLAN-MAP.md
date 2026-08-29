@@ -2,7 +2,7 @@
 
 **Snapshot date:** 2026-08-29
 **Workbook reviewed:** `/Users/keshav/Downloads/App MVP - Build Workplan.xlsx`
-**Repository baseline:** `85a3919 Merge pull request #8 from KeshavPeri/codex/workplan-4-contract-alignment`
+**Repository baseline:** `7f5a379 Merge pull request #10 from KeshavPeri/codex/workplan-9-creative-briefs`
 **Purpose:** give future Codex factory runs a versioned dependency and evidence map. This file is a planning index, not a replacement for the locked specifications, RTM, tests, or Git history.
 
 Block formation is controlled by `factory/BUNDLING-RULES.md`. The workplan map determines what is ready; the bundling rules determine how much of that ready work may enter one build ticket.
@@ -29,7 +29,7 @@ The workbook is the roadmap, but its status cells are not automatically synchron
 | Gate | Review, RTM, commit, or phase gate rather than a feature implementation. |
 | Deferred gap | RTM work not fully represented by the workbook task that originally carried it. |
 
-Only rows marked **Ready** may enter the `factory:ready` GitHub queue. GitHub issues and pull requests are the execution state; this map remains the workplan-to-RTM index. When no open workplan issue remains, the factory may use current verified evidence to author exactly one successor as `factory:planned`; the founder still controls release to `factory:ready`.
+Only rows marked **Ready** may enter the `factory:ready` GitHub queue. GitHub issues and pull requests are the execution state; this map remains the workplan-to-RTM index. When explicitly asked and no open workplan issue remains, the standing orchestrator may use current verified evidence to author exactly one successor as `factory:planned`; the scheduled build factory never authors tickets, and the founder still controls release to `factory:ready`.
 
 ## Reconciliation decisions
 
@@ -46,7 +46,7 @@ Only rows marked **Ready** may enter the `factory:ready` GitHub queue. GitHub is
 | Phases 0–6 | Workplan complete | Repository scaffold, locked specifications, `docs/rtm.md`, migrations, FastAPI and Expo foundation. |
 | Phase 7 | Workplan 7.1–7.14 complete; Bucket 1 is 12/18 | `docs/progress.md`; RTM Bucket 1. |
 | Phase 8 | Workplan 8.1–8.6 complete; Bucket 2 is 13/13 | `docs/progress.md`; RTM Bucket 2. |
-| Phase 9 | 9.1–9.12 complete; 9.13 ready; 9.14–9.19 pending | Merged PRs #5–#8 satisfy the Phase 10 dependency; RTM Bucket 3 is 14/32. |
+| Phase 9 | 9.1–9.12 complete; 9.13 in progress; 9.14–9.19 pending | Merged PRs #5–#8 satisfy the Phase 10 dependency; merged PR #10 builds B3-029. |
 | Phase 10 | 10.1–10.9 complete; Bucket 4 is 5/5 | Merged PRs #5–#8; `docs/progress.md`; B4-001–B4-005 are Built in RTM. Founder accepted the manual test as non-blocking and can run `docs/LOCAL-APP-TESTING.md` later. |
 | Phases 11–14 | Not started | Workbook, progress, and RTM. |
 
@@ -121,7 +121,7 @@ These require future factory tickets rather than reopening the historical workpl
 | 9.10 | Two-side summary request | 9.9 | Same | Complete | B3-019 Gate A only; real AI output/Gate B deliberately deferred to Phase 10. |
 | 9.11 | WeasyPrint contract generation | 9.10, 5.11 | Same | Complete | B3-023; `7257508`; `TEST-CONTRACT-FLOW` and template test. |
 | 9.12 | Three-mode contract signing | 9.11, 7.9 | Same | Complete | B3-025 plus contract slice of B3-028; exactly-once execution and Approval → Creating. |
-| 9.13 | Creating: brief, content and revisions | 9.12 | **10.9** | **In progress** | 9.13-A builds B3-029 versioned creative briefs. B3-028 content slice and B3-030–B3-032 remain; B3-021 is already Built. |
+| 9.13 | Creating: brief, content and revisions | 9.12 | **10.9** | **In progress** | 9.13-A built B3-029 versioned creative briefs in merged PR #10. B3-028 content slice and B3-030–B3-032 remain; B3-021 is already Built. |
 | 9.14 | Posted: live URL hard gate | 9.13 | Same | Waiting | B3-033. |
 | 9.15 | Payment tracking and states | 9.14 | Same | Waiting | B3-034 and B3-035. Automated reminders B3-037 also depend on Phase 12/deployment scheduling. |
 | 9.16 | Payment dispute overlay | 9.15 | Same | Waiting | B3-039. |
@@ -196,13 +196,21 @@ The normal G4 device check remains for the Approval contract card, drawn-signatu
 | 14.8 | Tag `v0.1` | 14.7 | Gate waiting | Owner-approved release tag. |
 | 14.9 | MVP market-research gate | 14.8 | Manual | Founder accepts the deployed research build. |
 
-## Installed Phase 10 queue
+## Completed Phase 10 queue
 
 | Issue | Workplan block | Queue state | Dependency |
 |---|---|---|---|
 | [#1](https://github.com/KeshavPeri/biz/issues/1) | 10-A · 10.1–10.2 | Closed / merged | PR #5 merged and B4-001 reconciled |
-| [#2](https://github.com/KeshavPeri/biz/issues/2) | 10-B · 10.3–10.5 | `factory:ready` | #1 merged and reconciled |
-| [#3](https://github.com/KeshavPeri/biz/issues/3) | 10-C · 10.6 | `factory:planned` | #2 merged and reconciled |
-| [#4](https://github.com/KeshavPeri/biz/issues/4) | 10-D · 10.7 | `factory:planned` | #3 merged and reconciled |
+| [#2](https://github.com/KeshavPeri/biz/issues/2) | 10-B · 10.3–10.5 | Closed / merged | PR #6 merged and B4-002 reconciled |
+| [#3](https://github.com/KeshavPeri/biz/issues/3) | 10-C · 10.6 | Closed / merged | PR #7 merged and B4-004 reconciled |
+| [#4](https://github.com/KeshavPeri/biz/issues/4) | 10-D · 10.7 | Closed / merged | PR #8 merged and B4-003/B4-005 reconciled |
 
-The next build run must select **#2 only**. Later issues receive `factory:ready` only after their named dependency is merged to `main`, repository evidence is reconciled, and the founder releases them. After #4 closes, automatic replenishment stops at manual workplan 10.8 rather than skipping it; 10.9 remains the Phase 10 reconciliation gate and neither belongs in an autonomous coding issue.
+No Phase 10 queue item remains open.
+
+## Current Phase 9 queue
+
+| Issue | Workplan block | RTM scope | Queue state | Dependency |
+|---|---|---|---|---|
+| [#9](https://github.com/KeshavPeri/biz/issues/9) | 9.13-A · versioned creative brief | B3-029 only | Closed / merged | PR #10 merged |
+
+Issue #9 was deliberately usage-bounded and does not complete workplan 9.13. B3-032 deliverable foundations, B3-030 content/revisions, B3-031 private labels, and the remaining B3-028 content-approval slice require later tickets. The scheduled factory does nothing until the founder releases one standing-orchestrator-authored ticket through `factory:ready`.

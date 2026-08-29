@@ -16,8 +16,8 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — workplan 9.13-A creative briefs is built and independently verified; the
-  founder's draft-PR review and short fictional role-switch UI walkthrough remain. Phase 10
+- **Current phase:** Phase 9 — workplan 9.13-A creative briefs is built, independently verified, and
+  merged through PR #10. The optional short fictional role-switch UI walkthrough remains. Phase 10
   remains complete; PRs #5–#8 are merged;
   B4-001–B4-005 and the linked B3-020/B3-021/B3-026 slices are Built and reconciled. The founder
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
@@ -762,9 +762,18 @@ here in one line so I can review or reverse it later.*
 - **Verify:** migration 028 applied to development after compatibility checks; QA and security passed after
   two focused security repairs. The final unchanged candidate passed brief flow **28/28**, Stage Engine
   **23/23**, summary gate **39/39**, term approvals **32/32**, maker-checker **10/10**, contract flow
-  **28/28**, RLS **4/4**, compile, strict TypeScript, lint, Expo web export and diff hygiene. The founder
-  still performs the short fictional role-switch UI walkthrough before merge; no instantaneous two-device
+  **28/28**, RLS **4/4**, compile, strict TypeScript, lint, Expo web export and diff hygiene. PR #10 is
+  merged; the optional short fictional role-switch UI walkthrough remains and no instantaneous two-device
   refresh is claimed.
+
+### 2026-08-29 — Standing-orchestrator ticket ownership
+- **Separated planning from execution:** the standing orchestrator now performs the full repository/
+  specification inspection and creates one detailed `factory:planned` ticket when asked. Scheduled
+  builds no longer replenish the queue or spawn a Workplan Manager to recheck ticket quality.
+- **Cheap build start:** a released ticket carries v2 metadata for base commit, dependency, builder, and
+  security routing. The factory checks only lock/queue state, exact main, dependency, routing, and active
+  conflicts. Any base drift is returned to the standing orchestrator; QA, security review, final
+  regression, isolated worktrees, founder release, and founder merge control remain unchanged.
 
 ### 2026-08-29 — Phase 10 close-out and factory refinement
 - **Closed Phase 10:** confirmed PRs #5–#8 merged, reconciled B4-001–B4-005 and linked Phase 9 Gate-B/
