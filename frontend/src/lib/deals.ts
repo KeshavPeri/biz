@@ -319,6 +319,51 @@ export async function acknowledgeCreativeBrief(
   return result.ok ? { ok: true, data: result.data } : { ok: false, message: result.message };
 }
 
+/* ── Canonical deliverable plan (workplan 9.13-B) ── */
+
+export type DeliverableContentFormat =
+  | 'reel' | 'static_post' | 'story' | 'carousel' | 'yt_video' | 'yt_short'
+  | 'blog' | 'ugc_photo' | 'podcast_read' | 'x_thread' | 'linkedin_post' | 'pinterest_pin';
+
+export type DeliverablePlatform =
+  | 'instagram' | 'tiktok' | 'youtube' | 'linkedin' | 'x' | 'pinterest' | 'threads' | 'podcast';
+
+export type CanonicalDeliverable = {
+  id: string;
+  sequence: number;
+  display_name: string;
+  content_format: DeliverableContentFormat;
+  platform: DeliverablePlatform;
+  posting_date: string | null;
+  posting_window_start: string | null;
+  posting_window_end: string | null;
+  location: string | null;
+  revision_max: number;
+  revision_current: number;
+  status: 'pending' | 'submitted' | 'in_revision' | 'approved' | 'posted';
+  available_actions: {
+    can_submit_content: false;
+    can_review_content: false;
+    can_submit_live_url: false;
+  };
+};
+
+export type CanonicalDeliverableState = {
+  deal_id: string;
+  stage: 'creating';
+  deliverables: CanonicalDeliverable[];
+  order: 'sequence_ascending';
+};
+
+export async function fetchCanonicalDeliverables(
+  dealId: string,
+): Promise<{ ok: true; data: CanonicalDeliverableState } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await getJson<CanonicalDeliverableState>(`/deals/${dealId}/deliverables`, token);
+  return result.ok ? { ok: true, data: result.data } : { ok: false, message: result.message };
+}
+
 export type ContractSignatureState = {
   signer_id: string;
   signer_name: string;

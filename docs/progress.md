@@ -16,18 +16,32 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — workplan 9.13-A creative briefs is built, independently verified, and
-  merged through PR #10. The optional short fictional role-switch UI walkthrough remains. Phase 10
+- **Current phase:** Phase 9 — workplan 9.13-A creative briefs is merged through PR #10, and the
+  9.13-B canonical deliverable foundation has passed independent QA, security review, and final regression
+  for issue #11's draft-review candidate. The optional
+  short fictional role-switch UI walkthrough remains. Phase 10
   remains complete; PRs #5–#8 are merged;
   B4-001–B4-005 and the linked B3-020/B3-021/B3-026 slices are Built and reconciled. The founder
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Return point:** continue Phase 9 at the next separately reviewed **9.13 Creating slice**, starting
-  with planned issue #11 for the B3-032 deliverable foundation before per-deliverable submission/revision
-  behavior. Issues #12–#15 form the dependency-blocked, approximately 80%-per-run queue through the
-  verified live-post gate. B3-029 is Built in 9.13-A; B3-028 remains In progress and B3-030–B3-032
-  remain Not started.
+- **Return point:** founder reviews draft PR #11's canonical-deliverable foundation; then continue
+  Phase 9 at the separately reviewed 9.13-C submission/revision slice after #11 merges and #12 is
+  revalidated. Issues #12–#15 remain dependency-blocked through the verified live-post gate. B3-029 and
+  B3-032 are Built; B3-028 remains In progress and B3-030/B3-031 remain Not started.
+  - **9.13-B BUILT (B3-032 canonical deliverables):** migration `029_canonical_deliverables.sql`
+    adds historical-compatible approved-summary provenance, safe sequence/timing/revision constraints,
+    canonical uniqueness, participant-only reads, and a backend-only deal-locked materialization RPC.
+    Exhaustive parser-to-database enum maps fail closed. Exact retries and concurrent calls return one
+    set and one metadata-only audit row; historical, partial, or differently sourced rows are preserved
+    and reported as conflicts. Future contract completion initializes before Creating advances, while
+    the first authoritative Creating read safely recovers older deals.
+  - **Creating deliverables UI:** every participant receives the same participant-safe, sequence-ordered
+    plan and sees one detailed card per deliverable with platform, format, exact date/inclusive window,
+    optional location, Round 0 of Y, and status. Loading, conflict, retry, and impossible-empty states are
+    honest. The existing terms and creative-brief cards remain, and content/review/live-link actions stay
+    unavailable for their separately reviewed slices. Focus refetch remains authoritative; no Realtime
+    claim is made.
   - **9.13-A BUILT (B3-029 creative briefs):** migration `028_creative_briefs.sql` removes authenticated
     participant and direct service-role table writes, retains least-privilege participant/service reads,
     adds nullable historical-compatible author/
@@ -407,8 +421,9 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **9.13 — Creating:** add the B3-032 deliverable foundation, then content submission/approval,
-   revision handling and the remaining B3-028 content slice. B3-029 and B3-021 are already Built.
+1. **9.13 — Creating:** founder-review and merge the B3-032 canonical-deliverable foundation, then
+   revalidate and build the separately reviewed content submission/approval and revision slices. B3-029
+   and B3-021 are already Built.
 2. **9.14 — Posted:** live-URL hard gate after 9.13 is merged.
 3. **9.15 — Payment:** manual payment tracking and states after 9.14 is merged.
 
@@ -751,6 +766,27 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-30 — Phase 9: canonical multi-deliverable foundation (9.13-B)
+- **Canonical boundary:** validated the latest approved summary with `TermsExtraction`, mapped only
+  explicit locked parser enums, and materialized the full ordered set through migration 029's deal- and
+  summary-locked RPC. New rows carry source provenance, exact timing/location/revision terms, pending
+  state and empty future proof fields. Participant and ordinary service-role table writes are revoked;
+  exact retry/concurrency is idempotent and conflicting existing rows are never rewritten or deleted.
+- **Product path:** added a thin authenticated Creating endpoint plus ordered participant-safe cards for
+  platform, format, date/window, optional location, revision count and status. Approval → Creating now
+  initializes the plan before stage completion, and Creating reads recover pre-migration deals. Existing
+  brief/terms surfaces remain intact; submission, approval, labels and live URLs stay unavailable.
+- **Evidence:** development migration 029 applied after confirming migration 028 markers. The
+  fictional JWT/API/database acceptance flow passes **17/17**, including one/many, concurrency,
+  RLS/direct-write denial, malformed/index/count/enum fail-closed cases, future-entry initialization,
+  partial-set preservation, minimal audit data and safe cleanup. The conservative affected floor also
+  passes: brief **28/28**, Stage Engine **23/23**, summary gate, term approvals **32/32**, maker-checker
+  **10/10**, contract flow **28/28**, RLS **4/4**, contract-alignment unit/integration **13/13**, contract
+  template, compile, strict TypeScript and diff hygiene. Independent QA and security passed with no
+  remediation. The complete final regression passed unchanged: deliverable **17/17**, brief **28/28**,
+  term approvals **32/32**, contract flow **28/28**, Stage Engine **23/23**, RLS **4/4**, backend compile,
+  strict TypeScript, lint (0 errors; 3 pre-existing warnings), Expo web export (36 routes), and diff hygiene.
 
 ### 2026-08-29 — Phase 9 queue partitioned for usage-bounded runs
 - **Queue:** authored and contract-linted issues #11–#15: canonical deliverables; draft submissions and

@@ -5,6 +5,7 @@ import { ContractSignSheet } from '@/components/deal/contract-sign-sheet';
 import { ContractAlignmentCard } from '@/components/deal/contract-alignment-card';
 import { TermsReviewCard } from '@/components/deal/terms-review-card';
 import { CreativeBriefCard } from '@/components/deal/creative-brief-card';
+import { DeliverablesCard } from '@/components/deal/deliverables-card';
 
 import {
   acceptDeal,
@@ -17,6 +18,7 @@ import {
   decideTermsSummary,
   fetchContract,
   fetchCreativeBriefs,
+  fetchCanonicalDeliverables,
   fetchSummaryChecklist,
   fetchTermsReview,
   generateContract,
@@ -33,6 +35,7 @@ import {
   type ContractState,
   type CreativeBriefContent,
   type CreativeBriefState,
+  type CanonicalDeliverableState,
   type SummaryChecklist,
   type TermsReviewState,
   type TransitionAction,
@@ -77,6 +80,9 @@ export function StickyActionBar({
   const [briefs, setBriefs] = useState<CreativeBriefState | null>(null);
   const [briefsLoading, setBriefsLoading] = useState(false);
   const [briefsError, setBriefsError] = useState<string | null>(null);
+  const [deliverables, setDeliverables] = useState<CanonicalDeliverableState | null>(null);
+  const [deliverablesLoading, setDeliverablesLoading] = useState(false);
+  const [deliverablesError, setDeliverablesError] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
   const alignmentStartRef = useRef<string | null>(null);
 
@@ -140,6 +146,28 @@ export function StickyActionBar({
     else setBriefs(null);
   }, [loadBriefs, thread.stage]);
 
+  const loadDeliverables = useCallback(async (showLoading = false) => {
+    if (thread.stage !== 'creating') return;
+    if (showLoading) {
+      setDeliverablesLoading(true);
+      setDeliverablesError(null);
+    }
+    const result = await fetchCanonicalDeliverables(thread.dealId);
+    if (result.ok) {
+      setDeliverables(result.data);
+      setDeliverablesError(null);
+    } else {
+      setDeliverables(null);
+      setDeliverablesError(result.message);
+    }
+    setDeliverablesLoading(false);
+  }, [thread.dealId, thread.stage]);
+
+  useEffect(() => {
+    if (thread.stage === 'creating') void loadDeliverables(true);
+    else setDeliverables(null);
+  }, [loadDeliverables, thread.stage]);
+
   // Generation is followed by one authoritative alignment start. The backend
   // reservation makes concurrent participants/idempotent refreshes safe.
   useEffect(() => {
@@ -160,8 +188,11 @@ export function StickyActionBar({
       void loadTerms();
       if (thread.stage === 'chatting') void loadSummary();
       if (thread.stage === 'approval') void loadContract();
-      if (thread.stage === 'creating') void loadBriefs();
-    }, [loadBriefs, loadContract, loadSummary, loadTerms, thread.stage]),
+      if (thread.stage === 'creating') {
+        void loadBriefs();
+        void loadDeliverables();
+      }
+    }, [loadBriefs, loadContract, loadDeliverables, loadSummary, loadTerms, thread.stage]),
   );
 
   useEffect(() => {
@@ -408,6 +439,15 @@ export function StickyActionBar({
         return (
           <View className="gap-2.5">
             {termsReview(true)}
+            {deliverables ? (
+              <DeliverablesCard state={deliverables} />
+            ) : deliverablesLoading ? (
+              <Waiting text="Loading the agreed deliverables…" />
+            ) : (
+              <Actions label="Agreed deliverables" error={deliverablesError}>
+                <InlineButton label="Retry" onPress={() => void loadDeliverables(true)} disabled={deliverablesLoading} />
+              </Actions>
+            )}
             {briefs ? (
               <CreativeBriefCard
                 state={briefs}
