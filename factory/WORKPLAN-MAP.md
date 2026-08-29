@@ -212,5 +212,10 @@ No Phase 10 queue item remains open.
 | Issue | Workplan block | RTM scope | Queue state | Dependency |
 |---|---|---|---|---|
 | [#9](https://github.com/KeshavPeri/biz/issues/9) | 9.13-A · versioned creative brief | B3-029 only | Closed / merged | PR #10 merged |
+| [#11](https://github.com/KeshavPeri/biz/issues/11) | 9.13-B · canonical deliverable foundation | B3-032 | `factory:planned` | All current prerequisites are merged |
+| [#12](https://github.com/KeshavPeri/biz/issues/12) | 9.13-C · submissions and revision requests | B3-030 slice | `factory:blocked` | #11 must merge; then standing-orchestrator base refresh |
+| [#13](https://github.com/KeshavPeri/biz/issues/13) | 9.13-D · checker-gated content approval | B3-030 + B3-028 content slice | `factory:blocked` | #12 must merge; then standing-orchestrator base refresh |
+| [#14](https://github.com/KeshavPeri/biz/issues/14) | 9.13-E · creator-private deliverable labels | B3-031 | `factory:blocked` | #13 must merge; then standing-orchestrator base refresh |
+| [#15](https://github.com/KeshavPeri/biz/issues/15) | 9.14 · verified live-post gate | B3-033 | `factory:blocked` | #14 must merge; then standing-orchestrator base refresh |
 
-Issue #9 was deliberately usage-bounded and does not complete workplan 9.13. B3-032 deliverable foundations, B3-030 content/revisions, B3-031 private labels, and the remaining B3-028 content-approval slice require later tickets. The scheduled factory does nothing until the founder releases one standing-orchestrator-authored ticket through `factory:ready`.
+The queue is partitioned for approximately 80% session allowances. Only #11 is currently eligible for founder release. Issues #12–#15 are deliberately dependency-blocked: after each predecessor merges, the standing orchestrator must inspect the new implementation, refresh the ticket's exact base and seams, replace `factory:blocked` with `factory:planned`, and wait for founder release. The scheduled factory does nothing until the founder marks exactly one ticket `factory:ready`.

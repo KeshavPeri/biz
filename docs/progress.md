@@ -24,8 +24,10 @@ up exactly where the last one left off, with zero context lost.
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
 - **Return point:** continue Phase 9 at the next separately reviewed **9.13 Creating slice**, starting
-  with the B3-032 deliverable foundation before per-deliverable submission/revision behavior. B3-029 is
-  Built in 9.13-A; B3-028 remains In progress and B3-030–B3-032 remain Not started.
+  with planned issue #11 for the B3-032 deliverable foundation before per-deliverable submission/revision
+  behavior. Issues #12–#15 form the dependency-blocked, approximately 80%-per-run queue through the
+  verified live-post gate. B3-029 is Built in 9.13-A; B3-028 remains In progress and B3-030–B3-032
+  remain Not started.
   - **9.13-A BUILT (B3-029 creative briefs):** migration `028_creative_briefs.sql` removes authenticated
     participant and direct service-role table writes, retains least-privilege participant/service reads,
     adds nullable historical-compatible author/
@@ -749,6 +751,12 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-29 — Phase 9 queue partitioned for usage-bounded runs
+- **Queue:** authored and contract-linted issues #11–#15: canonical deliverables; draft submissions and
+  revision requests; checker-gated content approval; creator-private labels; and the verified live-post
+  gate. #11 alone is `factory:planned`; #12–#15 remain dependency-blocked until each predecessor merges
+  and the standing orchestrator refreshes its exact base and code seams.
 
 ### 2026-08-29 — Phase 9: versioned creative briefs (9.13-A)
 - **Trust boundary:** removed direct participant and service-role brief writes and added one backend-only
