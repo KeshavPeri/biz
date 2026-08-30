@@ -17,17 +17,17 @@ up exactly where the last one left off, with zero context lost.
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
 - **Current phase:** Phase 9 — workplan 9.13-A creative briefs is merged through PR #10, and the
-  9.13-B canonical deliverable foundation has passed independent QA, security review, and final regression
-  for issue #11's draft-review candidate. The optional
+  9.13-B canonical deliverable foundation is merged through PR #16 after passing independent QA,
+  security review, and final regression. The optional
   short fictional role-switch UI walkthrough remains. Phase 10
   remains complete; PRs #5–#8 are merged;
   B4-001–B4-005 and the linked B3-020/B3-021/B3-026 slices are Built and reconciled. The founder
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Return point:** founder reviews draft PR #11's canonical-deliverable foundation; then continue
-  Phase 9 at the separately reviewed 9.13-C submission/revision slice after #11 merges and #12 is
-  revalidated. Issues #12–#15 remain dependency-blocked through the verified live-post gate. B3-029 and
+- **Return point:** issue #12 is the next separately reviewed 9.13-C submission/revision slice after
+  standing-orchestrator revalidation against merged PR #16. Issues #13–#15 remain dependency-blocked
+  through the verified live-post gate. B3-029 and
   B3-032 are Built; B3-028 remains In progress and B3-030/B3-031 remain Not started.
   - **9.13-B BUILT (B3-032 canonical deliverables):** migration `029_canonical_deliverables.sql`
     adds historical-compatible approved-summary provenance, safe sequence/timing/revision constraints,
@@ -766,6 +766,11 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-30 — PR #16 merged; next-ticket handoff
+- **Merge:** issue #11 closed through merged PR #16, placing migration 029 and the canonical deliverable
+  service/API/cards on `main`. The standing orchestrator synchronized the checkout and revalidated issue
+  #12 against those exact seams before returning it to the founder-controlled planned state.
 
 ### 2026-08-30 — Phase 9: canonical multi-deliverable foundation (9.13-B)
 - **Canonical boundary:** validated the latest approved summary with `TermsExtraction`, mapped only
