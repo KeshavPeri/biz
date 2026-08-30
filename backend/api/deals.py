@@ -66,6 +66,7 @@ from services.contract_service import contract_status, generate_contract, sign_c
 from services.contract_alignment import confirm_contract_alignment, start_contract_alignment
 from services.term_approvals import get_terms_review
 from services.brief_service import acknowledge_brief, create_brief, get_briefs
+from services.deliverable_service import get_deliverables
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
@@ -241,6 +242,18 @@ def terms_summary(deal_id: str, user_id: str = Depends(get_current_user_id)) -> 
 def creative_briefs(deal_id: str, user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
     try:
         return get_briefs(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get('/{deal_id}/deliverables')
+def canonical_deliverables(
+    deal_id: str,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return get_deliverables(deal_id, user_id, _client_ip(request))
     except DealError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 

@@ -677,6 +677,12 @@ def _finalize_if_ready(
         return
     current = _load_deal_for_transition(client, deal["id"])
     if current["stage"] == "approval":
+        # Creating must never complete with an empty canonical plan. The same
+        # locked, retry-safe boundary is also called by Creating reads to recover
+        # deals that reached this stage before migration 029 existed.
+        from services.deliverable_service import materialize_for_creating_entry
+
+        materialize_for_creating_entry(client, deal["id"], actor_id, ip_address)
         try:
             request_transition(deal["id"], actor_id, "creating", ip_address, system=True)
         except DealError:
