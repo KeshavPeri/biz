@@ -16,21 +16,20 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — workplan 9.13-D exact-submission content approval is built on the
-  issue #13 review candidate. Workplan 9.13-C draft submission/revision is merged through PR #17,
-  9.13-A creative briefs through PR #10, and 9.13-B canonical deliverables through PR #16. The
-  optional short fictional 9.13-D role-switch UI walkthrough remains. Phase 10
+- **Current phase:** Phase 9 — workplan 9.13-D exact-submission content approval is merged through
+  PR #18. Workplan 9.13-C draft submission/revision is merged through PR #17, 9.13-A creative briefs
+  through PR #10, and 9.13-B canonical deliverables through PR #16. The optional short fictional
+  9.13-D role-switch UI walkthrough remains. Phase 10
   remains complete; PRs #5–#8 are merged;
   B4-001–B4-005 and the linked B3-020/B3-021/B3-026 slices are Built and reconciled. The founder
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Return point:** issue #13 is a verified draft-PR candidate: independent QA/security passed and its
-  complete final regression passed on an unchanged source fingerprint. Additive development migrations 032
-  and 033 were applied after verifying their predecessors. Issues #14–#15 remain dependency-blocked through the
-  verified live-post gate. B3-028, B3-029, B3-030, and B3-032 are Built; B3-031 remains Not started,
-  so workplan 9.13 stays In progress.
-  - **9.13-D BUILT (B3-030 approval + B3-028 content slice):** migration
+- **Return point:** issue #14 has been revalidated against merged PR #18 and is the sole
+  founder-controlled planned ticket for creator-private deliverable labels. Issue #15 remains
+  dependency-blocked through the verified live-post gate. B3-028, B3-029, B3-030, and B3-032 are
+  Built; B3-031 remains Not started, so workplan 9.13 stays In progress.
+  - **9.13-D MERGED (B3-030 approval + B3-028 content slice):** migration
     `032_content_approval.sql` adds service-only exact-object held payloads and database-atomic direct
     approval, hold creation, checker release, and checker rejection. Every execution rechecks Creating,
     active brand roles, exact deliverable/revision/round/object identity, assigned checker, and the held
@@ -795,6 +794,14 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-30 — PR #18 merged; next-ticket handoff
+- **Merge:** issue #13 closed through merged PR #18, placing migrations 032–033 and exact direct or
+  checker-gated content approval on `main`.
+- **Queue:** the standing orchestrator synchronized the checkout, inspected the merged approval and
+  Creating UI seams, and revalidated issue #14 for one creator-owned label per canonical deliverable.
+  Labels remain Supabase-direct and owner-only; shared deal/content responses must expose no label or
+  existence hint. #14 alone returns to founder-controlled planned state.
 
 ### 2026-08-30 — PR #17 merged; next-ticket handoff
 - **Merge:** issue #12 closed through merged PR #17, placing migrations 030–031 and the secure

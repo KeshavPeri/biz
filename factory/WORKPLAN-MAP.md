@@ -2,7 +2,7 @@
 
 **Snapshot date:** 2026-08-30
 **Workbook reviewed:** `/Users/keshav/Downloads/App MVP - Build Workplan.xlsx`
-**Repository baseline:** `26f2f38 Merge pull request #17 from KeshavPeri/codex/workplan-12-submit-content-drafts`
+**Repository baseline:** `0ea9b5b Merge pull request #18 from KeshavPeri/codex/workplan-13-content-approval`
 **Purpose:** give future Codex factory runs a versioned dependency and evidence map. This file is a planning index, not a replacement for the locked specifications, RTM, tests, or Git history.
 
 Block formation is controlled by `factory/BUNDLING-RULES.md`. The workplan map determines what is ready; the bundling rules determine how much of that ready work may enter one build ticket.
@@ -46,7 +46,7 @@ Only rows marked **Ready** may enter the `factory:ready` GitHub queue. GitHub is
 | Phases 0–6 | Workplan complete | Repository scaffold, locked specifications, `docs/rtm.md`, migrations, FastAPI and Expo foundation. |
 | Phase 7 | Workplan 7.1–7.14 complete; Bucket 1 is 12/18 | `docs/progress.md`; RTM Bucket 1. |
 | Phase 8 | Workplan 8.1–8.6 complete; Bucket 2 is 13/13 | `docs/progress.md`; RTM Bucket 2. |
-| Phase 9 | 9.1–9.12 complete; 9.13 in progress; 9.14–9.19 pending | Merged PRs #5–#8 satisfy the Phase 10 dependency; PR #10 builds B3-029, PR #16 builds B3-032, and PR #17 builds the B3-030 submission/revision slice. |
+| Phase 9 | 9.1–9.12 complete; 9.13 in progress; 9.14–9.19 pending | Merged PRs #5–#8 satisfy the Phase 10 dependency; PR #10 builds B3-029, PR #16 builds B3-032, PR #17 builds submission/revision, and PR #18 completes B3-028/B3-030 approval. |
 | Phase 10 | 10.1–10.9 complete; Bucket 4 is 5/5 | Merged PRs #5–#8; `docs/progress.md`; B4-001–B4-005 are Built in RTM. Founder accepted the manual test as non-blocking and can run `docs/LOCAL-APP-TESTING.md` later. |
 | Phases 11–14 | Not started | Workbook, progress, and RTM. |
 
@@ -121,7 +121,7 @@ These require future factory tickets rather than reopening the historical workpl
 | 9.10 | Two-side summary request | 9.9 | Same | Complete | B3-019 Gate A only; real AI output/Gate B deliberately deferred to Phase 10. |
 | 9.11 | WeasyPrint contract generation | 9.10, 5.11 | Same | Complete | B3-023; `7257508`; `TEST-CONTRACT-FLOW` and template test. |
 | 9.12 | Three-mode contract signing | 9.11, 7.9 | Same | Complete | B3-025 plus contract slice of B3-028; exactly-once execution and Approval → Creating. |
-| 9.13 | Creating: brief, content and revisions | 9.12 | **10.9** | **In progress** | 9.13-A built B3-029 in PR #10; 9.13-B built B3-032 in PR #16; 9.13-C built secure submission/revision in PR #17; 9.13-D builds exact direct/checker-gated approval through migrations 032–033, completing B3-028/B3-030. B3-031 private labels remains, so 9.13 stays In progress. B3-021 is already Built. |
+| 9.13 | Creating: brief, content and revisions | 9.12 | **10.9** | **In progress** | 9.13-A built B3-029 in PR #10; 9.13-B built B3-032 in PR #16; 9.13-C built secure submission/revision in PR #17; 9.13-D built exact direct/checker-gated approval through migrations 032–033 in PR #18, completing B3-028/B3-030. B3-031 private labels remains, so 9.13 stays In progress. B3-021 is already Built. |
 | 9.14 | Posted: live URL hard gate | 9.13 | Same | Waiting | B3-033. |
 | 9.15 | Payment tracking and states | 9.14 | Same | Waiting | B3-034 and B3-035. Automated reminders B3-037 also depend on Phase 12/deployment scheduling. |
 | 9.16 | Payment dispute overlay | 9.15 | Same | Waiting | B3-039. |
@@ -214,8 +214,8 @@ No Phase 10 queue item remains open.
 | [#9](https://github.com/KeshavPeri/biz/issues/9) | 9.13-A · versioned creative brief | B3-029 only | Closed / merged | PR #10 merged |
 | [#11](https://github.com/KeshavPeri/biz/issues/11) | 9.13-B · canonical deliverable foundation | B3-032 | Closed / merged | PR #16 merged |
 | [#12](https://github.com/KeshavPeri/biz/issues/12) | 9.13-C · submissions and revision requests | B3-030 slice | Closed / merged | PR #17 merged |
-| [#13](https://github.com/KeshavPeri/biz/issues/13) | 9.13-D · checker-gated content approval | B3-030 + B3-028 content slice | `factory:planned` | Revalidated against merged PR #17; founder controls release |
-| [#14](https://github.com/KeshavPeri/biz/issues/14) | 9.13-E · creator-private deliverable labels | B3-031 | `factory:blocked` | #13 must merge; then standing-orchestrator base refresh |
+| [#13](https://github.com/KeshavPeri/biz/issues/13) | 9.13-D · checker-gated content approval | B3-030 + B3-028 content slice | Closed / merged | PR #18 merged |
+| [#14](https://github.com/KeshavPeri/biz/issues/14) | 9.13-E · creator-private deliverable labels | B3-031 | `factory:planned` | Revalidated against merged PR #18; founder controls release |
 | [#15](https://github.com/KeshavPeri/biz/issues/15) | 9.14 · verified live-post gate | B3-033 | `factory:blocked` | #14 must merge; then standing-orchestrator base refresh |
 
-The queue is partitioned for approximately 80% session allowances. Issue #13 is the sole planned successor and waits for founder release. Issues #14–#15 remain dependency-blocked: after each predecessor merges, the standing orchestrator must inspect the new implementation, refresh the ticket's exact base and seams, replace `factory:blocked` with `factory:planned`, and wait for founder release. The scheduled factory does nothing until the founder marks exactly one ticket `factory:ready`.
+The queue is partitioned for approximately 80% session allowances. Issue #14 is the sole planned successor and waits for founder release. Issue #15 remains dependency-blocked: after its predecessor merges, the standing orchestrator must inspect the new implementation, refresh the ticket's exact base and seams, replace `factory:blocked` with `factory:planned`, and wait for founder release. The scheduled factory does nothing until the founder marks exactly one ticket `factory:ready`.
