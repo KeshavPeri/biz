@@ -341,11 +341,31 @@ export type CanonicalDeliverable = {
   revision_max: number;
   revision_current: number;
   status: 'pending' | 'submitted' | 'in_revision' | 'approved' | 'posted';
+  content_ops_attention: boolean;
+  content_ops_reason: 'revision_rounds_exhausted' | null;
+  current_submission: ContentSubmission | null;
+  submission_history: ContentSubmission[];
   available_actions: {
-    can_submit_content: false;
-    can_review_content: false;
+    can_submit_content: boolean;
+    can_request_revision: boolean;
+    can_approve_content: false;
     can_submit_live_url: false;
   };
+};
+
+export type ContentSubmission = {
+  id: string;
+  round_number: number;
+  lifecycle: 'awaiting_review' | 'revision_requested' | 'approved';
+  original_filename: string;
+  mime_type: string;
+  size_bytes: number;
+  submitted_at: string;
+  submitted_by_name: string;
+  comment: string | null;
+  decided_at: string | null;
+  decided_by_name: string | null;
+  can_download: true;
 };
 
 export type CanonicalDeliverableState = {
@@ -362,6 +382,107 @@ export async function fetchCanonicalDeliverables(
   if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
   const result = await getJson<CanonicalDeliverableState>(`/deals/${dealId}/deliverables`, token);
   return result.ok ? { ok: true, data: result.data } : { ok: false, message: result.message };
+}
+
+const CONTENT_DRAFT_BUCKET = 'content-drafts';
+const MAX_CONTENT_DRAFT_BYTES = 100 * 1024 * 1024;
+const CONTENT_MIME_BY_EXTENSION: Record<string, string> = {
+  pdf: 'application/pdf',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  mp4: 'video/mp4',
+  mov: 'video/quicktime',
+};
+
+function contentMime(asset: DocumentPickerAsset): string | null {
+  const extension = asset.name.split('.').pop()?.toLowerCase() ?? '';
+  const fromName = CONTENT_MIME_BY_EXTENSION[extension];
+  if (!fromName) return null;
+  if (asset.mimeType && asset.mimeType !== fromName) return null;
+  return fromName;
+}
+
+export async function uploadContentDraft(
+  dealId: string,
+  deliverableId: string,
+  asset: DocumentPickerAsset,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!supabase) return { ok: false, message: 'You need to sign in again before uploading.' };
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const mimeType = contentMime(asset);
+  if (!mimeType) return { ok: false, message: 'Choose a PDF, JPEG, PNG, WebP, MP4, or MOV file with a matching extension.' };
+  try {
+    const bytes = await readDocumentBytes(asset.uri);
+    if (bytes.byteLength < 1 || bytes.byteLength > MAX_CONTENT_DRAFT_BYTES) {
+      return { ok: false, message: 'Choose a draft no larger than 100 MB.' };
+    }
+    const prepared = await postJson<{
+      reservation_id: string;
+      upload_path: string;
+      round_number: number;
+    }>(
+      `/deals/${dealId}/deliverables/${deliverableId}/content/prepare`,
+      { original_filename: asset.name, mime_type: mimeType, size_bytes: bytes.byteLength },
+      token,
+    );
+    if (!prepared.ok) return { ok: false, message: prepared.message };
+    const { error: uploadError } = await supabase.storage.from(CONTENT_DRAFT_BUCKET).upload(
+      prepared.data.upload_path,
+      bytes,
+      { contentType: mimeType, upsert: false },
+    );
+    if (uploadError) throw uploadError;
+    const submitted = await postJson<unknown>(
+      `/deals/${dealId}/deliverables/${deliverableId}/content/submit`,
+      {
+        reservation_id: prepared.data.reservation_id,
+        expected_round: prepared.data.round_number,
+      },
+      token,
+    );
+    if (!submitted.ok) {
+      // This succeeds only while unbound. If the response was lost after a
+      // successful bind, Storage RLS keeps the immutable submitted object.
+      await supabase.storage.from(CONTENT_DRAFT_BUCKET).remove([prepared.data.upload_path]);
+      return { ok: false, message: submitted.message };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, message: "Couldn't upload that draft. Check your connection and try again." };
+  }
+}
+
+export async function requestContentRevision(
+  dealId: string,
+  deliverableId: string,
+  revisionId: string,
+  comment: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<unknown>(
+    `/deals/${dealId}/deliverables/${deliverableId}/content/request-revision`,
+    { revision_id: revisionId, comment: comment.trim() },
+    token,
+  );
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
+}
+
+export async function getContentDraftDownload(
+  dealId: string,
+  deliverableId: string,
+  revisionId: string,
+): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await getJson<{ url: string }>(
+    `/deals/${dealId}/deliverables/${deliverableId}/content/${revisionId}/download`,
+    token,
+  );
+  return result.ok ? { ok: true, url: result.data.url } : { ok: false, message: result.message };
 }
 
 export type ContractSignatureState = {

@@ -6,6 +6,7 @@ import { ContractAlignmentCard } from '@/components/deal/contract-alignment-card
 import { TermsReviewCard } from '@/components/deal/terms-review-card';
 import { CreativeBriefCard } from '@/components/deal/creative-brief-card';
 import { DeliverablesCard } from '@/components/deal/deliverables-card';
+import { ContentSubmissionSheet, RevisionRequestSheet } from '@/components/deal/content-submission-sheet';
 
 import {
   acceptDeal,
@@ -21,21 +22,25 @@ import {
   fetchCanonicalDeliverables,
   fetchSummaryChecklist,
   fetchTermsReview,
+  getContentDraftDownload,
   generateContract,
   createCreativeBriefVersion,
   getContractDownload,
   overrideContractAlignment,
   proposeChecklistOverride,
   requestDealTransition,
+  requestContentRevision,
   requestTermsSummary,
   runContractAlignment,
   signContract,
+  uploadContentDraft,
   subscribeToTermApprovals,
   type DealThread,
   type ContractState,
   type CreativeBriefContent,
   type CreativeBriefState,
   type CanonicalDeliverableState,
+  type CanonicalDeliverable,
   type SummaryChecklist,
   type TermsReviewState,
   type TransitionAction,
@@ -83,6 +88,8 @@ export function StickyActionBar({
   const [deliverables, setDeliverables] = useState<CanonicalDeliverableState | null>(null);
   const [deliverablesLoading, setDeliverablesLoading] = useState(false);
   const [deliverablesError, setDeliverablesError] = useState<string | null>(null);
+  const [contentDeliverable, setContentDeliverable] = useState<CanonicalDeliverable | null>(null);
+  const [revisionDeliverable, setRevisionDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [signing, setSigning] = useState(false);
   const alignmentStartRef = useRef<string | null>(null);
 
@@ -340,6 +347,52 @@ export function StickyActionBar({
     setActing(false);
   }, [acting, loadBriefs, thread.dealId]);
 
+  const submitContent = useCallback(async (asset: Parameters<typeof uploadContentDraft>[2]) => {
+    if (!contentDeliverable || acting) return { ok: false as const, message: 'This deliverable changed. Refresh and try again.' };
+    setActing(true);
+    setDeliverablesError(null);
+    const result = await uploadContentDraft(thread.dealId, contentDeliverable.id, asset);
+    if (!result.ok) setDeliverablesError(result.message);
+    await loadDeliverables();
+    setActing(false);
+    return result;
+  }, [acting, contentDeliverable, loadDeliverables, thread.dealId]);
+
+  const submitRevisionRequest = useCallback(async (comment: string) => {
+    const submission = revisionDeliverable?.current_submission;
+    if (!revisionDeliverable || !submission || acting) {
+      return { ok: false as const, message: 'This submission changed. Refresh and try again.' };
+    }
+    setActing(true);
+    setDeliverablesError(null);
+    const result = await requestContentRevision(
+      thread.dealId,
+      revisionDeliverable.id,
+      submission.id,
+      comment,
+    );
+    if (!result.ok) setDeliverablesError(result.message);
+    await loadDeliverables();
+    setActing(false);
+    return result;
+  }, [acting, loadDeliverables, revisionDeliverable, thread.dealId]);
+
+  const downloadContent = useCallback(async (deliverableId: string, revisionId: string) => {
+    if (acting) return;
+    setActing(true);
+    setDeliverablesError(null);
+    const result = await getContentDraftDownload(thread.dealId, deliverableId, revisionId);
+    if (!result.ok) setDeliverablesError(result.message);
+    else {
+      try {
+        await Linking.openURL(result.url);
+      } catch {
+        setDeliverablesError('The secure draft link could not be opened. Please try again.');
+      }
+    }
+    setActing(false);
+  }, [acting, thread.dealId]);
+
   // ── Role / relationship derivations (rbac.md + deal-engine.md) ──
   const { stage, myRole, isDisputed } = thread;
   const isInitiator = thread.createdBy === userId;
@@ -440,7 +493,14 @@ export function StickyActionBar({
           <View className="gap-2.5">
             {termsReview(true)}
             {deliverables ? (
-              <DeliverablesCard state={deliverables} />
+              <DeliverablesCard
+                state={deliverables}
+                acting={acting}
+                error={deliverablesError}
+                onSubmit={setContentDeliverable}
+                onRequestRevision={setRevisionDeliverable}
+                onDownload={(deliverableId, revisionId) => void downloadContent(deliverableId, revisionId)}
+              />
             ) : deliverablesLoading ? (
               <Waiting text="Loading the agreed deliverables…" />
             ) : (
@@ -463,7 +523,6 @@ export function StickyActionBar({
                 <Text className="font-geist text-[12px] text-ink-3">Brief status is temporarily unavailable.</Text>
               </Actions>
             )}
-            <Waiting text={isCreator ? 'Content submission will open in the next Creating update.' : 'Content review will open in the next Creating update.'} />
           </View>
         );
 
@@ -511,6 +570,23 @@ export function StickyActionBar({
           contractId={contract.contract.id}
           onClose={() => setSigning(false)}
           onSign={submitSignature}
+        />
+      ) : null}
+      {contentDeliverable ? (
+        <ContentSubmissionSheet
+          visible
+          roundNumber={contentDeliverable.revision_current + 1}
+          roundMax={contentDeliverable.revision_max}
+          onClose={() => setContentDeliverable(null)}
+          onSubmit={submitContent}
+        />
+      ) : null}
+      {revisionDeliverable?.current_submission ? (
+        <RevisionRequestSheet
+          visible
+          roundNumber={revisionDeliverable.current_submission.round_number}
+          onClose={() => setRevisionDeliverable(null)}
+          onSubmit={submitRevisionRequest}
         />
       ) : null}
     </>

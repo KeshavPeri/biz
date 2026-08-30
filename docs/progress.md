@@ -16,19 +16,34 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — workplan 9.13-A creative briefs is merged through PR #10, and the
-  9.13-B canonical deliverable foundation is merged through PR #16 after passing independent QA,
-  security review, and final regression. The optional
+- **Current phase:** Phase 9 — workplan 9.13-C draft submission and revision requests passed independent
+  QA/security and the complete final regression on issue #12's isolated factory branch. Workplan 9.13-A
+  creative briefs is merged through PR #10, and the 9.13-B canonical deliverable foundation is merged
+  through PR #16. The optional
   short fictional role-switch UI walkthrough remains. Phase 10
   remains complete; PRs #5–#8 are merged;
   B4-001–B4-005 and the linked B3-020/B3-021/B3-026 slices are Built and reconciled. The founder
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Return point:** issue #12 is the next separately reviewed 9.13-C submission/revision slice after
-  standing-orchestrator revalidation against merged PR #16. Issues #13–#15 remain dependency-blocked
+- **Return point:** issue #12 is ready for founder review/shipping; after merge, revalidate #13 for the
+  separately gated approval slice. Issues #13–#15 remain dependency-blocked
   through the verified live-post gate. B3-029 and
-  B3-032 are Built; B3-028 remains In progress and B3-030/B3-031 remain Not started.
+  B3-032 are Built; B3-028 and B3-030 remain In progress and B3-031 remains Not started.
+  - **9.13-C IMPLEMENTED FOR REVIEW (B3-030 submission/revision slice):** migration
+    `030_content_submissions.sql` adds a private 100 MB bounded `content-drafts` bucket, one-time
+    creator upload reservations, MIME/signature verification, append-only submission provenance,
+    backend-only atomic submit/revision RPCs, per-round uniqueness and explicit awaiting-review state.
+    Only the named creator can submit; brand admin/maker can request a revision with an immutable
+    explanation; checker reads. Short-lived opaque backend downloads hide bucket paths.
+    Review-repair migration `031_content_submission_hardening.sql` removes authenticated raw-table
+    reads (history remains available through the safe API projection), caps current unbound reservations
+    at ten per creator/deliverable, and adds leased server cleanup of at most 25 expired objects per pass.
+  - **Rounds and exhaustion:** the saved submission increments `revision_current` exactly once;
+    requesting changes never increments it again. Exhaustion keeps the deal in Creating, marks the
+    deliverable for ops attention, writes metadata-only audit evidence, and enables neither a Payment
+    dispute nor another ordinary round. Final approval, live URLs and stage movement remain unavailable
+    for #13/later slices.
   - **9.13-B BUILT (B3-032 canonical deliverables):** migration `029_canonical_deliverables.sql`
     adds historical-compatible approved-summary provenance, safe sequence/timing/revision constraints,
     canonical uniqueness, participant-only reads, and a backend-only deal-locked materialization RPC.
@@ -421,9 +436,8 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **9.13 — Creating:** founder-review and merge the B3-032 canonical-deliverable foundation, then
-   revalidate and build the separately reviewed content submission/approval and revision slices. B3-029
-   and B3-021 are already Built.
+1. **9.13 — Creating:** independently review issue #12's submission/revision slice, run its one final
+   regression after review, then founder-review/merge; revalidate #13 for checker-gated approval.
 2. **9.14 — Posted:** live-URL hard gate after 9.13 is merged.
 3. **9.15 — Payment:** manual payment tracking and states after 9.14 is merged.
 
@@ -451,6 +465,10 @@ do not proceed. I'll resolve these at the start of my next session.*
 
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
+
+- 2026-08-30 — **Content draft boundary.** Drafts accept PDF/JPEG/PNG/WebP/MP4/MOV up to 100 MB.
+  Prepared opaque paths expire after one hour; bound objects cannot be overwritten/deleted. Participant
+  downloads use a five-minute HMAC-bound backend stream so Supabase bucket paths stay private.
 
 - 2026-08-29 — **Phase 10 manual gate deferred without blocking development.** The founder explicitly
   marked workplan 10.8 complete for sequencing and will perform the Expo Go/two-device/live-Gemini checks
@@ -766,6 +784,25 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-30 — Phase 9: content submissions and revision requests (9.13-C)
+- **Implementation:** added migration 030, private prepared creator uploads, file metadata/magic checks,
+  atomic append-only round submission, immutable brand revision decisions, role-derived participant
+  history/actions, secure opaque downloads, submission/revision sheets, and focus/action refetch.
+- **Safety:** direct authenticated and ordinary service writes are revoked; Storage path pivots,
+  overwrite/delete of bound evidence and public listing are denied. Exhausted rounds pause only the
+  affected deliverable for ops while the deal remains Creating. Approval/live-post behavior is absent.
+- **Review repair:** added migration 031 after security/QA review identified raw authenticated revision
+  projection and persistent abandoned reservations. Creator/admin/checker JWTs can no longer select the
+  raw path-bearing table. Active unbound reservations are capped and expired uploads use leased,
+  bounded, server-owned Storage cleanup with retry release.
+- **Evidence:** migrations 030 and 031 applied to development. Independent QA/security passed fingerprint
+  `6d6ad45c0e287f6a9bf3af2ddd58c08586056b42`, and the unchanged candidate's complete regression passes
+  with fictional cleanup: content **25/25**, deliverable **17/17**, brief **28/28**, Stage Engine
+  **23/23**, summary gate, term approvals **32/32**, maker-checker **10/10**, contract flow **28/28**,
+  RLS **4/4**, backend compile, strict TypeScript, lint (0 errors; 4 warnings), Expo web export, and diff
+  hygiene. Three lint warnings are pre-existing in `signature-pad`; one changed-file unused-variable warning
+  is retained to avoid invalidating the reviewed candidate and is a non-blocking cleanup item.
 
 ### 2026-08-30 — PR #16 merged; next-ticket handoff
 - **Merge:** issue #11 closed through merged PR #16, placing migration 029 and the canonical deliverable

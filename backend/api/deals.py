@@ -49,6 +49,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from core.auth import get_current_user_id
@@ -67,6 +68,13 @@ from services.contract_alignment import confirm_contract_alignment, start_contra
 from services.term_approvals import get_terms_review
 from services.brief_service import acknowledge_brief, create_brief, get_briefs
 from services.deliverable_service import get_deliverables
+from services.content_service import (
+    prepare_upload,
+    request_revision,
+    submission_download,
+    stream_submission,
+    submit_upload,
+)
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
@@ -146,6 +154,41 @@ class BriefCreateBody(BaseModel):
 
     expected_version: int = Field(ge=0)
     content: BriefContentBody
+
+
+class ContentPrepareBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    original_filename: str = Field(min_length=1, max_length=255)
+    mime_type: str = Field(min_length=1, max_length=100)
+    size_bytes: int
+
+    @field_validator('original_filename', 'mime_type')
+    @classmethod
+    def strip_content_text(cls, value: str) -> str:
+        return value.strip()
+
+
+class ContentSubmitBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    reservation_id: UUID
+    expected_round: int = Field(ge=1)
+
+
+class RevisionRequestBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    revision_id: UUID
+    comment: str = Field(min_length=3, max_length=1000)
+
+    @field_validator('comment')
+    @classmethod
+    def strip_revision_comment(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) < 3:
+            raise ValueError('Add a revision explanation of at least 3 characters.')
+        return value
 
 
 def _client_ip(request: Request) -> str:
@@ -286,6 +329,106 @@ def acknowledge_latest_creative_brief(
 ) -> dict[str, Any]:
     try:
         return acknowledge_brief(deal_id, str(brief_id), user_id, _client_ip(request))
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post('/{deal_id}/deliverables/{deliverable_id}/content/prepare')
+def prepare_content_upload(
+    deal_id: str,
+    deliverable_id: UUID,
+    body: ContentPrepareBody,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return prepare_upload(
+            deal_id,
+            str(deliverable_id),
+            user_id,
+            body.original_filename,
+            body.mime_type,
+            body.size_bytes,
+        )
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post('/{deal_id}/deliverables/{deliverable_id}/content/submit')
+def submit_content_upload(
+    deal_id: str,
+    deliverable_id: UUID,
+    body: ContentSubmitBody,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return submit_upload(
+            deal_id,
+            str(deliverable_id),
+            str(body.reservation_id),
+            body.expected_round,
+            user_id,
+            _client_ip(request),
+        )
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post('/{deal_id}/deliverables/{deliverable_id}/content/request-revision')
+def request_content_changes(
+    deal_id: str,
+    deliverable_id: UUID,
+    body: RevisionRequestBody,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return request_revision(
+            deal_id,
+            str(deliverable_id),
+            str(body.revision_id),
+            user_id,
+            body.comment,
+            _client_ip(request),
+        )
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get('/{deal_id}/deliverables/{deliverable_id}/content/{revision_id}/download')
+def download_content_submission(
+    deal_id: str,
+    deliverable_id: UUID,
+    revision_id: UUID,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        result = submission_download(
+            deal_id,
+            str(deliverable_id),
+            str(revision_id),
+            user_id,
+            _client_ip(request),
+        )
+        result['url'] = str(request.url_for(
+            'stream_content_download', revision_id=str(revision_id)
+        ).include_query_params(token=result.pop('download_token')))
+        return result
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get('/content-download/{revision_id}', name='stream_content_download')
+def stream_content_download(revision_id: UUID, token: str) -> StreamingResponse:
+    try:
+        body, mime_type, filename = stream_submission(str(revision_id), token)
+        safe_name = filename.replace('"', '').replace('\r', '').replace('\n', '')
+        return StreamingResponse(
+            body,
+            media_type=mime_type,
+            headers={'Content-Disposition': f'attachment; filename="{safe_name}"'},
+        )
     except DealError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 

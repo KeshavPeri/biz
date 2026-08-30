@@ -213,9 +213,9 @@ No Phase 10 queue item remains open.
 |---|---|---|---|---|
 | [#9](https://github.com/KeshavPeri/biz/issues/9) | 9.13-A · versioned creative brief | B3-029 only | Closed / merged | PR #10 merged |
 | [#11](https://github.com/KeshavPeri/biz/issues/11) | 9.13-B · canonical deliverable foundation | B3-032 | Closed / merged | PR #16 merged |
-| [#12](https://github.com/KeshavPeri/biz/issues/12) | 9.13-C · submissions and revision requests | B3-030 slice | `factory:planned` | #11 closed through merged PR #16; exact base and seams revalidated |
+| [#12](https://github.com/KeshavPeri/biz/issues/12) | 9.13-C · submissions and revision requests | B3-030 slice | `factory:review` | Independent QA/security and complete final regression passed; founder review pending draft PR |
 | [#13](https://github.com/KeshavPeri/biz/issues/13) | 9.13-D · checker-gated content approval | B3-030 + B3-028 content slice | `factory:blocked` | #12 must merge; then standing-orchestrator base refresh |
 | [#14](https://github.com/KeshavPeri/biz/issues/14) | 9.13-E · creator-private deliverable labels | B3-031 | `factory:blocked` | #13 must merge; then standing-orchestrator base refresh |
 | [#15](https://github.com/KeshavPeri/biz/issues/15) | 9.14 · verified live-post gate | B3-033 | `factory:blocked` | #14 must merge; then standing-orchestrator base refresh |
 
-The queue is partitioned for approximately 80% session allowances. Only #12 is currently eligible for founder release. Issues #13–#15 are deliberately dependency-blocked: after each predecessor merges, the standing orchestrator must inspect the new implementation, refresh the ticket's exact base and seams, replace `factory:blocked` with `factory:planned`, and wait for founder release. The scheduled factory does nothing until the founder marks exactly one ticket `factory:ready`.
+The queue is partitioned for approximately 80% session allowances. Issue #12 is ready for founder review after its draft PR is opened. Issues #13–#15 are deliberately dependency-blocked: after each predecessor merges, the standing orchestrator must inspect the new implementation, refresh the ticket's exact base and seams, replace `factory:blocked` with `factory:planned`, and wait for founder release. The scheduled factory does nothing until the founder marks exactly one ticket `factory:ready`.
