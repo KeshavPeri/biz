@@ -174,6 +174,77 @@ export function RevisionRequestSheet({
   );
 }
 
+export function ContentApprovalRejectSheet({
+  visible,
+  roundNumber,
+  onClose,
+  onSubmit,
+}: {
+  visible: boolean;
+  roundNumber: number;
+  onClose: () => void;
+  onSubmit: (comment: string) => Promise<Result>;
+}) {
+  const [comment, setComment] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    setComment('');
+    setBusy(false);
+    setError(null);
+  }, [visible, roundNumber]);
+
+  const confirm = async () => {
+    if (busy || comment.trim().length < 3) return;
+    setBusy(true);
+    setError(null);
+    const result = await onSubmit(comment.trim());
+    if (!result.ok) {
+      setError(result.message);
+      setBusy(false);
+      return;
+    }
+    setBusy(false);
+    onClose();
+  };
+
+  return (
+    <EditSheet
+      visible={visible}
+      onClose={() => { if (!busy) onClose(); }}
+      title={`Reject approval for round ${roundNumber}`}
+      subtitle="Explain why the maker's approval was not confirmed. The creator's submission remains awaiting brand review."
+      footer={
+        <Pressable
+          onPress={confirm}
+          disabled={busy || comment.trim().length < 3}
+          accessibilityRole="button"
+          className={`items-center rounded-full bg-ink py-3 ${busy || comment.trim().length < 3 ? 'opacity-40' : ''}`}
+        >
+          {busy ? <ActivityIndicator color="#FFFFFF" /> : (
+            <Text className="font-geist-semibold text-white">Reject approval</Text>
+          )}
+        </Pressable>
+      }
+    >
+      <TextInput
+        value={comment}
+        onChangeText={setComment}
+        editable={!busy}
+        multiline
+        maxLength={1000}
+        placeholder="Explain the rejection…"
+        placeholderTextColor="#7A7A7A"
+        className="min-h-32 rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-[13px] text-ink"
+      />
+      <Text className="mt-1 text-right font-geist text-[10.5px] text-ink-3">{comment.length}/1000</Text>
+      {error ? <Text className="mt-2 font-geist-medium text-[12px] text-status-critical">{error}</Text> : null}
+    </EditSheet>
+  );
+}
+
 function formatBytes(value: number | undefined): string {
   if (value == null) return 'Size checked during upload';
   if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;

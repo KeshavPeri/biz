@@ -47,6 +47,8 @@ export function DeliverablesCard({
   error,
   onSubmit,
   onRequestRevision,
+  onApprove,
+  onApprovalDecision,
   onDownload,
 }: {
   state: CanonicalDeliverableState;
@@ -54,6 +56,8 @@ export function DeliverablesCard({
   error: string | null;
   onSubmit: (deliverable: CanonicalDeliverable) => void;
   onRequestRevision: (deliverable: CanonicalDeliverable) => void;
+  onApprove: (deliverable: CanonicalDeliverable) => void;
+  onApprovalDecision: (deliverable: CanonicalDeliverable, decision: 'approve' | 'reject') => void;
   onDownload: (deliverableId: string, revisionId: string) => void;
 }) {
   return (
@@ -77,6 +81,8 @@ export function DeliverablesCard({
           acting={acting}
           onSubmit={() => onSubmit(deliverable)}
           onRequestRevision={() => onRequestRevision(deliverable)}
+          onApprove={() => onApprove(deliverable)}
+          onApprovalDecision={(decision) => onApprovalDecision(deliverable, decision)}
           onDownload={(revisionId) => onDownload(deliverable.id, revisionId)}
         />
       ))}
@@ -90,12 +96,16 @@ function DeliverableRow({
   acting,
   onSubmit,
   onRequestRevision,
+  onApprove,
+  onApprovalDecision,
   onDownload,
 }: {
   deliverable: CanonicalDeliverable;
   acting: boolean;
   onSubmit: () => void;
   onRequestRevision: () => void;
+  onApprove: () => void;
+  onApprovalDecision: (decision: 'approve' | 'reject') => void;
   onDownload: (revisionId: string) => void;
 }) {
   return (
@@ -156,6 +166,51 @@ function DeliverableRow({
       ) : (
         <Text className="border-t border-hairline pt-2 font-geist text-[10.5px] text-ink-3">No draft submitted yet.</Text>
       )}
+      {deliverable.content_approval ? (
+        <View className={`rounded-lg px-2.5 py-2 ${
+          deliverable.content_approval.status === 'rejected'
+            ? 'bg-status-critical-tint'
+            : deliverable.content_approval.status === 'approved'
+              ? 'bg-status-good-tint'
+              : 'bg-cane-1'
+        }`}>
+          <Text className="font-geist-semibold text-[11.5px] text-ink">
+            {deliverable.content_approval.status === 'pending'
+              ? `Awaiting checker · ${deliverable.content_approval.checker_name}`
+              : deliverable.content_approval.status === 'approved'
+                ? `Checker confirmed ${deliverable.content_approval.maker_name}'s approval`
+                : `Checker rejected ${deliverable.content_approval.maker_name}'s approval`}
+          </Text>
+          <Text className="mt-0.5 font-geist text-[10.5px] text-ink-2">
+            Maker: {deliverable.content_approval.maker_name} · Round {deliverable.content_approval.round_number}
+          </Text>
+          {deliverable.content_approval.comment ? (
+            <Text className="mt-1 font-geist text-[10.5px] text-ink-2">
+              Explanation: {deliverable.content_approval.comment}
+            </Text>
+          ) : null}
+          {deliverable.content_approval.can_decide ? (
+            <View className="mt-2 flex-row gap-2">
+              <Pressable
+                onPress={() => onApprovalDecision('reject')}
+                disabled={acting}
+                accessibilityRole="button"
+                className="flex-1 items-center rounded-full border border-hairline bg-surface-card py-2"
+              >
+                <Text className="font-geist-semibold text-[11.5px] text-ink">Reject</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => onApprovalDecision('approve')}
+                disabled={acting}
+                accessibilityRole="button"
+                className="flex-1 items-center rounded-full bg-ink py-2"
+              >
+                <Text className="font-geist-semibold text-[11.5px] text-white">Confirm approval</Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
       {deliverable.available_actions.can_submit_content ? (
         <Pressable
           onPress={onSubmit}
@@ -178,9 +233,19 @@ function DeliverableRow({
           <Text className="font-geist-semibold text-[12px] text-ink">Request revision</Text>
         </Pressable>
       ) : null}
-      {deliverable.status === 'submitted' ? (
+      {deliverable.available_actions.can_approve_content ? (
+        <Pressable
+          onPress={onApprove}
+          disabled={acting}
+          accessibilityRole="button"
+          className={`items-center rounded-full bg-ink py-2.5 ${acting ? 'opacity-50' : ''}`}
+        >
+          <Text className="font-geist-semibold text-[12px] text-white">Approve content</Text>
+        </Pressable>
+      ) : null}
+      {deliverable.status === 'submitted' && !deliverable.available_actions.can_approve_content && !deliverable.content_approval ? (
         <Text className="font-geist text-[10.5px] text-ink-3">
-          Final approval is not available yet; this slice supports revision requests only.
+          This submission is awaiting brand review.
         </Text>
       ) : null}
     </View>

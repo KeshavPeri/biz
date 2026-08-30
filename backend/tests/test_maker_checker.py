@@ -187,12 +187,13 @@ def main() -> None:
         check("no checker required → initiate executes directly", r.status_code == 200 and r.json()["status"] == "executed")
 
         # ── 2. Config gating: checker required → held (pending request) ───────
-        admin.table("maker_checker_config").insert(
-            {"brand_id": ids["brand"], "action_type": "content_approval", "requires_checker": True}
+        admin.table("maker_checker_config").upsert(
+            {"brand_id": ids["brand"], "action_type": "payment_release", "requires_checker": True},
+            on_conflict="brand_id,action_type",
         ).execute()
         r = client.post(
             "/maker-checker/initiate",
-            json={"deal_id": ids["deal"], "action_type": "content_approval"},
+            json={"deal_id": ids["deal"], "action_type": "payment_release"},
             headers=auth_header(maker_token),
         )
         held = r.json()

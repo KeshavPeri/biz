@@ -121,7 +121,7 @@ These require future factory tickets rather than reopening the historical workpl
 | 9.10 | Two-side summary request | 9.9 | Same | Complete | B3-019 Gate A only; real AI output/Gate B deliberately deferred to Phase 10. |
 | 9.11 | WeasyPrint contract generation | 9.10, 5.11 | Same | Complete | B3-023; `7257508`; `TEST-CONTRACT-FLOW` and template test. |
 | 9.12 | Three-mode contract signing | 9.11, 7.9 | Same | Complete | B3-025 plus contract slice of B3-028; exactly-once execution and Approval → Creating. |
-| 9.13 | Creating: brief, content and revisions | 9.12 | **10.9** | **In progress** | 9.13-A built B3-029 in PR #10; 9.13-B built B3-032 in PR #16; 9.13-C built the secure B3-030 submission/revision slice in PR #17. Approval still leaves B3-028/B3-030 In progress; B3-031 remains. B3-021 is already Built. |
+| 9.13 | Creating: brief, content and revisions | 9.12 | **10.9** | **In progress** | 9.13-A built B3-029 in PR #10; 9.13-B built B3-032 in PR #16; 9.13-C built secure submission/revision in PR #17; 9.13-D builds exact direct/checker-gated approval through migrations 032–033, completing B3-028/B3-030. B3-031 private labels remains, so 9.13 stays In progress. B3-021 is already Built. |
 | 9.14 | Posted: live URL hard gate | 9.13 | Same | Waiting | B3-033. |
 | 9.15 | Payment tracking and states | 9.14 | Same | Waiting | B3-034 and B3-035. Automated reminders B3-037 also depend on Phase 12/deployment scheduling. |
 | 9.16 | Payment dispute overlay | 9.15 | Same | Waiting | B3-039. |

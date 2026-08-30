@@ -345,12 +345,28 @@ export type CanonicalDeliverable = {
   content_ops_reason: 'revision_rounds_exhausted' | null;
   current_submission: ContentSubmission | null;
   submission_history: ContentSubmission[];
+  content_approval: ContentApprovalState | null;
   available_actions: {
     can_submit_content: boolean;
     can_request_revision: boolean;
-    can_approve_content: false;
+    can_approve_content: boolean;
     can_submit_live_url: false;
   };
+};
+
+export type ContentApprovalState = {
+  request_id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  maker_id: string;
+  maker_name: string;
+  checker_id: string;
+  checker_name: string;
+  revision_id: string;
+  round_number: number;
+  comment: string | null;
+  created_at: string;
+  decided_at: string | null;
+  can_decide: boolean;
 };
 
 export type ContentSubmission = {
@@ -466,6 +482,36 @@ export async function requestContentRevision(
   const result = await postJson<unknown>(
     `/deals/${dealId}/deliverables/${deliverableId}/content/request-revision`,
     { revision_id: revisionId, comment: comment.trim() },
+    token,
+  );
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
+}
+
+export async function approveContentSubmission(
+  dealId: string,
+  deliverableId: string,
+  revisionId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<unknown>(
+    `/deals/${dealId}/deliverables/${deliverableId}/content/approve`,
+    { revision_id: revisionId },
+    token,
+  );
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
+}
+
+export async function decideContentApproval(
+  requestId: string,
+  decision: 'approve' | 'reject',
+  comment?: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<unknown>(
+    `/maker-checker/requests/${requestId}/decide`,
+    { decision, comment: comment?.trim() || null },
     token,
   );
   return result.ok ? { ok: true } : { ok: false, message: result.message };

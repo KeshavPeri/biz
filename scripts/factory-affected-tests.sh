@@ -54,7 +54,8 @@ while IFS= read -r changed_path; do
   esac
 
   case "$changed_path" in
-    backend/services/content_service.py|backend/migrations/*content*submission*.sql|backend/tests/test_content_flow.py|frontend/src/components/deal/content-submission-sheet.tsx)
+    backend/services/content_service.py|backend/services/maker_checker.py|backend/api/maker_checker.py|backend/migrations/*content*.sql|backend/tests/test_content_flow.py|backend/tests/test_content_approval.py|frontend/src/components/deal/content-submission-sheet.tsx)
+      add_command 'backend/.venv/bin/python backend/tests/test_content_approval.py'
       add_command 'backend/.venv/bin/python backend/tests/test_content_flow.py'
       add_command 'backend/.venv/bin/python backend/tests/test_deliverable_flow.py'
       add_command 'backend/.venv/bin/python backend/tests/test_stage_engine.py'

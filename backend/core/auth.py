@@ -7,12 +7,19 @@ the caller's profile id — the server never trusts a client-supplied identity
 themselves, because the service_role client bypasses RLS.
 """
 
+import httpx
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from core.supabase_client import get_supabase
+from core.config import settings
 
 _bearer = HTTPBearer(auto_error=False)
+_auth_http = httpx.Client(
+    base_url=settings.SUPABASE_URL,
+    headers={"apikey": settings.SUPABASE_SERVICE_ROLE_KEY},
+    timeout=10,
+)
 
 
 def get_current_user_id(
@@ -25,19 +32,36 @@ def get_current_user_id(
             detail="Missing authentication.",
         )
 
-    # Authoritative check: ask Supabase Auth to validate the JWT. Adds no secret
-    # to our config and rejects tampered/expired tokens.
+    # Authoritative check: ask Supabase Auth to validate the JWT. The dedicated
+    # HTTP pool is thread-safe and carries each bearer token only on its request;
+    # unlike GoTrue's stateful client it cannot swap sessions under concurrency.
     try:
-        response = get_supabase().auth.get_user(credentials.credentials)
-    except Exception as exc:  # network / malformed token
+        response = _auth_http.get(
+            "/auth/v1/user",
+            headers={"Authorization": f"Bearer {credentials.credentials}"},
+        )
+    except httpx.HTTPError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not verify your session.",
         ) from exc
 
-    if response is None or response.user is None:
+    if response.status_code in {401, 403}:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session.",
         )
-    return response.user.id
+    try:
+        response.raise_for_status()
+        user_id = response.json().get("id")
+    except (httpx.HTTPError, ValueError, AttributeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not verify your session.",
+        ) from exc
+    if not isinstance(user_id, str) or not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session.",
+        )
+    return user_id
