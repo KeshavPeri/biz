@@ -16,21 +16,20 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — workplan 9.13-C draft submission and revision requests passed independent
-  QA/security and the complete final regression on issue #12's isolated factory branch. Workplan 9.13-A
-  creative briefs is merged through PR #10, and the 9.13-B canonical deliverable foundation is merged
-  through PR #16. The optional
-  short fictional role-switch UI walkthrough remains. Phase 10
+- **Current phase:** Phase 9 — workplan 9.13-C draft submission and revision requests is merged through
+  PR #17. Workplan 9.13-A creative briefs is merged through PR #10, and the 9.13-B canonical
+  deliverable foundation is merged through PR #16. The optional short fictional 9.13-C role-switch UI
+  walkthrough remains. Phase 10
   remains complete; PRs #5–#8 are merged;
   B4-001–B4-005 and the linked B3-020/B3-021/B3-026 slices are Built and reconciled. The founder
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Return point:** issue #12 is ready for founder review/shipping; after merge, revalidate #13 for the
-  separately gated approval slice. Issues #13–#15 remain dependency-blocked
-  through the verified live-post gate. B3-029 and
-  B3-032 are Built; B3-028 and B3-030 remain In progress and B3-031 remains Not started.
-  - **9.13-C IMPLEMENTED FOR REVIEW (B3-030 submission/revision slice):** migration
+- **Return point:** issue #13 has been revalidated against merged PR #17 and is the sole
+  founder-controlled planned ticket for the separately gated content-approval slice. Issues #14–#15
+  remain dependency-blocked through the verified live-post gate. B3-029 and B3-032 are Built; B3-028
+  and B3-030 remain In progress and B3-031 remains Not started.
+  - **9.13-C MERGED (B3-030 submission/revision slice):** migration
     `030_content_submissions.sql` adds a private 100 MB bounded `content-drafts` bucket, one-time
     creator upload reservations, MIME/signature verification, append-only submission provenance,
     backend-only atomic submit/revision RPCs, per-round uniqueness and explicit awaiting-review state.
@@ -784,6 +783,14 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-30 — PR #17 merged; next-ticket handoff
+- **Merge:** issue #12 closed through merged PR #17, placing migrations 030–031 and the secure
+  per-deliverable content submission/revision loop on `main`.
+- **Queue:** the standing orchestrator synchronized the checkout, inspected the merged service/API/UI
+  seams, and revalidated issue #13 for exact-submission approval. Checker rejection is constrained to
+  rejecting the held maker action while leaving the submission awaiting review; it cannot silently act
+  as a maker-authored revision request. #13 alone returns to founder-controlled planned state.
 
 ### 2026-08-30 — Phase 9: content submissions and revision requests (9.13-C)
 - **Implementation:** added migration 030, private prepared creator uploads, file metadata/magic checks,
