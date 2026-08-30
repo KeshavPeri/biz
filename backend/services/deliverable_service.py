@@ -14,6 +14,7 @@ from supabase import Client
 from core.supabase_client import get_supabase
 from services.stage_engine import DealError, _load_deal_for_transition, _participant_role
 from services.term_extraction import TermsExtraction
+from services.content_service import participant_content_view
 
 
 CONTENT_FORMAT_MAP: dict[str, str] = {
@@ -148,6 +149,33 @@ def _materialize(
 
     summary = _latest_approved_summary(client, deal_id)
     count, items = _canonical_items(summary['structured_terms'])
+    existing = (
+        client.table('deliverables')
+        .select(
+            'id,source_summary_id,sequence,content_format,platform,posting_date,'
+            'posting_window_start,posting_window_end,location,revision_max'
+        )
+        .eq('deal_id', deal_id)
+        .order('sequence')
+        .execute()
+        .data
+    )
+    if existing:
+        matches = len(existing) == count
+        for row, item in zip(existing, items, strict=False):
+            matches = matches and all(
+                row.get(key) == item.get(key)
+                for key in (
+                    'sequence', 'content_format', 'platform', 'posting_date',
+                    'posting_window_start', 'posting_window_end', 'location', 'revision_max',
+                )
+            ) and row.get('source_summary_id') == summary['id']
+        if matches:
+            return {
+                'outcome': 'existing', 'idempotent': True,
+                'deal_id': deal_id, 'source_summary_id': summary['id'], 'count': count,
+            }
+        raise DealError(409, 'The existing deliverable plan conflicts with the approved terms. Nothing was changed.')
     try:
         return client.rpc(
             'materialize_canonical_deliverables',
@@ -188,7 +216,8 @@ def get_deliverables(
         client.table('deliverables')
         .select(
             'id,sequence,content_format,platform,posting_date,posting_window_start,'
-            'posting_window_end,location,revision_max,revision_current,status'
+            'posting_window_end,location,revision_max,revision_current,status,'
+            'content_ops_attention,content_ops_reason'
         )
         .eq('deal_id', deal_id)
         .order('sequence')
@@ -198,17 +227,11 @@ def get_deliverables(
     return {
         'deal_id': deal_id,
         'stage': 'creating',
-        'deliverables': [
-            {
-                **row,
-                'display_name': f"Deliverable {row['sequence']}",
-                'available_actions': {
-                    'can_submit_content': False,
-                    'can_review_content': False,
-                    'can_submit_live_url': False,
-                },
-            }
-            for row in rows
-        ],
+        'deliverables': participant_content_view(
+            client,
+            deal_id,
+            user_id,
+            [{**row, 'display_name': f"Deliverable {row['sequence']}"} for row in rows],
+        ),
         'order': 'sequence_ascending',
     }

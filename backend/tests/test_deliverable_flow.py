@@ -252,17 +252,27 @@ def main() -> None:
         )
 
         participant_payloads = [call('GET', f'/deals/{multi_deal}/deliverables', actor) for actor in ('C', 'B', 'K')]
+        shared_rows = [
+            [{key: value for key, value in row.items() if key != 'available_actions'} for row in response.json()['deliverables']]
+            for response in participant_payloads
+        ]
         check(
             'all participant roles receive the same stable ordered safe plan',
             all(response.status_code == 200 for response in participant_payloads)
-            and all(response.json()['deliverables'] == participant_payloads[0].json()['deliverables'] for response in participant_payloads[1:])
+            and all(rows == shared_rows[0] for rows in shared_rows[1:])
             and [row['display_name'] for row in participant_payloads[0].json()['deliverables']] == ['Deliverable 1', 'Deliverable 2'],
         )
         safe_text = str(participant_payloads[0].json()).lower()
         check(
-            'API hides raw summary, provenance, audit, IP, proof, and later write controls',
+            'API hides raw summary, provenance, audit, IP, proof, and later-slice controls',
             all(term not in safe_text for term in ('structured_terms', 'source_summary_id', 'audit', 'ip_address', 'approved_content_url', 'live_post_url'))
-            and all(not any(row['available_actions'].values()) for row in participant_payloads[0].json()['deliverables']),
+            and all(row['available_actions']['can_submit_content'] for row in participant_payloads[0].json()['deliverables'])
+            and all(
+                not row['available_actions']['can_request_revision']
+                and not row['available_actions']['can_approve_content']
+                and not row['available_actions']['can_submit_live_url']
+                for payload in participant_payloads for row in payload.json()['deliverables']
+            ),
         )
 
         audit_rows = admin.table('audit_log').select('action,metadata').eq('entity_id', multi_deal).eq(
