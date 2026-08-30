@@ -1,11 +1,17 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { PrivateDeliverableLabelPicker } from '@/components/deal/private-deliverable-label-picker';
 import type {
   CanonicalDeliverable,
   CanonicalDeliverableState,
   DeliverableContentFormat,
   DeliverablePlatform,
+  ParticipantRole,
 } from '@/lib/deals';
+import type {
+  PrivateDeliverableLabel,
+  PrivateDeliverableLabelMap,
+} from '@/lib/private-deliverable-labels';
 
 const FORMAT_LABELS: Record<DeliverableContentFormat, string> = {
   reel: 'Reel',
@@ -50,6 +56,9 @@ export function DeliverablesCard({
   onApprove,
   onApprovalDecision,
   onDownload,
+  myRole,
+  privateLabels,
+  onPrivateLabelChange,
 }: {
   state: CanonicalDeliverableState;
   acting: boolean;
@@ -59,6 +68,9 @@ export function DeliverablesCard({
   onApprove: (deliverable: CanonicalDeliverable) => void;
   onApprovalDecision: (deliverable: CanonicalDeliverable, decision: 'approve' | 'reject') => void;
   onDownload: (deliverableId: string, revisionId: string) => void;
+  myRole: ParticipantRole | null;
+  privateLabels: PrivateDeliverableLabelMap;
+  onPrivateLabelChange: (deliverableId: string, value: PrivateDeliverableLabel | null) => void;
 }) {
   return (
     <View className="gap-3 rounded-2xl border border-hairline bg-surface-card p-3">
@@ -84,6 +96,9 @@ export function DeliverablesCard({
           onApprove={() => onApprove(deliverable)}
           onApprovalDecision={(decision) => onApprovalDecision(deliverable, decision)}
           onDownload={(revisionId) => onDownload(deliverable.id, revisionId)}
+          myRole={myRole}
+          privateLabel={privateLabels[deliverable.id] ?? null}
+          onPrivateLabelChange={(value) => onPrivateLabelChange(deliverable.id, value)}
         />
       ))}
       {error ? <Text className="font-geist-medium text-[12px] text-status-critical">{error}</Text> : null}
@@ -99,6 +114,9 @@ function DeliverableRow({
   onApprove,
   onApprovalDecision,
   onDownload,
+  myRole,
+  privateLabel,
+  onPrivateLabelChange,
 }: {
   deliverable: CanonicalDeliverable;
   acting: boolean;
@@ -107,6 +125,9 @@ function DeliverableRow({
   onApprove: () => void;
   onApprovalDecision: (decision: 'approve' | 'reject') => void;
   onDownload: (revisionId: string) => void;
+  myRole: ParticipantRole | null;
+  privateLabel: PrivateDeliverableLabel | null;
+  onPrivateLabelChange: (value: PrivateDeliverableLabel | null) => void;
 }) {
   return (
     <View className="gap-2 rounded-xl bg-surface-recess p-3">
@@ -124,6 +145,14 @@ function DeliverableRow({
       <Detail label="Posting" value={postingLabel(deliverable)} />
       {deliverable.location ? <Detail label="Location" value={deliverable.location} /> : null}
       <Detail label="Revisions" value={`Round ${deliverable.revision_current} of ${deliverable.revision_max}`} />
+      {myRole === 'creator' ? (
+        <PrivateDeliverableLabelPicker
+          deliverableName={deliverable.display_name}
+          value={privateLabel}
+          acting={acting}
+          onChange={onPrivateLabelChange}
+        />
+      ) : null}
       {deliverable.content_ops_attention ? (
         <View className="rounded-lg bg-status-critical-tint px-2.5 py-2">
           <Text className="font-geist-semibold text-[11px] text-status-critical">Revision rounds exhausted</Text>
