@@ -10,9 +10,9 @@ Runs on the service_role client (bypasses RLS), so this module enforces every
 rule itself and never trusts the caller's identity — that is verified upstream by
 core.auth.get_current_user_id.
 
-SCOPE (Cluster C): this manages the request LIFECYCLE only. It does NOT execute
-the real deal-stage action (payment release / contract signing / content
-approval) — that wiring is Phase 9. "Executed" here means logged + allowed.
+Generic payment-release requests still exercise only the lifecycle mechanism.
+Contract signing and content approval delegate to their owning services so a
+request can never become approved separately from its held action.
 """
 
 from datetime import datetime, timezone
@@ -126,8 +126,9 @@ def initiate_action(
     # A real contract-signing approval must carry the validated, snapshotted
     # signature created by contract_service. The generic endpoint cannot create
     # an empty request that blocks the actual deal flow.
-    if action_type == "contract_signing" and action_payload is None:
-        raise MakerCheckerError(409, "Start contract signing from the contract card in this deal.")
+    if action_type in {"contract_signing", "content_approval"} and action_payload is None:
+        action_label = "contract signing" if action_type == "contract_signing" else "content approval"
+        raise MakerCheckerError(409, f"Start {action_label} from its card in this deal.")
 
     if not _requires_checker(client, brand_id, action_type):
         # No checker gate — the caller's owning service executes the action.
@@ -249,6 +250,16 @@ def decide_request(
         except Exception as exc:
             # Avoid importing DealError at module load (stage_engine imports this
             # module through contract_service). Preserve its friendly contract.
+            if hasattr(exc, "status_code") and hasattr(exc, "detail"):
+                raise MakerCheckerError(exc.status_code, exc.detail) from exc
+            raise
+
+    if request["action_type"] == "content_approval":
+        from services.content_service import decide_held_content_approval
+
+        try:
+            return decide_held_content_approval(request_id, user_id, decision, comment, ip_address)
+        except Exception as exc:
             if hasattr(exc, "status_code") and hasattr(exc, "detail"):
                 raise MakerCheckerError(exc.status_code, exc.detail) from exc
             raise

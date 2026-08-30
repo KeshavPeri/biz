@@ -6,14 +6,16 @@ import { ContractAlignmentCard } from '@/components/deal/contract-alignment-card
 import { TermsReviewCard } from '@/components/deal/terms-review-card';
 import { CreativeBriefCard } from '@/components/deal/creative-brief-card';
 import { DeliverablesCard } from '@/components/deal/deliverables-card';
-import { ContentSubmissionSheet, RevisionRequestSheet } from '@/components/deal/content-submission-sheet';
+import { ContentApprovalRejectSheet, ContentSubmissionSheet, RevisionRequestSheet } from '@/components/deal/content-submission-sheet';
 
 import {
   acceptDeal,
+  approveContentSubmission,
   acknowledgeCreativeBrief,
   confirmChecklistOverride,
   confirmTermsSummaryRequest,
   declineDeal,
+  decideContentApproval,
   decideContractSigning,
   deferTermsSummaryRequest,
   decideTermsSummary,
@@ -90,6 +92,7 @@ export function StickyActionBar({
   const [deliverablesError, setDeliverablesError] = useState<string | null>(null);
   const [contentDeliverable, setContentDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [revisionDeliverable, setRevisionDeliverable] = useState<CanonicalDeliverable | null>(null);
+  const [rejectedApprovalDeliverable, setRejectedApprovalDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [signing, setSigning] = useState(false);
   const alignmentStartRef = useRef<string | null>(null);
 
@@ -393,6 +396,37 @@ export function StickyActionBar({
     setActing(false);
   }, [acting, thread.dealId]);
 
+  const approveContent = useCallback(async (deliverable: CanonicalDeliverable) => {
+    const submission = deliverable.current_submission;
+    if (!submission || acting) return;
+    setActing(true);
+    setDeliverablesError(null);
+    const result = await approveContentSubmission(thread.dealId, deliverable.id, submission.id);
+    if (!result.ok) setDeliverablesError(result.message);
+    await loadDeliverables();
+    setActing(false);
+  }, [acting, loadDeliverables, thread.dealId]);
+
+  const decideApproval = useCallback(async (
+    deliverable: CanonicalDeliverable,
+    decision: 'approve' | 'reject',
+    comment?: string,
+  ) => {
+    const approval = deliverable.content_approval;
+    if (!approval || acting) return { ok: false as const, message: 'This approval changed. Refresh and try again.' };
+    if (decision === 'reject' && comment == null) {
+      setRejectedApprovalDeliverable(deliverable);
+      return { ok: true as const };
+    }
+    setActing(true);
+    setDeliverablesError(null);
+    const result = await decideContentApproval(approval.request_id, decision, comment);
+    if (!result.ok) setDeliverablesError(result.message);
+    await loadDeliverables();
+    setActing(false);
+    return result;
+  }, [acting, loadDeliverables]);
+
   // ── Role / relationship derivations (rbac.md + deal-engine.md) ──
   const { stage, myRole, isDisputed } = thread;
   const isInitiator = thread.createdBy === userId;
@@ -499,6 +533,8 @@ export function StickyActionBar({
                 error={deliverablesError}
                 onSubmit={setContentDeliverable}
                 onRequestRevision={setRevisionDeliverable}
+                onApprove={(deliverable) => void approveContent(deliverable)}
+                onApprovalDecision={(deliverable, decision) => { void decideApproval(deliverable, decision); }}
                 onDownload={(deliverableId, revisionId) => void downloadContent(deliverableId, revisionId)}
               />
             ) : deliverablesLoading ? (
@@ -587,6 +623,14 @@ export function StickyActionBar({
           roundNumber={revisionDeliverable.current_submission.round_number}
           onClose={() => setRevisionDeliverable(null)}
           onSubmit={submitRevisionRequest}
+        />
+      ) : null}
+      {rejectedApprovalDeliverable?.content_approval ? (
+        <ContentApprovalRejectSheet
+          visible
+          roundNumber={rejectedApprovalDeliverable.content_approval.round_number}
+          onClose={() => setRejectedApprovalDeliverable(null)}
+          onSubmit={(comment) => decideApproval(rejectedApprovalDeliverable, 'reject', comment)}
         />
       ) : null}
     </>

@@ -352,8 +352,10 @@ def main() -> None:
         check('creator, brand reviewer, and checker receive exact action permissions',
               not c_first['available_actions']['can_submit_content']
               and b_first['available_actions']['can_request_revision']
+              and b_first['available_actions']['can_approve_content']
               and not k_first['available_actions']['can_request_revision']
-              and not any(row['available_actions']['can_approve_content'] for row in (c_first, b_first, k_first)))
+              and not c_first['available_actions']['can_approve_content']
+              and not k_first['available_actions']['can_approve_content'])
 
         revision_id = first_revision['id']
         download = call('GET', f'/deals/{deal_id}/deliverables/{first}/content/{revision_id}/download', 'K')

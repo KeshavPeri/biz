@@ -51,7 +51,7 @@ _RPC_ERRORS: dict[str, tuple[int, str]] = {
     'CONTENT_DEAL_NOT_FOUND': (404, 'This deal could not be found.'),
     'CONTENT_NOT_PARTICIPANT': (403, "You're not part of this deal."),
     'CONTENT_CREATOR_ONLY': (403, 'Only the creator named on this deal can submit a draft.'),
-    'CONTENT_REVIEWER_ONLY': (403, 'Only a brand admin or maker can request a revision.'),
+    'CONTENT_REVIEWER_ONLY': (403, 'Only a brand admin or maker can review this submission.'),
     'CONTENT_WRONG_STAGE': (409, 'Drafts can only be submitted and reviewed while the deal is Creating.'),
     'CONTENT_DELIVERABLE_NOT_FOUND': (404, 'This deliverable could not be found.'),
     'CONTENT_REVISION_NOT_FOUND': (404, 'This submission could not be found.'),
@@ -69,6 +69,17 @@ _RPC_ERRORS: dict[str, tuple[int, str]] = {
     'CONTENT_STALE_ROUND': (409, 'The revision round changed. Refresh before submitting.'),
     'CONTENT_STALE_REVISION': (409, 'This submission is no longer awaiting review.'),
     'CONTENT_ALREADY_DECIDED': (409, 'This submission has already been reviewed.'),
+    'CONTENT_CHECKER_MISSING': (409, 'No active checker is assigned to this deal yet.'),
+    'CONTENT_SELF_APPROVAL': (403, "You can't approve your own held action."),
+    'CONTENT_PENDING_APPROVAL_EXISTS': (409, 'Another approval is already waiting for this submission.'),
+    'CONTENT_REQUEST_NOT_FOUND': (404, 'This content approval request could not be found.'),
+    'CONTENT_REQUEST_PAYLOAD_MISSING': (409, 'This content approval request is incomplete and cannot be released.'),
+    'CONTENT_REQUEST_ALREADY_DECIDED': (409, 'This content approval request has already been decided.'),
+    'CONTENT_NOT_ASSIGNED_CHECKER': (403, "You aren't the assigned checker for this content approval."),
+    'CONTENT_CHECKER_ROLE_REQUIRED': (403, "You don't hold the active checker role on this deal."),
+    'CONTENT_MAKER_ROLE_REQUIRED': (403, 'The initiating maker is no longer eligible for this action.'),
+    'CONTENT_STALE_REQUEST': (409, 'This approval is stale because the active submission or deal changed.'),
+    'CONTENT_INVALID_DECISION': (422, "Decision must be 'approve' or 'reject'."),
 }
 
 
@@ -249,6 +260,50 @@ def request_revision(
     )
 
 
+@_serialized
+def approve_submission(
+    deal_id: str,
+    deliverable_id: str,
+    revision_id: str,
+    user_id: str,
+    ip_address: str,
+) -> dict[str, Any]:
+    """Approve directly or create one exact-submission checker hold."""
+    return _rpc(
+        get_supabase(),
+        'approve_content_submission',
+        {
+            'p_deal_id': deal_id,
+            'p_deliverable_id': deliverable_id,
+            'p_revision_id': revision_id,
+            'p_actor_id': user_id,
+            'p_ip_address': ip_address,
+        },
+    )
+
+
+@_serialized
+def decide_held_content_approval(
+    request_id: str,
+    checker_id: str,
+    decision: str,
+    comment: str | None,
+    ip_address: str,
+) -> dict[str, Any]:
+    """Release or reject a held maker action in one database transaction."""
+    return _rpc(
+        get_supabase(),
+        'decide_content_approval_request',
+        {
+            'p_request_id': request_id,
+            'p_checker_id': checker_id,
+            'p_decision': decision,
+            'p_comment': comment,
+            'p_ip_address': ip_address,
+        },
+    )
+
+
 def participant_content_view(
     client: Client,
     deal_id: str,
@@ -273,7 +328,30 @@ def participant_content_view(
             .execute()
             .data
         )
-    actor_ids = {value for row in revisions for value in (row.get('submitted_by'), row.get('decided_by')) if value}
+    approval_requests = []
+    if deliverable_ids:
+        approval_requests = (
+            client.table('maker_checker_requests')
+            .select(
+                'id,deal_id,initiated_by,checker_id,status,comment,created_at,decided_at,action_payload'
+            )
+            .eq('deal_id', deal_id)
+            .eq('action_type', 'content_approval')
+            .order('created_at', desc=True)
+            .execute()
+            .data
+        )
+    actor_ids = {
+        value
+        for row in revisions
+        for value in (row.get('submitted_by'), row.get('decided_by'))
+        if value
+    } | {
+        value
+        for row in approval_requests
+        for value in (row.get('initiated_by'), row.get('checker_id'))
+        if value
+    }
     names: dict[str, str] = {}
     if actor_ids:
         profiles = client.table('profiles').select('id,display_name').in_('id', list(actor_ids)).execute().data
@@ -296,10 +374,50 @@ def participant_content_view(
         }
         by_deliverable[revision['deliverable_id']].append(safe)
 
+    approvals_by_deliverable: dict[str, list[dict[str, Any]]] = {row_id: [] for row_id in deliverable_ids}
+    for request in approval_requests:
+        payload = request.get('action_payload')
+        if not isinstance(payload, dict):
+            continue
+        deliverable_id = payload.get('deliverable_id')
+        revision_id = payload.get('revision_id')
+        round_number = payload.get('round_number')
+        if deliverable_id not in approvals_by_deliverable or not isinstance(revision_id, str):
+            continue
+        approvals_by_deliverable[deliverable_id].append({
+            'request_id': request['id'],
+            'status': request['status'],
+            'maker_id': request['initiated_by'],
+            'maker_name': names.get(request['initiated_by'], 'Brand maker'),
+            'checker_id': request['checker_id'],
+            'checker_name': names.get(request['checker_id'], 'Brand checker'),
+            'revision_id': revision_id,
+            'round_number': round_number,
+            'comment': request['comment'],
+            'created_at': request['created_at'],
+            'decided_at': request['decided_at'],
+            'can_decide': False,
+        })
+
     result: list[dict[str, Any]] = []
     for deliverable in deliverables:
         history = by_deliverable[deliverable['id']]
         current = history[0] if history else None
+        approvals = approvals_by_deliverable[deliverable['id']]
+        current_approval = next(
+            (request for request in approvals if current is not None and request['revision_id'] == current['id']),
+            None,
+        )
+        live_approval = current_approval is not None and current_approval['status'] == 'pending'
+        if current_approval is not None:
+            current_approval['can_decide'] = (
+                role == 'brand_checker'
+                and current_approval['checker_id'] == user_id
+                and live_approval
+                and deliverable['status'] == 'submitted'
+                and current is not None
+                and current['lifecycle'] == 'awaiting_review'
+            )
         can_submit = (
             role == 'creator'
             and user_id == deal['creator_id']
@@ -312,6 +430,7 @@ def participant_content_view(
             and deliverable['status'] == 'submitted'
             and current is not None
             and current['lifecycle'] == 'awaiting_review'
+            and not live_approval
         )
         result.append({
             **deliverable,
@@ -319,10 +438,11 @@ def participant_content_view(
             'content_ops_reason': deliverable['content_ops_reason'],
             'current_submission': current,
             'submission_history': history,
+            'content_approval': current_approval,
             'available_actions': {
                 'can_submit_content': can_submit,
                 'can_request_revision': can_review,
-                'can_approve_content': False,
+                'can_approve_content': can_review,
                 'can_submit_live_url': False,
             },
         })

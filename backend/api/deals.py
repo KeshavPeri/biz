@@ -69,6 +69,7 @@ from services.term_approvals import get_terms_review
 from services.brief_service import acknowledge_brief, create_brief, get_briefs
 from services.deliverable_service import get_deliverables
 from services.content_service import (
+    approve_submission,
     prepare_upload,
     request_revision,
     submission_download,
@@ -189,6 +190,12 @@ class RevisionRequestBody(BaseModel):
         if len(value) < 3:
             raise ValueError('Add a revision explanation of at least 3 characters.')
         return value
+
+
+class ContentApproveBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    revision_id: UUID
 
 
 def _client_ip(request: Request) -> str:
@@ -389,6 +396,26 @@ def request_content_changes(
             str(body.revision_id),
             user_id,
             body.comment,
+            _client_ip(request),
+        )
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post('/{deal_id}/deliverables/{deliverable_id}/content/approve')
+def approve_content(
+    deal_id: str,
+    deliverable_id: UUID,
+    body: ContentApproveBody,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return approve_submission(
+            deal_id,
+            str(deliverable_id),
+            str(body.revision_id),
+            user_id,
             _client_ip(request),
         )
     except DealError as exc:

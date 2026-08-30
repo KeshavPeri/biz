@@ -8,7 +8,7 @@ map rule failures to clean HTTP responses (never a raw trace to the user).
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from core.auth import get_current_user_id
 from services.maker_checker import MakerCheckerError, decide_request, initiate_action
@@ -17,13 +17,22 @@ router = APIRouter(prefix="/maker-checker", tags=["maker-checker"])
 
 
 class InitiateBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     deal_id: str
     action_type: Literal["payment_release", "contract_signing", "content_approval"]
 
 
 class DecideBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     decision: Literal["approve", "reject"]
-    comment: str | None = None
+    comment: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("comment")
+    @classmethod
+    def strip_comment(cls, value: str | None) -> str | None:
+        return value.strip() or None if value is not None else None
 
 
 def _client_ip(request: Request) -> str:
