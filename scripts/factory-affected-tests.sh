@@ -54,6 +54,16 @@ while IFS= read -r changed_path; do
   esac
 
   case "$changed_path" in
+    backend/services/url_verifier.py|backend/services/posting_service.py|backend/migrations/036_live_post_gate.sql|backend/tests/test_url_verifier.py|backend/tests/test_posting_gate.py)
+      add_command 'backend/.venv/bin/python backend/tests/test_url_verifier.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_posting_gate.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_content_approval.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_content_flow.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_deliverable_flow.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_private_deliverable_labels.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_stage_engine.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_rls.py'
+      ;;
     backend/migrations/*private*deliverable*label*.sql|backend/tests/test_private_deliverable_labels.py|frontend/src/lib/private-deliverable-labels.ts|frontend/src/components/deal/private-deliverable-label-picker.tsx|frontend/src/components/deal/deliverables-card.tsx|frontend/src/components/deal/sticky-action-bar.tsx)
       add_command 'backend/.venv/bin/python backend/tests/test_private_deliverable_labels.py'
       add_command 'backend/.venv/bin/python backend/tests/test_content_approval.py'

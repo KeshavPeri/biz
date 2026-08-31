@@ -26,10 +26,18 @@ up exactly where the last one left off, with zero context lost.
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Return point:** issue #15 has been revalidated against merged PR #19 and is the sole
-  founder-controlled planned ticket for the 9.14-A verified live-post backend gate. B3-028–B3-032
-  are Built, workplan 9.13 is Complete, and 9.14 is Ready. The separate Expo UI slice will be
-  authored only after #15 merges and its API contract is proven.
+- **Current build:** issue #15 implements the backend-only 9.14-A verified live-post gate on base
+  `7d40b57`. Migration `036_live_post_gate.sql` fails closed on unrecognized historical proof,
+  adds append-only per-deliverable URL versions plus a backend-owned current binding, and owns
+  atomic final-link Creating → Posted and exact-set Posted → Payment transitions. The verifier
+  normalizes platform domains and pins every public-only DNS-checked HTTPS hop; stores bounded text
+  preview only; and treats network/platform failure as retryable without changing state. Brand
+  admin/maker may flag an exact version in Posted, only the creator may replace that flagged link,
+  and participant reads preserve history without private-label or network-internal joins.
+  `backend/tests/test_url_verifier.py` uses controlled DNS/HTTP doubles and
+  `backend/tests/test_posting_gate.py` uses fictional development data with no public fetch.
+  External platform evidence remains `LIMITED` by design. B3-033 and 9.14 remain **In progress**
+  until the separate Expo successor merges; `can_submit_live_url` stays false and 9.15 stays Waiting.
   - **9.13-E MERGED (B3-031 private labels):** migrations `034_private_deliverable_labels.sql` and
     `035_private_deliverable_label_lifecycle_lock.sql` add
     historical fail-closed inventory, five-value validation, creator/target proof, immutable label
@@ -470,10 +478,12 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **9.13 — Creating:** founder-review and merge issue #14's creator-private-label draft PR; the optional
-   fictional creator/brand/checker role-switch walkthrough remains `LIMITED`.
-2. **9.14 — Posted:** revalidate issue #15's live-URL hard gate after #14 merges.
-3. **9.15 — Payment:** manual payment tracking and states after 9.14 is merged.
+1. **9.14-A founder review:** review issue #15's backend verifier, migration, exact-version APIs,
+   participant projection, and atomic stage gates after its draft PR is opened. Independent QA and
+   security review have passed; public-provider smoke remains intentionally `LIMITED`.
+2. **9.14 Expo successor:** author the separate action/preview/confirmation UI ticket only after
+   issue #15 merges; the existing `can_submit_live_url` flag remains false in this slice.
+3. **9.15 — Payment:** manual payment tracking and states remain Waiting until full 9.14 completes.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
 
@@ -499,6 +509,12 @@ do not proceed. I'll resolve these at the start of my next session.*
 
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
+
+- 2026-08-31 — **Live-post verification boundary.** Named social deliverables accept only their
+  exact canonical registrable-domain families; the locked generic Podcast value accepts any
+  DNS-stable public HTTPS host without claiming provider matching. Every redirect is revalidated and
+  TLS-pinned outside database transactions. Only bounded text metadata is stored or returned; images,
+  HTML, response/network details and private labels remain outside the participant contract.
 
 - 2026-08-30 — **Content draft boundary.** Drafts accept PDF/JPEG/PNG/WebP/MP4/MOV up to 100 MB.
   Prepared opaque paths expire after one hour; bound objects cannot be overwritten/deleted. Participant
@@ -818,6 +834,24 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-31 — Phase 9: verified live-post backend gate (9.14-A)
+- **Network and persistence:** backend-only verification normalizes IDNA/host/default-port form,
+  enforces exact social domains (or generic public-HTTPS Podcast), validates two stable public DNS
+  answers per hop, pins TLS to the checked address, and bounds redirects, time, bytes, content types,
+  and text-only metadata. Additive migration 036 records append-only versions and backend-owned current
+  proof, revokes participant lifecycle writes/raw-history reads, and fails closed on historical values.
+- **Atomic gates and correction:** creator-only exact-state submission saves a verified link; the last
+  approved deliverable enters Posted in the same transaction. Brand admin/maker can flag one exact
+  version without moving the deal back; creator replacement preserves flagged evidence. Exact current
+  set confirmation atomically enters Payment and creates no payment record. The participant API returns
+  bounded history/future action hints without private-label joins while `can_submit_live_url` stays false.
+- **Evidence:** migration 035 was present, historical live values were zero, and migration 036 applied
+  to development. Deterministic verifier tests pass 12/12 and fictional posting integration passes 28/28
+  with cleanup. The affected union also passes brief 28/28, stage 23/23, summary 39/39, term approvals
+  32/32, maker-checker 10/10, contract 28/28, content approval 20/20, content flow 25/25,
+  deliverables 17/17, private labels 21/21, RLS 4/4, backend compile, and diff hygiene. Public-provider
+  smoke and Expo UI remain `LIMITED`; B3-033/9.14 remain In progress.
 
 ### 2026-08-31 — PR #19 merged; next-ticket handoff
 - **Merge:** issue #14 closed through merged PR #19, placing migrations 034–035 and creator-private

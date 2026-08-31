@@ -209,9 +209,15 @@ def get_deliverables(
     *,
     _client: Client | None = None,
 ) -> dict[str, Any]:
-    """Return the ordered safe plan, recovering an existing Creating deal."""
+    """Return the ordered participant-safe plan through post confirmation."""
     client = _client or get_supabase()
-    _materialize(client, deal_id, user_id, ip_address, allow_approval=False)
+    deal = _load_deal_for_transition(client, deal_id)
+    if _participant_role(client, deal_id, user_id) is None:
+        raise DealError(403, "You're not part of this deal.")
+    if deal['stage'] == 'creating':
+        _materialize(client, deal_id, user_id, ip_address, allow_approval=False)
+    elif deal['stage'] not in {'posted', 'payment', 'closed'}:
+        raise DealError(409, 'The deliverable plan is available once the deal reaches Creating.')
     rows = (
         client.table('deliverables')
         .select(
@@ -224,14 +230,21 @@ def get_deliverables(
         .execute()
         .data
     )
+    content_rows = participant_content_view(
+        client,
+        deal_id,
+        user_id,
+        [{**row, 'display_name': f"Deliverable {row['sequence']}"} for row in rows],
+    )
+    from services.posting_service import participant_post_state
+
+    safe_rows, confirmation = participant_post_state(
+        client, deal_id, user_id, deal['stage'], content_rows
+    )
     return {
         'deal_id': deal_id,
-        'stage': 'creating',
-        'deliverables': participant_content_view(
-            client,
-            deal_id,
-            user_id,
-            [{**row, 'display_name': f"Deliverable {row['sequence']}"} for row in rows],
-        ),
+        'stage': deal['stage'],
+        'deliverables': safe_rows,
+        'post_confirmation': confirmation,
         'order': 'sequence_ascending',
     }
