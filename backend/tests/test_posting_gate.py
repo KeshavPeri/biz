@@ -176,6 +176,32 @@ def live_rows(deal_id: str) -> list[dict]:
     )
 
 
+def save_payment_details(deal_id: str, *, creator_version: int = 0, creator_suffix: str = "one") -> None:
+    creator = call(
+        "PUT", f"/deals/{deal_id}/payment-details/creator", "C",
+        {
+            "expected_version": creator_version,
+            "creator_legal_name": f"Fictional Posting Creator {creator_suffix}",
+            "creator_bank_or_upi": f"Fictional off-platform instruction {creator_suffix}",
+            "creator_tax_id": None,
+        },
+    )
+    if creator.status_code != 200:
+        raise AssertionError("fictional creator payment-detail setup failed")
+    if creator_version == 0:
+        brand = call(
+            "PUT", f"/deals/{deal_id}/payment-details/brand", "B",
+            {
+                "expected_version": 0,
+                "brand_billing_name": "Fictional Posting Brand",
+                "brand_billing_address": "Fictional billing address, Test District",
+                "brand_gst": None,
+            },
+        )
+        if brand.status_code != 200:
+            raise AssertionError("fictional brand payment-detail setup failed")
+
+
 def cleanup() -> None:
     print("\nCleaning up fictional posting data...")
     if ids:
@@ -270,6 +296,56 @@ def main() -> None:
             {"url": "https://instagram.com/p/single-v1", "expected_version": 0},
         )
         check("identical retry is idempotent without a second fetch or row", retry.status_code == 200 and retry.json()["idempotent"] and len(verification_calls) == calls_after_first and len(live_rows(single_deal)) == 1)
+        missing_details = call(
+            "POST", f"/deals/{single_deal}/confirm-posts", "B",
+            {
+                "versions": [{"deliverable_id": single_deliverable, "version": 1}],
+                "creator_payment_version": 1,
+                "brand_payment_version": 1,
+            },
+        )
+        check("missing payment details block confirmation without changing posts or stage", (
+            missing_details.status_code == 409
+            and stage_of(single_deal) == "posted"
+            and live_rows(single_deal)[0]["status"] == "verified"
+        ))
+        creator_only = call(
+            "PUT", f"/deals/{single_deal}/payment-details/creator", "C",
+            {
+                "expected_version": 0,
+                "creator_legal_name": "Fictional Posting Creator one",
+                "creator_bank_or_upi": "Fictional off-platform instruction one",
+                "creator_tax_id": None,
+            },
+        )
+        incomplete_details = call(
+            "POST", f"/deals/{single_deal}/confirm-posts", "B",
+            {
+                "versions": [{"deliverable_id": single_deliverable, "version": 1}],
+                "creator_payment_version": 1,
+                "brand_payment_version": 1,
+            },
+        )
+        check("one complete side still blocks Payment atomically", (
+            creator_only.status_code == 200
+            and incomplete_details.status_code == 409
+            and stage_of(single_deal) == "posted"
+            and live_rows(single_deal)[0]["status"] == "verified"
+        ))
+        brand_saved = call(
+            "PUT", f"/deals/{single_deal}/payment-details/brand", "B",
+            {
+                "expected_version": 0,
+                "brand_billing_name": "Fictional Posting Brand",
+                "brand_billing_address": "Fictional billing address, Test District",
+                "brand_gst": None,
+            },
+        )
+        check("both payment-detail sides become complete in Posted", (
+            brand_saved.status_code == 200
+            and brand_saved.json()["creator_complete"]
+            and brand_saved.json()["brand_complete"]
+        ))
         checker_flag = call(
             "POST", f"/deals/{single_deal}/deliverables/{single_deliverable}/live-post/flag", "K",
             {"expected_version": 1, "reason": "This is the wrong fictional link."},
@@ -282,7 +358,11 @@ def main() -> None:
         check("brand flags exact version while deal stays Posted", flagged.status_code == 200 and flagged.json()["status"] == "flagged" and stage_of(single_deal) == "posted")
         blocked_confirm = call(
             "POST", f"/deals/{single_deal}/confirm-posts", "B",
-            {"versions": [{"deliverable_id": single_deliverable, "version": 1}]},
+            {
+                "versions": [{"deliverable_id": single_deliverable, "version": 1}],
+                "creator_payment_version": 1,
+                "brand_payment_version": 1,
+            },
         )
         check("open issue blocks confirmation", blocked_confirm.status_code == 409)
         replacement = call(
@@ -301,17 +381,43 @@ def main() -> None:
 
         stale_confirm = call(
             "POST", f"/deals/{single_deal}/confirm-posts", "B",
-            {"versions": [{"deliverable_id": single_deliverable, "version": 1}]},
+            {
+                "versions": [{"deliverable_id": single_deliverable, "version": 1}],
+                "creator_payment_version": 1,
+                "brand_payment_version": 1,
+            },
         )
         check("brand confirmation requires exact current version", stale_confirm.status_code == 409)
+        save_payment_details(single_deal, creator_version=1, creator_suffix="two")
+        stale_detail_confirm = call(
+            "POST", f"/deals/{single_deal}/confirm-posts", "B",
+            {
+                "versions": [{"deliverable_id": single_deliverable, "version": 2}],
+                "creator_payment_version": 1,
+                "brand_payment_version": 1,
+            },
+        )
+        check("brand confirmation fails closed on a stale payment-detail version", (
+            stale_detail_confirm.status_code == 409
+            and stage_of(single_deal) == "posted"
+            and live_rows(single_deal)[-1]["status"] == "verified"
+        ))
         confirmed = call(
             "POST", f"/deals/{single_deal}/confirm-posts", "B",
-            {"versions": [{"deliverable_id": single_deliverable, "version": 2}]},
+            {
+                "versions": [{"deliverable_id": single_deliverable, "version": 2}],
+                "creator_payment_version": 2,
+                "brand_payment_version": 1,
+            },
         )
         check("brand exact confirmation atomically enters Payment", confirmed.status_code == 200 and confirmed.json()["transitioned"] and stage_of(single_deal) == "payment")
         confirm_retry = call(
             "POST", f"/deals/{single_deal}/confirm-posts", "B",
-            {"versions": [{"deliverable_id": single_deliverable, "version": 2}]},
+            {
+                "versions": [{"deliverable_id": single_deliverable, "version": 2}],
+                "creator_payment_version": 2,
+                "brand_payment_version": 1,
+            },
         )
         check("confirmation retry is idempotent", confirm_retry.status_code == 200 and confirm_retry.json()["idempotent"])
 
@@ -339,9 +445,14 @@ def main() -> None:
             race = list(pool.map(concurrent_final, range(2)))
         transitions = admin.table("deal_stage_transitions").select("id").eq("deal_id", multi_deal).eq("to_stage", "posted").execute().data
         check("concurrent final submissions yield one row binding and one transition", len(live_rows(multi_deal)) == 2 and len(transitions) == 1 and stage_of(multi_deal) == "posted" and sum(bool(item.get("transitioned")) for item in race) == 1)
+        save_payment_details(multi_deal)
         multi_confirm = call(
             "POST", f"/deals/{multi_deal}/confirm-posts", "M",
-            {"versions": [{"deliverable_id": value, "version": 1} for value in multi_deliverables]},
+            {
+                "versions": [{"deliverable_id": value, "version": 1} for value in multi_deliverables],
+                "creator_payment_version": 1,
+                "brand_payment_version": 1,
+            },
         )
         check("active brand maker can confirm the exact multi-deliverable set", multi_confirm.status_code == 200 and stage_of(multi_deal) == "payment")
         payment_rows = admin.table("payments").select("id").eq("deal_id", multi_deal).execute().data

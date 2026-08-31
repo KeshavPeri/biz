@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Callable, NoReturn
+from uuid import UUID
 
 from supabase import Client
 
@@ -28,6 +29,8 @@ _RPC_ERRORS: dict[str, tuple[int, str]] = {
     "LIVE_POST_BINDING_INVALID": (409, "The live-post state is inconsistent. Nothing was changed."),
     "LIVE_POST_INVALID_EVIDENCE": (422, "The verified preview could not be stored safely."),
     "LIVE_POST_STAGE_RACE": (409, "This deal was just updated by someone else. Refresh and try again."),
+    "PAYMENT_DETAILS_INCOMPLETE": (409, "Both sides must complete their payment details before posts can be confirmed."),
+    "PAYMENT_DETAILS_STALE_CONFIRMATION": (409, "Payment details changed. Refresh and review them before confirming."),
 }
 
 
@@ -231,16 +234,46 @@ def flag_live_post(
 
 
 def commit_post_confirmation(ctx: Any) -> dict[str, Any]:
-    versions = ctx.params.get("versions")
-    if not isinstance(versions, list) or not versions:
+    body = ctx.params.get("confirmation_body")
+    if not isinstance(body, dict) or set(body) != {
+        "versions", "creator_payment_version", "brand_payment_version"
+    }:
         raise DealError(422, "Confirm the exact current set of deliverable versions.")
+    versions = body.get("versions")
+    creator_payment_version = body.get("creator_payment_version")
+    brand_payment_version = body.get("brand_payment_version")
+    if (
+        not isinstance(versions, list)
+        or not 1 <= len(versions) <= 100
+        or isinstance(creator_payment_version, bool)
+        or not isinstance(creator_payment_version, int)
+        or creator_payment_version <= 0
+        or isinstance(brand_payment_version, bool)
+        or not isinstance(brand_payment_version, int)
+        or brand_payment_version <= 0
+    ):
+        raise DealError(422, "Confirm the exact current post and payment-detail versions.")
+    normalized_versions: list[dict[str, Any]] = []
+    for item in versions:
+        if not isinstance(item, dict) or set(item) != {"deliverable_id", "version"}:
+            raise DealError(422, "Confirm the exact current set of deliverable versions.")
+        version = item.get("version")
+        if isinstance(version, bool) or not isinstance(version, int) or version <= 0:
+            raise DealError(422, "Confirm the exact current set of deliverable versions.")
+        try:
+            deliverable_id = str(UUID(str(item.get("deliverable_id"))))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise DealError(422, "Confirm the exact current set of deliverable versions.") from exc
+        normalized_versions.append({"deliverable_id": deliverable_id, "version": version})
     try:
         return ctx.client.rpc(
             "confirm_live_posts",
             {
                 "p_deal_id": ctx.deal["id"],
                 "p_actor_id": ctx.user_id,
-                "p_versions": versions,
+                "p_versions": normalized_versions,
+                "p_creator_payment_version": creator_payment_version,
+                "p_brand_payment_version": brand_payment_version,
                 "p_ip_address": ctx.params.get("ip_address", "unknown"),
             },
         ).execute().data

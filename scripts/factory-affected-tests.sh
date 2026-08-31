@@ -54,6 +54,12 @@ while IFS= read -r changed_path; do
   esac
 
   case "$changed_path" in
+    backend/services/payment_details_service.py|backend/migrations/*payment*details*gate*.sql|backend/tests/test_payment_details.py)
+      add_command 'backend/.venv/bin/python backend/tests/test_payment_details.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_posting_gate.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_stage_engine.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_rls.py'
+      ;;
     backend/services/url_verifier.py|backend/services/posting_service.py|backend/migrations/036_live_post_gate.sql|backend/tests/test_url_verifier.py|backend/tests/test_posting_gate.py)
       add_command 'backend/.venv/bin/python backend/tests/test_url_verifier.py'
       add_command 'backend/.venv/bin/python backend/tests/test_posting_gate.py'
