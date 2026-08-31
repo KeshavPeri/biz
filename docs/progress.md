@@ -16,8 +16,8 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — workplan 9.13-E creator-private deliverable labels are built on issue
-  #14's review branch, completing the 9.13 Creating scope after 9.13-D merged through PR #18.
+- **Current phase:** Phase 9 — workplan 9.13-E creator-private deliverable labels are merged through
+  PR #19, completing the 9.13 Creating scope after 9.13-D merged through PR #18.
   Workplan 9.13-C draft submission/revision is merged through PR #17, 9.13-A creative briefs through
   PR #10, and 9.13-B canonical deliverables through PR #16. The optional short fictional 9.13-E
   creator/brand/checker role-switch walkthrough remains. Phase 10
@@ -26,10 +26,10 @@ up exactly where the last one left off, with zero context lost.
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Return point:** issue #14 is the review candidate for creator-private deliverable labels. Issue #15
-  remains dependency-blocked pending #14's merge and standing-orchestrator base refresh, while the
-  underlying 9.14 workplan is now Ready. B3-028–B3-032 are Built and workplan 9.13 is Complete.
-  - **9.13-E BUILT (B3-031 private labels):** migrations `034_private_deliverable_labels.sql` and
+- **Return point:** issue #15 has been revalidated against merged PR #19 and is the sole
+  founder-controlled planned ticket for the 9.14 verified live-post gate. B3-028–B3-032 are Built,
+  workplan 9.13 is Complete, and 9.14 is Ready.
+  - **9.13-E MERGED (B3-031 private labels):** migrations `034_private_deliverable_labels.sql` and
     `035_private_deliverable_label_lifecycle_lock.sql` add
     historical fail-closed inventory, five-value validation, creator/target proof, immutable label
     identity, one-row race-safe uniqueness, an authenticated owner-derived set/change/clear RPC, and
@@ -817,6 +817,14 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-31 — PR #19 merged; next-ticket handoff
+- **Merge:** issue #14 closed through merged PR #19, placing migrations 034–035 and creator-private
+  deliverable labels on `main`; workplan 9.13 is now complete.
+- **Queue:** the standing orchestrator synchronized the checkout, inspected the merged label/content
+  seams, and revalidated issue #15 for the verified live-post gate. Preview data stays text-only in MVP,
+  social hosts are allowlisted, and the deliberately generic podcast platform uses public-HTTPS
+  verification without a false provider claim. #15 alone returns to founder-controlled planned state.
 
 ### 2026-08-31 — Phase 9: creator-private deliverable labels (9.13-E)
 - **Database boundary:** additive migration 034 inventories historical deliverable annotations before
