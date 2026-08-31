@@ -54,6 +54,17 @@ while IFS= read -r changed_path; do
   esac
 
   case "$changed_path" in
+    backend/migrations/*private*deliverable*label*.sql|backend/tests/test_private_deliverable_labels.py|frontend/src/lib/private-deliverable-labels.ts|frontend/src/components/deal/private-deliverable-label-picker.tsx|frontend/src/components/deal/deliverables-card.tsx|frontend/src/components/deal/sticky-action-bar.tsx)
+      add_command 'backend/.venv/bin/python backend/tests/test_private_deliverable_labels.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_content_approval.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_deliverable_flow.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_stage_engine.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_term_approvals.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_maker_checker.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_contract_flow.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_brief_flow.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_rls.py'
+      ;;
     backend/services/content_service.py|backend/services/maker_checker.py|backend/api/maker_checker.py|backend/migrations/*content*.sql|backend/tests/test_content_flow.py|backend/tests/test_content_approval.py|frontend/src/components/deal/content-submission-sheet.tsx)
       add_command 'backend/.venv/bin/python backend/tests/test_content_approval.py'
       add_command 'backend/.venv/bin/python backend/tests/test_content_flow.py'
@@ -65,7 +76,7 @@ while IFS= read -r changed_path; do
       add_command 'backend/.venv/bin/python backend/tests/test_brief_flow.py'
       add_command 'backend/.venv/bin/python backend/tests/test_rls.py'
       ;;
-    backend/services/deliverable_service.py|backend/migrations/*canonical*deliverable*.sql|backend/tests/test_deliverable_flow.py|frontend/src/components/deal/deliverables-card.tsx)
+    backend/services/deliverable_service.py|backend/migrations/*canonical*deliverable*.sql|backend/tests/test_deliverable_flow.py)
       add_command 'backend/.venv/bin/python backend/tests/test_deliverable_flow.py'
       add_command 'backend/.venv/bin/python backend/tests/test_stage_engine.py'
       add_command 'backend/.venv/bin/python backend/tests/test_term_approvals.py'

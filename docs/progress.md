@@ -16,19 +16,42 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — workplan 9.13-D exact-submission content approval is merged through
-  PR #18. Workplan 9.13-C draft submission/revision is merged through PR #17, 9.13-A creative briefs
-  through PR #10, and 9.13-B canonical deliverables through PR #16. The optional short fictional
-  9.13-D role-switch UI walkthrough remains. Phase 10
+- **Current phase:** Phase 9 — workplan 9.13-E creator-private deliverable labels are built on issue
+  #14's review branch, completing the 9.13 Creating scope after 9.13-D merged through PR #18.
+  Workplan 9.13-C draft submission/revision is merged through PR #17, 9.13-A creative briefs through
+  PR #10, and 9.13-B canonical deliverables through PR #16. The optional short fictional 9.13-E
+  creator/brand/checker role-switch walkthrough remains. Phase 10
   remains complete; PRs #5–#8 are merged;
   B4-001–B4-005 and the linked B3-020/B3-021/B3-026 slices are Built and reconciled. The founder
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Return point:** issue #14 has been revalidated against merged PR #18 and is the sole
-  founder-controlled planned ticket for creator-private deliverable labels. Issue #15 remains
-  dependency-blocked through the verified live-post gate. B3-028, B3-029, B3-030, and B3-032 are
-  Built; B3-031 remains Not started, so workplan 9.13 stays In progress.
+- **Return point:** issue #14 is the review candidate for creator-private deliverable labels. Issue #15
+  remains dependency-blocked pending #14's merge and standing-orchestrator base refresh, while the
+  underlying 9.14 workplan is now Ready. B3-028–B3-032 are Built and workplan 9.13 is Complete.
+  - **9.13-E BUILT (B3-031 private labels):** migrations `034_private_deliverable_labels.sql` and
+    `035_private_deliverable_label_lifecycle_lock.sql` add
+    historical fail-closed inventory, five-value validation, creator/target proof, immutable label
+    identity, one-row race-safe uniqueness, an authenticated owner-derived set/change/clear RPC, and
+    deliverable/deal-cascade cleanup without touching deal annotations. Direct deal annotation CRUD
+    remains compatible; shared deliverable APIs remain label-free.
+  - **Creator-only UI:** the authoritative per-deal creator role is checked before the app makes any
+    annotation query or renders the current value/picker. Changes are optimistic with rollback plus
+    authoritative refetch on failure. Brand admin/maker/checker receive no query, placeholder, count,
+    or label existence hint. Label changes are independent of canonical status, revisions, approvals,
+    stage, audit, notifications, and tracker state.
+  - **9.13-E verification:** migration 034 was applied to development only after confirming migration
+    033's hardened wrapper/private-column lock and zero existing deliverable annotations, invalid
+    values/targets, or duplicates. The fictional privacy test passes **19/19**; content approval
+    **20/20**, deliverables **17/17**, Stage Engine **23/23**, term approvals **32/32**, maker-checker
+    **10/10**, contract flow **28/28**, brief flow **28/28**, RLS **4/4**, backend compile, strict
+    TypeScript, and diff hygiene all pass in the de-duplicated focused pre-review suite. Security-review
+    repair 035 locks the target deliverable through set/clear and rechecks after the write, so direct
+    deletion or a parent-deal cascade can neither pass cleanup and then receive an orphan label. The
+    deterministic repaired privacy suite passes **21/21**, including both uncommitted-delete races.
+    Independent QA and security review passed; the complete final regression also passed with an unchanged
+    source fingerprint, including content flow **25/25**, frontend lint (0 errors; 4 pre-existing warnings),
+    and Expo web export.
   - **9.13-D MERGED (B3-030 approval + B3-028 content slice):** migration
     `032_content_approval.sql` adds service-only exact-object held payloads and database-atomic direct
     approval, hold creation, checker release, and checker rejection. Every execution rechecks Creating,
@@ -446,9 +469,9 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **9.13 — Creating:** independently review issue #12's submission/revision slice, run its one final
-   regression after review, then founder-review/merge; revalidate #13 for checker-gated approval.
-2. **9.14 — Posted:** live-URL hard gate after 9.13 is merged.
+1. **9.13 — Creating:** founder-review and merge issue #14's creator-private-label draft PR; the optional
+   fictional creator/brand/checker role-switch walkthrough remains `LIMITED`.
+2. **9.14 — Posted:** revalidate issue #15's live-URL hard gate after #14 merges.
 3. **9.15 — Payment:** manual payment tracking and states after 9.14 is merged.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
@@ -794,6 +817,28 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-08-31 — Phase 9: creator-private deliverable labels (9.13-E)
+- **Database boundary:** additive migration 034 inventories historical deliverable annotations before
+  adding exact allowed values, creator/target validation, immutable owner/type/target identity, partial
+  uniqueness and target-delete cleanup. One authenticated `SECURITY DEFINER` RPC derives `auth.uid()`
+  and atomically sets, changes or clears the current label; guessed and cross-creator targets share a
+  closed error. Existing freeform deal annotations retain owner-only direct CRUD.
+- **Privacy and UI:** the creator role gates the private table read before it runs and gates the picker
+  before it renders. Shared deliverable/content responses remain unchanged. The per-deliverable sheet
+  offers only Idea, In Progress, Filmed, Approved, Scheduled, or no label; optimistic changes roll back
+  and refetch on failure.
+- **Evidence:** the focused fictional integration test covers creator CRUD, exact values, idempotency,
+  concurrency, RLS across every brand role/other creators/outsider/anon, guessed targets, identity
+  pivots, direct and parent-cascade cleanup, deal-annotation compatibility, shared-API non-disclosure,
+  lifecycle isolation, and set races against direct/parent-cascade deletion (**21/21 passing with
+  cleanup**). Migration 035 reconciles the already-applied development function while fresh installs
+  receive the same lock in 034. The affected pre-review content approval,
+  deliverable, stage, term, maker-checker, contract, brief, RLS, compile, TypeScript and diff checks also
+  pass. Independent QA and security review passed, followed by an unchanged-fingerprint full regression:
+  private labels 21/21, content approval 20/20, content flow 25/25, deliverables 17/17, brief 28/28,
+  stage 23/23, terms 32/32, maker-checker 10/10, contract 28/28, RLS 4/4, compile, TypeScript, lint,
+  Expo web export, and diff hygiene. The optional founder role-switch UI walkthrough remains `LIMITED`.
 
 ### 2026-08-30 — PR #18 merged; next-ticket handoff
 - **Merge:** issue #13 closed through merged PR #18, placing migrations 032–033 and exact direct or

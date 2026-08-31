@@ -47,6 +47,12 @@ import {
   type TermsReviewState,
   type TransitionAction,
 } from '@/lib/deals';
+import {
+  fetchPrivateDeliverableLabels,
+  setPrivateDeliverableLabel,
+  type PrivateDeliverableLabel,
+  type PrivateDeliverableLabelMap,
+} from '@/lib/private-deliverable-labels';
 
 /**
  * StickyActionBar (task 9.7) — the stage-aware AND role-aware bar above the
@@ -90,6 +96,8 @@ export function StickyActionBar({
   const [deliverables, setDeliverables] = useState<CanonicalDeliverableState | null>(null);
   const [deliverablesLoading, setDeliverablesLoading] = useState(false);
   const [deliverablesError, setDeliverablesError] = useState<string | null>(null);
+  const [privateLabels, setPrivateLabels] = useState<PrivateDeliverableLabelMap>({});
+  const [privateLabelsError, setPrivateLabelsError] = useState<string | null>(null);
   const [contentDeliverable, setContentDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [revisionDeliverable, setRevisionDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [rejectedApprovalDeliverable, setRejectedApprovalDeliverable] = useState<CanonicalDeliverable | null>(null);
@@ -166,16 +174,37 @@ export function StickyActionBar({
     if (result.ok) {
       setDeliverables(result.data);
       setDeliverablesError(null);
+      if (thread.myRole === 'creator') {
+        const labelResult = await fetchPrivateDeliverableLabels(
+          result.data.deliverables.map((deliverable) => deliverable.id),
+        );
+        if (labelResult.ok) {
+          setPrivateLabels(labelResult.data);
+          setPrivateLabelsError(null);
+        } else {
+          setPrivateLabels({});
+          setPrivateLabelsError(labelResult.message);
+        }
+      } else {
+        setPrivateLabels({});
+        setPrivateLabelsError(null);
+      }
     } else {
       setDeliverables(null);
       setDeliverablesError(result.message);
+      setPrivateLabels({});
+      setPrivateLabelsError(null);
     }
     setDeliverablesLoading(false);
-  }, [thread.dealId, thread.stage]);
+  }, [thread.dealId, thread.myRole, thread.stage]);
 
   useEffect(() => {
     if (thread.stage === 'creating') void loadDeliverables(true);
-    else setDeliverables(null);
+    else {
+      setDeliverables(null);
+      setPrivateLabels({});
+      setPrivateLabelsError(null);
+    }
   }, [loadDeliverables, thread.stage]);
 
   // Generation is followed by one authoritative alignment start. The backend
@@ -427,6 +456,30 @@ export function StickyActionBar({
     return result;
   }, [acting, loadDeliverables]);
 
+  const changePrivateLabel = useCallback(async (
+    deliverableId: string,
+    nextLabel: PrivateDeliverableLabel | null,
+  ) => {
+    if (thread.myRole !== 'creator' || acting || !deliverables) return;
+    const previousLabel = privateLabels[deliverableId] ?? null;
+    setActing(true);
+    setPrivateLabelsError(null);
+    setPrivateLabels((current) => ({ ...current, [deliverableId]: nextLabel }));
+
+    const result = await setPrivateDeliverableLabel(deliverableId, nextLabel);
+    if (result.ok) {
+      setPrivateLabels((current) => ({ ...current, [deliverableId]: result.data }));
+    } else {
+      setPrivateLabels((current) => ({ ...current, [deliverableId]: previousLabel }));
+      setPrivateLabelsError(result.message);
+      const refreshed = await fetchPrivateDeliverableLabels(
+        deliverables.deliverables.map((deliverable) => deliverable.id),
+      );
+      if (refreshed.ok) setPrivateLabels(refreshed.data);
+    }
+    setActing(false);
+  }, [acting, deliverables, privateLabels, thread.myRole]);
+
   // ── Role / relationship derivations (rbac.md + deal-engine.md) ──
   const { stage, myRole, isDisputed } = thread;
   const isInitiator = thread.createdBy === userId;
@@ -530,12 +583,15 @@ export function StickyActionBar({
               <DeliverablesCard
                 state={deliverables}
                 acting={acting}
-                error={deliverablesError}
+                error={deliverablesError ?? privateLabelsError}
+                myRole={myRole}
+                privateLabels={privateLabels}
                 onSubmit={setContentDeliverable}
                 onRequestRevision={setRevisionDeliverable}
                 onApprove={(deliverable) => void approveContent(deliverable)}
                 onApprovalDecision={(deliverable, decision) => { void decideApproval(deliverable, decision); }}
                 onDownload={(deliverableId, revisionId) => void downloadContent(deliverableId, revisionId)}
+                onPrivateLabelChange={(deliverableId, value) => { void changePrivateLabel(deliverableId, value); }}
               />
             ) : deliverablesLoading ? (
               <Waiting text="Loading the agreed deliverables…" />
