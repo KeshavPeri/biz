@@ -122,7 +122,7 @@ These require future factory tickets rather than reopening the historical workpl
 | 9.11 | WeasyPrint contract generation | 9.10, 5.11 | Same | Complete | B3-023; `7257508`; `TEST-CONTRACT-FLOW` and template test. |
 | 9.12 | Three-mode contract signing | 9.11, 7.9 | Same | Complete | B3-025 plus contract slice of B3-028; exactly-once execution and Approval → Creating. |
 | 9.13 | Creating: brief, content and revisions | 9.12 | **10.9** | **Complete** | 9.13-A built B3-029 in PR #10; 9.13-B built B3-032 in PR #16; 9.13-C built secure submission/revision in PR #17; 9.13-D built exact direct/checker-gated approval through migrations 032–033 in PR #18; 9.13-E built creator-private deliverable labels through migrations 034–035 in PR #19, completing B3-028–B3-032. B3-021 is already Built. |
-| 9.14 | Posted: live URL hard gate | 9.13 | Same | Ready | B3-033; issue #15 revalidated against merged PR #19. |
+| 9.14 | Posted: live URL hard gate | 9.13 | Same | Ready | B3-033; issue #15 is the backend verifier/persistence/API/stage slice, with Expo UI deferred to a post-merge successor. |
 | 9.15 | Payment tracking and states | 9.14 | Same | Waiting | B3-034 and B3-035. Automated reminders B3-037 also depend on Phase 12/deployment scheduling. |
 | 9.16 | Payment dispute overlay | 9.15 | Same | Waiting | B3-039. |
 | 9.17 | Close and ratings | 9.16 | Same | Waiting | B3-040. |
@@ -216,6 +216,6 @@ No Phase 10 queue item remains open.
 | [#12](https://github.com/KeshavPeri/biz/issues/12) | 9.13-C · submissions and revision requests | B3-030 slice | Closed / merged | PR #17 merged |
 | [#13](https://github.com/KeshavPeri/biz/issues/13) | 9.13-D · checker-gated content approval | B3-030 + B3-028 content slice | Closed / merged | PR #18 merged |
 | [#14](https://github.com/KeshavPeri/biz/issues/14) | 9.13-E · creator-private deliverable labels | B3-031 | Closed / merged | PR #19 merged |
-| [#15](https://github.com/KeshavPeri/biz/issues/15) | 9.14 · verified live-post gate | B3-033 | `factory:planned` | Revalidated against merged PR #19; founder controls release |
+| [#15](https://github.com/KeshavPeri/biz/issues/15) | 9.14-A · verified live-post backend gate | B3-033 backend slice | `factory:planned` | Revalidated against merged PR #19; founder controls release |
 
 The queue is partitioned for approximately 80% session allowances. Issue #15 is the sole planned successor and waits for founder release. The scheduled factory does nothing until the founder marks exactly one ticket `factory:ready`.

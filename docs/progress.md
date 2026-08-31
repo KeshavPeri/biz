@@ -27,8 +27,9 @@ up exactly where the last one left off, with zero context lost.
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
 - **Return point:** issue #15 has been revalidated against merged PR #19 and is the sole
-  founder-controlled planned ticket for the 9.14 verified live-post gate. B3-028–B3-032 are Built,
-  workplan 9.13 is Complete, and 9.14 is Ready.
+  founder-controlled planned ticket for the 9.14-A verified live-post backend gate. B3-028–B3-032
+  are Built, workplan 9.13 is Complete, and 9.14 is Ready. The separate Expo UI slice will be
+  authored only after #15 merges and its API contract is proven.
   - **9.13-E MERGED (B3-031 private labels):** migrations `034_private_deliverable_labels.sql` and
     `035_private_deliverable_label_lifecycle_lock.sql` add
     historical fail-closed inventory, five-value validation, creator/target proof, immutable label
@@ -822,8 +823,9 @@ here in one line so I can review or reverse it later.*
 - **Merge:** issue #14 closed through merged PR #19, placing migrations 034–035 and creator-private
   deliverable labels on `main`; workplan 9.13 is now complete.
 - **Queue:** the standing orchestrator synchronized the checkout, inspected the merged label/content
-  seams, and revalidated issue #15 for the verified live-post gate. Preview data stays text-only in MVP,
-  social hosts are allowlisted, and the deliberately generic podcast platform uses public-HTTPS
+  seams, and revalidated issue #15 as the backend-only verified live-post gate; the broad Expo UI is a
+  successor because factory bundling rules separate it from the new network/schema boundary. Preview
+  data stays text-only, social hosts are allowlisted, and generic podcast links use public-HTTPS
   verification without a false provider claim. #15 alone returns to founder-controlled planned state.
 
 ### 2026-08-31 — Phase 9: creator-private deliverable labels (9.13-E)
