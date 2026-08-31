@@ -228,6 +228,24 @@ def _guard_contract_executed(ctx: GuardContext) -> GuardOutcome:
     return allow({"contract_id": contracts[0]["id"]})
 
 
+def _guard_live_posts(ctx: GuardContext) -> GuardOutcome:
+    """Save one verified link and enter Posted only when the final link qualifies."""
+    if ctx.params.get("live_post_request") is not True:
+        return deny(409, "Submit the live URL on each approved deliverable instead.")
+    from services.posting_service import commit_live_post
+
+    return handled(commit_live_post(ctx))
+
+
+def _guard_post_confirmation(ctx: GuardContext) -> GuardOutcome:
+    """Confirm the exact current link set and enter Payment in the same transaction."""
+    if ctx.params.get("post_confirmation") is not True:
+        return deny(422, "Confirm the exact current set of deliverable versions.")
+    from services.posting_service import commit_post_confirmation
+
+    return handled(commit_post_confirmation(ctx))
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # The transition registry — deal-engine.md "Guard conditions" table + the two
 # terminal off-ramps. Keyed by (from_stage, to_stage): a pair that isn't a key is
@@ -278,11 +296,11 @@ REGISTRY: dict[tuple[str, str], Transition] = {
     ("approval", "cancelled"): Transition(  # mutual cancel, blocked once anyone signed
         "approval", "cancelled", "mutual-gate", RESPONDER_ROLES, False, False, _guard_stub, "deal_cancelled"
     ),
-    ("creating", "posted"): Transition(  # task 9.13: all deliverables approved + live URLs
-        "creating", "posted", "accept-gate", frozenset({"creator"}), False, False, _guard_stub, "deal_posted"
+    ("creating", "posted"): Transition(  # 9.14-A: per-deliverable verified live URLs
+        "creating", "posted", "accept-gate", frozenset({"creator"}), False, False, _guard_live_posts, "deal_posted"
     ),
-    ("posted", "payment"): Transition(  # task 9.14: brand confirms all posts live
-        "posted", "payment", "accept-gate", BRAND_ACTORS, False, False, _guard_stub, "deal_payment_started"
+    ("posted", "payment"): Transition(  # 9.14-A: exact current versions confirmed
+        "posted", "payment", "accept-gate", BRAND_ACTORS, False, False, _guard_post_confirmation, "deal_payment_started"
     ),
     ("payment", "closed"): Transition(  # tasks 9.15-9.17: paid + both confirm + not disputed
         "payment", "closed", "mutual-gate", RESPONDER_ROLES, False, False, _guard_stub, "deal_closed"
@@ -341,7 +359,8 @@ def request_transition(
     # Tests may supply an independent service client to model separate backend
     # workers. Application callers always use the configured singleton.
     client = _client or get_supabase()
-    params = params or {}
+    params = dict(params or {})
+    params.setdefault("ip_address", ip_address)
 
     # (a) deal exists & caller is a participant
     deal = _load_deal_for_transition(client, deal_id)
@@ -360,7 +379,24 @@ def request_transition(
         and params.get("gate_b") is True
         and deal["stage"] in {"approval", "creating"}
     )
-    transition = REGISTRY.get(("chatting", "approval")) if gate_b_retry else REGISTRY.get((deal["stage"], target_stage))
+    live_post_request = (
+        target_stage == "posted"
+        and params.get("live_post_request") is True
+        and deal["stage"] in {"posted", "payment"}
+    )
+    post_confirmation_retry = (
+        target_stage == "payment"
+        and params.get("post_confirmation") is True
+        and deal["stage"] == "payment"
+    )
+    if gate_b_retry:
+        transition = REGISTRY.get(("chatting", "approval"))
+    elif live_post_request:
+        transition = REGISTRY.get(("creating", "posted"))
+    elif post_confirmation_retry:
+        transition = REGISTRY.get(("posted", "payment"))
+    else:
+        transition = REGISTRY.get((deal["stage"], target_stage))
     if transition is None:
         raise _classify_invalid_move(deal["stage"], target_stage)
 

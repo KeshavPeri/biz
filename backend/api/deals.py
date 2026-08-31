@@ -76,6 +76,7 @@ from services.content_service import (
     stream_submission,
     submit_upload,
 )
+from services.posting_service import flag_live_post, submit_live_post
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
@@ -198,14 +199,65 @@ class ContentApproveBody(BaseModel):
     revision_id: UUID
 
 
+class LivePostSubmitBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    url: str = Field(min_length=1, max_length=2048)
+    expected_version: int = Field(ge=0)
+
+    @field_validator('url')
+    @classmethod
+    def strip_live_post_url(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError('Enter a live post URL.')
+        return value
+
+
+class LivePostFlagBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    expected_version: int = Field(ge=1)
+    reason: str = Field(min_length=3, max_length=500)
+
+    @field_validator('reason')
+    @classmethod
+    def strip_flag_reason(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) < 3:
+            raise ValueError('Explain the link issue in at least 3 characters.')
+        return value
+
+
+class LivePostVersion(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    deliverable_id: UUID
+    version: int = Field(ge=1)
+
+
+class ConfirmPostsBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    versions: list[LivePostVersion] = Field(min_length=1, max_length=100)
+
+
 def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def _transition(deal_id: str, user_id: str, target_stage: str, request: Request) -> dict[str, Any]:
+def _transition(
+    deal_id: str,
+    user_id: str,
+    target_stage: str,
+    request: Request,
+    params: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Delegate a stage transition to the engine, mapping DealError → HTTP."""
     try:
-        return request_transition(deal_id, user_id, target_stage, _client_ip(request))
+        return request_transition(
+            deal_id, user_id, target_stage, _client_ip(request), params=params
+        )
     except DealError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
@@ -422,6 +474,48 @@ def approve_content(
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
+@router.post('/{deal_id}/deliverables/{deliverable_id}/live-post')
+def submit_deliverable_live_post(
+    deal_id: str,
+    deliverable_id: UUID,
+    body: LivePostSubmitBody,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return submit_live_post(
+            deal_id,
+            str(deliverable_id),
+            user_id,
+            body.url,
+            body.expected_version,
+            _client_ip(request),
+        )
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post('/{deal_id}/deliverables/{deliverable_id}/live-post/flag')
+def flag_deliverable_live_post(
+    deal_id: str,
+    deliverable_id: UUID,
+    body: LivePostFlagBody,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return flag_live_post(
+            deal_id,
+            str(deliverable_id),
+            user_id,
+            body.expected_version,
+            body.reason,
+            _client_ip(request),
+        )
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
 @router.get('/{deal_id}/deliverables/{deliverable_id}/content/{revision_id}/download')
 def download_content_submission(
     deal_id: str,
@@ -587,10 +681,20 @@ def submit_live(
 @router.post("/{deal_id}/confirm-posts")
 def confirm_posts(
     deal_id: str,
+    body: ConfirmPostsBody,
     request: Request,
     user_id: str = Depends(get_current_user_id),
 ) -> dict[str, Any]:
-    return _transition(deal_id, user_id, "payment", request)
+    return _transition(
+        deal_id,
+        user_id,
+        "payment",
+        request,
+        {
+            "post_confirmation": True,
+            "versions": [item.model_dump(mode='json') for item in body.versions],
+        },
+    )
 
 
 @router.post("/{deal_id}/close")
