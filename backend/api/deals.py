@@ -48,7 +48,7 @@ checklist/other-side confirmation. GET `/{id}/terms-summary` and POST
 from typing import Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -81,6 +81,12 @@ from services.payment_details_service import (
     get_payment_details,
     update_brand_details,
     update_creator_details,
+)
+from services.payment_tracking_service import (
+    confirm_receipt,
+    get_payment_tracking,
+    update_milestone_state,
+    update_payment_state,
 )
 
 router = APIRouter(prefix="/deals", tags=["deals"])
@@ -733,3 +739,56 @@ def close(
     user_id: str = Depends(get_current_user_id),
 ) -> dict[str, Any]:
     return _transition(deal_id, user_id, "closed", request)
+
+
+@router.get("/{deal_id}/payment-tracking")
+def read_payment_tracking(
+    deal_id: str,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return get_payment_tracking(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.put("/{deal_id}/payment-tracking/state")
+def report_payment_state(
+    deal_id: str,
+    request: Request,
+    body: Any = Body(...),
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return update_payment_state(deal_id, user_id, body, _client_ip(request))
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.put("/{deal_id}/payment-tracking/milestones/{milestone_id}/state")
+def report_payment_milestone_state(
+    deal_id: str,
+    milestone_id: UUID,
+    request: Request,
+    body: Any = Body(...),
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return update_milestone_state(
+            deal_id, str(milestone_id), user_id, body, _client_ip(request)
+        )
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post("/{deal_id}/payment-tracking/confirm-receipt")
+def confirm_payment_receipt(
+    deal_id: str,
+    request: Request,
+    body: Any = Body(...),
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return confirm_receipt(deal_id, user_id, body, _client_ip(request))
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc

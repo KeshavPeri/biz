@@ -27,6 +27,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
 import services.posting_service as posting_service  # noqa: E402
 from services.posting_service import submit_live_post  # noqa: E402
+from services.term_extraction import TermsExtraction  # noqa: E402
 from services.url_verifier import PreviewEvidence, UrlVerificationError  # noqa: E402
 
 
@@ -53,6 +54,59 @@ deal_ids: list[str] = []
 brand_id: str | None = None
 checks: list[tuple[str, bool]] = []
 verification_calls: list[tuple[str, str]] = []
+
+
+def found(value: object) -> dict:
+    return {
+        "status": "found",
+        "value": value,
+        "evidence": [{"message_id": "fictional-posting-message", "quote": "fictional agreed term"}],
+    }
+
+
+def not_discussed() -> dict:
+    return {"status": "not_discussed", "value": None, "evidence": []}
+
+
+def payment_terms(count: int) -> dict:
+    value = {
+        "payment_amount": found({"amount": 48000, "currency": "INR"}),
+        "payment_terms_type": found("on_posting"),
+        "payment_terms_from_date": not_discussed(),
+        "exclusivity": found(False),
+        "exclusivity_duration_days": not_discussed(),
+        "exclusivity_category": not_discussed(),
+        "usage_rights": found(False),
+        "usage_rights_duration": not_discussed(),
+        "usage_rights_channels": not_discussed(),
+        "whitelisting": found(False),
+        "blackout_window": found(False),
+        "blackout_duration_timing": not_discussed(),
+        "revision_rounds_max": found(2),
+        "creative_guidance": found({"kind": "creator_discretion", "text": "Fictional posting"}),
+        "content_format_per_deliverable": found([
+            {"deliverable_index": index, "content_format": "Reel"}
+            for index in range(1, count + 1)
+        ]),
+        "platform_per_deliverable": found([
+            {"deliverable_index": index, "platform": "Instagram"}
+            for index in range(1, count + 1)
+        ]),
+        "posting_window_per_deliverable": found([
+            {"deliverable_index": index, "posting_date": "2026-09-30", "window_start": None, "window_end": None}
+            for index in range(1, count + 1)
+        ]),
+        "sponsored_content_disclosure": found({"required": True, "platform_rules": ["Use #ad"]}),
+        "content_ownership": found("creator"),
+        "deliverable_count": found(count),
+        "location_per_deliverable": found([
+            {"deliverable_index": index, "location": f"Fictional studio {index}"}
+            for index in range(1, count + 1)
+        ]),
+        "milestone_schedule": not_discussed(),
+    }
+    TermsExtraction.model_validate(value)
+    return value
 
 
 def check(label: str, condition: bool) -> None:
@@ -106,7 +160,14 @@ def fake_verifier(url: str, platform: str) -> PreviewEvidence:
     )
 
 
-def make_deal(label: str, count: int = 1, *, stage: str = "creating", approved: bool = True) -> tuple[str, list[str]]:
+def make_deal(
+    label: str,
+    count: int = 1,
+    *,
+    stage: str = "creating",
+    approved: bool = True,
+    terms_override: dict | None = None,
+) -> tuple[str, list[str]]:
     deal_id = admin.table("deals").insert(
         {
             "creator_id": ids["C"],
@@ -129,10 +190,18 @@ def make_deal(label: str, count: int = 1, *, stage: str = "creating", approved: 
         {
             "deal_id": deal_id,
             "raw_output": {"source": "fictional posting fixture"},
-            "structured_terms": {"fixture": True},
+            "structured_terms": terms_override or payment_terms(count),
             "status": "approved",
         }
     ).execute().data[0]["id"]
+    admin.table("contracts").insert({
+        "deal_id": deal_id,
+        "version": 1,
+        "storage_path": f"fictional/{deal_id}/executed-v1.pdf",
+        "generated_from_summary_id": summary_id,
+        "status": "executed",
+        "draft_source_sha256": "b" * 64,
+    }).execute()
     deliverable_ids = [str(uuid4()) for _ in range(count)]
     values = ",".join(
         "(" + ",".join(
@@ -282,6 +351,64 @@ def main() -> None:
         )
         check("transient verifier failure is friendly and retryable", failed.status_code == 503 and "try again" in failed.json()["detail"].lower())
         check("verifier failure leaves row and stage unchanged", stage_of(failure_deal) == "creating" and not live_rows(failure_deal))
+
+        invalid_terms = payment_terms(1)
+        invalid_terms["payment_amount"]["value"]["amount"] = 0
+        invalid_deal, [invalid_deliverable] = make_deal(
+            "invalid-payment-terms", terms_override=invalid_terms
+        )
+        call(
+            "POST", f"/deals/{invalid_deal}/deliverables/{invalid_deliverable}/live-post", "C",
+            {"url": "https://instagram.com/p/invalid-payment-terms", "expected_version": 0},
+        )
+        save_payment_details(invalid_deal)
+        invalid_confirm = call(
+            "POST", f"/deals/{invalid_deal}/confirm-posts", "B",
+            {
+                "versions": [{"deliverable_id": invalid_deliverable, "version": 1}],
+                "creator_payment_version": 1,
+                "brand_payment_version": 1,
+            },
+        )
+        check("invalid approved payment terms fail atomically before Payment entry", (
+            invalid_confirm.status_code == 409
+            and stage_of(invalid_deal) == "posted"
+            and live_rows(invalid_deal)[0]["status"] == "verified"
+            and admin.table("payments").select("id").eq("deal_id", invalid_deal).execute().data == []
+        ))
+
+        conflict_deal, [conflict_deliverable] = make_deal("legacy-conflict")
+        call(
+            "POST", f"/deals/{conflict_deal}/deliverables/{conflict_deliverable}/live-post", "C",
+            {"url": "https://instagram.com/p/legacy-conflict", "expected_version": 0},
+        )
+        save_payment_details(conflict_deal)
+        legacy_payment = admin.table("payments").insert({
+            "deal_id": conflict_deal,
+            "amount": 1,
+            "currency": "INR",
+            "structure": "single",
+        }).execute().data[0]["id"]
+        conflict_confirm = call(
+            "POST", f"/deals/{conflict_deal}/confirm-posts", "B",
+            {
+                "versions": [{"deliverable_id": conflict_deliverable, "version": 1}],
+                "creator_payment_version": 1,
+                "brand_payment_version": 1,
+            },
+        )
+        conflict_rows = admin.table("payments").select("id,source_summary_id").eq(
+            "deal_id", conflict_deal
+        ).execute().data
+        check("unrecognized existing payment data is preserved and blocks entry without partial mutation", (
+            conflict_confirm.status_code == 409
+            and stage_of(conflict_deal) == "posted"
+            and live_rows(conflict_deal)[0]["status"] == "verified"
+            and conflict_rows == [{"id": legacy_payment, "source_summary_id": None}]
+            and admin.table("audit_log").select("id").eq("entity_id", conflict_deal).eq(
+                "action", "payment_tracking_initialized"
+            ).execute().data == []
+        ))
 
         # One-deliverable transition, retry, issue/correction, safe read and confirm.
         single_deal, [single_deliverable] = make_deal("single")
@@ -455,8 +582,15 @@ def main() -> None:
             },
         )
         check("active brand maker can confirm the exact multi-deliverable set", multi_confirm.status_code == 200 and stage_of(multi_deal) == "payment")
-        payment_rows = admin.table("payments").select("id").eq("deal_id", multi_deal).execute().data
-        check("entering Payment invents no payment records", payment_rows == [])
+        payment_rows = admin.table("payments").select("id,amount,currency,structure,state,version").eq("deal_id", multi_deal).execute().data
+        check("entering Payment materializes one canonical approved tracker", (
+            len(payment_rows) == 1
+            and payment_rows[0]["amount"] == 48000
+            and payment_rows[0]["currency"] == "INR"
+            and payment_rows[0]["structure"] == "single"
+            and payment_rows[0]["state"] == "not_paid_in_window"
+            and payment_rows[0]["version"] == 1
+        ))
 
         # Direct participant writes/reads remain closed; audits contain metadata only.
         creator_client = auth_client("C")

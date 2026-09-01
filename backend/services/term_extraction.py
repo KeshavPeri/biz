@@ -279,7 +279,7 @@ class TermsExtraction(StrictModel):
             raise ValueError('milestone and combination terms require a complete schedule')
         if terms_type not in ('milestone', 'combination') and schedule.status == 'found':
             raise ValueError('milestone schedule contradicts the payment terms type')
-        if terms_type == 'milestone' and schedule.value and self.payment_amount.status == 'found':
+        if terms_type in ('milestone', 'combination') and schedule.value and self.payment_amount.status == 'found':
             payment = self.payment_amount.value
             currencies = {entry.amount.currency for entry in schedule.value}
             total = sum((Decimal(str(entry.amount.amount)) for entry in schedule.value), Decimal('0'))
