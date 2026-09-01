@@ -26,8 +26,31 @@ up exactly where the last one left off, with zero context lost.
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Current build:** issue #15 implements the backend-only 9.14-A verified live-post gate on base
-  `7d40b57`. Migration `036_live_post_gate.sql` fails closed on unrecognized historical proof,
+- **Current build:** issue #21 implements backend-only 9.15-A two-sided payment-information capture
+  on base `3210a15`, after issue #15 merged through PR #20. Migration
+  `037_payment_details_gate.sql` adapts the existing per-deal record for independently complete
+  creator and brand sides, with side-specific optimistic versions and provenance. Named creators
+  can change only creator fields; active brand admins/makers can change only brand fields; all
+  current participants read a dedicated safe projection in Posted/Payment/Closed. Direct table
+  CRUD/raw reads and client RPC execution are revoked. Exact retries are audit-idempotent, same-side
+  races fail stale, cross-side writes do not overwrite each other, and all fields are bounded,
+  trimmed, control-character free, and kept out of AI/log evidence. The migration was applied to
+  development only after a zero-row, zero-distinct-deal inventory.
+  - **Atomic Payment entry:** migration 037 replaces migration 036's confirmation signature so the
+    deal, payment-detail row, exact live-post set, post confirmations, stage transition and safe
+    audit metadata share one database transaction. Missing, incomplete or stale detail versions
+    leave posts and stage unchanged; an exact retry in Payment is idempotent. No payment row,
+    invoice, validation service, money movement, UI or payment-tracking behavior is introduced.
+  - **9.15-A verification:** the development table inventory was 0 rows/0 distinct deals and
+    migration 037 applied cleanly. The exact de-duplicated affected/focused pre-review union passes:
+    payment details **29/29**, extended posting gate **32/32**, URL verifier **12/12**, brief
+    **28/28**, Stage Engine **23/23**, summary gate, term approvals **32/32**, maker-checker
+    **10/10**, contract flow **28/28**, content approval **20/20**, content flow **25/25**,
+    deliverables **17/17**, private labels **21/21**, RLS **4/4**, backend compile and diff hygiene.
+    All integration data was fictional and cleaned. B3-034 and 9.15 remain **In progress (backend
+    only)** until the successor Expo capture UI merges. B3-035 payment tracking, invoices,
+    reminders and the remainder of Phase 9 remain pending.
+  - **9.14-A MERGED (B3-033 backend):** migration `036_live_post_gate.sql` fails closed on unrecognized historical proof,
   adds append-only per-deliverable URL versions plus a backend-owned current binding, and owns
   atomic final-link Creating → Posted and exact-set Posted → Payment transitions. The verifier
   normalizes platform domains and pins every public-only DNS-checked HTTPS hop; stores bounded text
@@ -37,7 +60,7 @@ up exactly where the last one left off, with zero context lost.
   `backend/tests/test_url_verifier.py` uses controlled DNS/HTTP doubles and
   `backend/tests/test_posting_gate.py` uses fictional development data with no public fetch.
   External platform evidence remains `LIMITED` by design. B3-033 and 9.14 remain **In progress**
-  until the separate Expo successor merges; `can_submit_live_url` stays false and 9.15 stays Waiting.
+  until the separate Expo successor merges; `can_submit_live_url` stays false.
   - **9.13-E MERGED (B3-031 private labels):** migrations `034_private_deliverable_labels.sql` and
     `035_private_deliverable_label_lifecycle_lock.sql` add
     historical fail-closed inventory, five-value validation, creator/target proof, immutable label

@@ -32,7 +32,7 @@ Actions, their target stage, and which per-deal role may call each (rbac.md):
   cancel           chatting → cancelled     creator/admin/maker             stub → 409 (mutual cancel)
                    approval → cancelled     creator/admin/maker             stub → 409
   submit-live      creating → posted        creator                         stub → 409 (task 9.13)
-  confirm-posts    posted   → payment       brand admin/maker               stub → 409 (task 9.14)
+  confirm-posts    posted   → payment       brand admin/maker               LIVE (post + payment-detail versions)
   close            payment  → closed        creator/admin/maker             stub → 409 (tasks 9.15-17)
 
   (approval → creating is SYSTEM-AUTO — fired internally when signatures complete,
@@ -77,6 +77,11 @@ from services.content_service import (
     submit_upload,
 )
 from services.posting_service import flag_live_post, submit_live_post
+from services.payment_details_service import (
+    get_payment_details,
+    update_brand_details,
+    update_creator_details,
+)
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
@@ -227,19 +232,6 @@ class LivePostFlagBody(BaseModel):
         if len(value) < 3:
             raise ValueError('Explain the link issue in at least 3 characters.')
         return value
-
-
-class LivePostVersion(BaseModel):
-    model_config = ConfigDict(extra='forbid')
-
-    deliverable_id: UUID
-    version: int = Field(ge=1)
-
-
-class ConfirmPostsBody(BaseModel):
-    model_config = ConfigDict(extra='forbid')
-
-    versions: list[LivePostVersion] = Field(min_length=1, max_length=100)
 
 
 def _client_ip(request: Request) -> str:
@@ -669,6 +661,43 @@ def cancel(
     return _transition(deal_id, user_id, "cancelled", request)
 
 
+@router.get("/{deal_id}/payment-details")
+def read_payment_details(
+    deal_id: str,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return get_payment_details(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.put("/{deal_id}/payment-details/creator")
+def save_creator_payment_details(
+    deal_id: str,
+    body: dict[str, Any],
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return update_creator_details(deal_id, user_id, body, _client_ip(request))
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.put("/{deal_id}/payment-details/brand")
+def save_brand_payment_details(
+    deal_id: str,
+    body: dict[str, Any],
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return update_brand_details(deal_id, user_id, body, _client_ip(request))
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
 @router.post("/{deal_id}/submit-live")
 def submit_live(
     deal_id: str,
@@ -681,7 +710,7 @@ def submit_live(
 @router.post("/{deal_id}/confirm-posts")
 def confirm_posts(
     deal_id: str,
-    body: ConfirmPostsBody,
+    body: dict[str, Any],
     request: Request,
     user_id: str = Depends(get_current_user_id),
 ) -> dict[str, Any]:
@@ -692,7 +721,7 @@ def confirm_posts(
         request,
         {
             "post_confirmation": True,
-            "versions": [item.model_dump(mode='json') for item in body.versions],
+            "confirmation_body": body,
         },
     )
 
