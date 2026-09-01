@@ -4,7 +4,7 @@ import * as FileSystem from 'expo-file-system';
 import type { DocumentPickerAsset } from 'expo-document-picker';
 
 import { supabase } from '@/lib/supabase';
-import { getJson, postJson } from '@/lib/api';
+import { getJson, postJson, putJson } from '@/lib/api';
 
 /**
  * Deal actions that change deal state → routed through FastAPI (service_role),
@@ -118,7 +118,7 @@ export async function declineDeal(
  * stub-built today, so these often return the engine's clean 409 "not available
  * yet" — the caller surfaces `message` rather than crashing.
  */
-export type TransitionAction = 'cancel' | 'submit-live' | 'confirm-posts' | 'close';
+export type TransitionAction = 'cancel' | 'close';
 
 export async function requestDealTransition(
   dealId: string,
@@ -350,7 +350,40 @@ export type CanonicalDeliverable = {
     can_submit_content: boolean;
     can_request_revision: boolean;
     can_approve_content: boolean;
-    can_submit_live_url: false;
+    can_submit_live_url: boolean;
+  };
+  post_state: DeliverablePostState;
+};
+
+export type LivePostVerificationStatus = 'verified' | 'flagged' | 'confirmed';
+
+export type LivePostEvidence = {
+  id: string;
+  version: number;
+  submitted_url: string;
+  final_url: string;
+  host: string;
+  title: string | null;
+  site_name: string | null;
+  description: string | null;
+  verification_status: LivePostVerificationStatus;
+  submitted_by_name: string;
+  verified_at: string;
+  flag_reason: string | null;
+  flagged_by_name: string | null;
+  flagged_at: string | null;
+  confirmed_by_name: string | null;
+  confirmed_at: string | null;
+};
+
+export type DeliverablePostState = {
+  current: LivePostEvidence | null;
+  history: LivePostEvidence[];
+  history_truncated: boolean;
+  verification_scope: 'platform_domain' | 'public_https';
+  future_actions: {
+    can_submit_or_replace: boolean;
+    can_flag: boolean;
   };
 };
 
@@ -386,8 +419,12 @@ export type ContentSubmission = {
 
 export type CanonicalDeliverableState = {
   deal_id: string;
-  stage: 'creating';
+  stage: 'creating' | 'posted' | 'payment' | 'closed';
   deliverables: CanonicalDeliverable[];
+  post_confirmation: {
+    expected_versions: { deliverable_id: string; version: number }[];
+    future_actions: { can_confirm_all: boolean };
+  };
   order: 'sequence_ascending';
 };
 
@@ -398,6 +435,131 @@ export async function fetchCanonicalDeliverables(
   if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
   const result = await getJson<CanonicalDeliverableState>(`/deals/${dealId}/deliverables`, token);
   return result.ok ? { ok: true, data: result.data } : { ok: false, message: result.message };
+}
+
+type MutationOutcome = { ok: true } | { ok: false; message: string };
+
+export async function submitLivePost(
+  dealId: string,
+  deliverableId: string,
+  url: string,
+  expectedVersion: number,
+): Promise<MutationOutcome> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<unknown>(
+    `/deals/${dealId}/deliverables/${deliverableId}/live-post`,
+    { url, expected_version: expectedVersion },
+    token,
+  );
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
+}
+
+export async function flagLivePost(
+  dealId: string,
+  deliverableId: string,
+  expectedVersion: number,
+  reason: string,
+): Promise<MutationOutcome> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<unknown>(
+    `/deals/${dealId}/deliverables/${deliverableId}/live-post/flag`,
+    { expected_version: expectedVersion, reason },
+    token,
+  );
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
+}
+
+export type PaymentDetailsState = {
+  deal_id: string;
+  stage: 'posted' | 'payment' | 'closed';
+  creator_legal_name: string | null;
+  creator_bank_or_upi: string | null;
+  creator_tax_id: string | null;
+  brand_billing_name: string | null;
+  brand_billing_address: string | null;
+  brand_gst: string | null;
+  creator_version: number;
+  brand_version: number;
+  creator_complete: boolean;
+  brand_complete: boolean;
+  creator_updated_at: string | null;
+  brand_updated_at: string | null;
+  allowed_actions: {
+    can_edit_creator: boolean;
+    can_edit_brand: boolean;
+    can_confirm_posts: boolean;
+  };
+};
+
+export type CreatorPaymentDetailsInput = Pick<
+  PaymentDetailsState,
+  'creator_legal_name' | 'creator_bank_or_upi' | 'creator_tax_id'
+>;
+
+export type BrandPaymentDetailsInput = Pick<
+  PaymentDetailsState,
+  'brand_billing_name' | 'brand_billing_address' | 'brand_gst'
+>;
+
+export async function fetchPaymentDetails(
+  dealId: string,
+): Promise<{ ok: true; data: PaymentDetailsState } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await getJson<PaymentDetailsState>(`/deals/${dealId}/payment-details`, token);
+  return result.ok ? { ok: true, data: result.data } : { ok: false, message: result.message };
+}
+
+export async function updateCreatorPaymentDetails(
+  dealId: string,
+  expectedVersion: number,
+  input: CreatorPaymentDetailsInput,
+): Promise<MutationOutcome> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await putJson<PaymentDetailsState>(
+    `/deals/${dealId}/payment-details/creator`,
+    { expected_version: expectedVersion, ...input },
+    token,
+  );
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
+}
+
+export async function updateBrandPaymentDetails(
+  dealId: string,
+  expectedVersion: number,
+  input: BrandPaymentDetailsInput,
+): Promise<MutationOutcome> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await putJson<PaymentDetailsState>(
+    `/deals/${dealId}/payment-details/brand`,
+    { expected_version: expectedVersion, ...input },
+    token,
+  );
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
+}
+
+export async function confirmLivePosts(
+  dealId: string,
+  versions: CanonicalDeliverableState['post_confirmation']['expected_versions'],
+  creatorPaymentVersion: number,
+  brandPaymentVersion: number,
+): Promise<MutationOutcome> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<unknown>(
+    `/deals/${dealId}/confirm-posts`,
+    {
+      versions,
+      creator_payment_version: creatorPaymentVersion,
+      brand_payment_version: brandPaymentVersion,
+    },
+    token,
+  );
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
 }
 
 const CONTENT_DRAFT_BUCKET = 'content-drafts';

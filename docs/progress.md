@@ -26,7 +26,34 @@ up exactly where the last one left off, with zero context lost.
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Current build:** issue #21 implements backend-only 9.15-A two-sided payment-information capture
+- **Current build:** issue #22 completes the Expo journey for the merged 9.14-A live-post gate and
+  9.15-A payment-information prerequisite on base `fa2a369`. The deal room now fetches canonical
+  deliverables through Creating/Posted/Payment/Closed, renders bounded current/prior text proof,
+  and exposes submit/replace/flag only from participant-safe server action flags. Every mutation
+  uses the displayed exact version; failures refetch authoritative state while keeping an active
+  URL/reason draft available for a deliberate retry. Only an explicit tap opens the current
+  server-returned HTTPS final URL in the system browser; no client URL fetch, WebView, image, HTML,
+  or invented authenticity claim exists.
+  - **Payment-information UI:** Posted/Payment/Closed read the dedicated FastAPI projection only.
+    Creator and brand forms are enabled solely by side-specific server action flags, keep values in
+    component state, and save with the displayed independent version. They never use Supabase,
+    persisted state, navigation, chat, analytics, logs, or toast text. Exact post confirmation is
+    shown only when both backend projections authorize it, and sends the displayed post plus
+    creator/brand detail versions before the authoritative Payment refetch. Payment/Closed freeze
+    both records read-only; no payment row, invoice, transfer, or release language is introduced.
+  - **Pre-review verification:** strict TypeScript, frontend lint (0 errors; 3 pre-existing
+    `signature-pad.tsx` warnings), Expo web export (36 routes), payment details **29/29**, posting
+    gate **32/32**, private labels **21/21**, content approval **20/20**, deliverables **17/17**,
+    Stage Engine **23/23**, term approvals **32/32**, maker-checker **10/10**, contract flow
+    **28/28**, briefs **28/28**, and RLS **4/4** pass in the exact de-duplicated focused/affected
+    union. Every database suite cleaned its fictional data. Independent QA and security review
+    passed; the single final regression also passed at unchanged source fingerprint
+    `c54c52e12bb28e6a66665d70445e0bd7104c84d0` (one transient HTTP/2 read error in content approval
+    was retried once in isolation and then passed **20/20** without a source change).
+    The deterministic fictional two-persona backend contracts cover multi-deliverable waiting,
+    flag/replacement, stale versions, side ownership, and atomic confirmation. Interactive
+    browser/device walkthrough evidence remains `LIMITED` until founder review.
+- **Merged dependency:** issue #21 implements backend-only 9.15-A two-sided payment-information capture
   on base `3210a15`, after issue #15 merged through PR #20. Migration
   `037_payment_details_gate.sql` adapts the existing per-deal record for independently complete
   creator and brand sides, with side-specific optimistic versions and provenance. Named creators
@@ -59,8 +86,8 @@ up exactly where the last one left off, with zero context lost.
   and participant reads preserve history without private-label or network-internal joins.
   `backend/tests/test_url_verifier.py` uses controlled DNS/HTTP doubles and
   `backend/tests/test_posting_gate.py` uses fictional development data with no public fetch.
-  External platform evidence remains `LIMITED` by design. B3-033 and 9.14 remain **In progress**
-  until the separate Expo successor merges; `can_submit_live_url` stays false.
+  External platform evidence remains `LIMITED` by design. Issue #22 is the reviewed Expo successor
+  candidate; B3-033/9.14 become complete when its draft PR merges.
   - **9.13-E MERGED (B3-031 private labels):** migrations `034_private_deliverable_labels.sql` and
     `035_private_deliverable_label_lifecycle_lock.sql` add
     historical fail-closed inventory, five-value validation, creator/target proof, immutable label
@@ -501,12 +528,11 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **9.14-A founder review:** review issue #15's backend verifier, migration, exact-version APIs,
-   participant projection, and atomic stage gates after its draft PR is opened. Independent QA and
-   security review have passed; public-provider smoke remains intentionally `LIMITED`.
-2. **9.14 Expo successor:** author the separate action/preview/confirmation UI ticket only after
-   issue #15 merges; the existing `can_submit_live_url` flag remains false in this slice.
-3. **9.15 — Payment:** manual payment tracking and states remain Waiting until full 9.14 completes.
+1. **Issue #22 founder review:** exercise the fictional two-persona live-post and payment-information
+   flow from its draft PR. Device/browser and live-provider evidence remain intentionally `LIMITED`.
+2. **9.15 — Payment:** prepare B3-035 payment tracking and states after the 9.14/9.15 capture-gate
+   draft is merged; no payment movement, invoice, or reminder work is included here.
+3. **9.16 — Dispute overlay:** remains Waiting behind payment tracking.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
 
@@ -857,6 +883,17 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-09-01 — Issue #22: live-post and payment-information Expo candidate
+- **UI:** creator exact-version submit/replacement, shared bounded proof/history, server-authorized
+  brand flagging/confirmation, and side-owned ephemeral payment-information forms now consume the
+  merged FastAPI contracts. Current verified HTTPS proof opens only on an explicit gesture; no URL
+  fetch/WebView/image/HTML or payment movement path was added.
+- **Evidence:** QA and mandatory security review passed. TypeScript, lint (0 errors; 3 existing
+  warnings), Expo web export (36 routes), the affected union, and final regression passed. A transient
+  content-approval HTTP/2 read error was retried once; it then passed 20/20 with the same fingerprint.
+- **Limit:** the fictional two-persona interactive browser/device and live-provider walkthrough is
+  `LIMITED` for founder review; no real financial or campaign data was used.
 
 ### 2026-08-31 — Phase 9: verified live-post backend gate (9.14-A)
 - **Network and persistence:** backend-only verification normalizes IDNA/host/default-port form,
