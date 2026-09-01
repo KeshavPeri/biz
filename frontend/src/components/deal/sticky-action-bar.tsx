@@ -7,6 +7,8 @@ import { TermsReviewCard } from '@/components/deal/terms-review-card';
 import { CreativeBriefCard } from '@/components/deal/creative-brief-card';
 import { DeliverablesCard } from '@/components/deal/deliverables-card';
 import { ContentApprovalRejectSheet, ContentSubmissionSheet, RevisionRequestSheet } from '@/components/deal/content-submission-sheet';
+import { LivePostSheet } from '@/components/deal/live-post-sheet';
+import { PaymentDetailsCard } from '@/components/deal/payment-details-card';
 
 import {
   acceptDeal,
@@ -19,6 +21,9 @@ import {
   decideContractSigning,
   deferTermsSummaryRequest,
   decideTermsSummary,
+  confirmLivePosts,
+  fetchPaymentDetails,
+  flagLivePost,
   fetchContract,
   fetchCreativeBriefs,
   fetchCanonicalDeliverables,
@@ -30,11 +35,13 @@ import {
   getContractDownload,
   overrideContractAlignment,
   proposeChecklistOverride,
-  requestDealTransition,
   requestContentRevision,
   requestTermsSummary,
   runContractAlignment,
   signContract,
+  submitLivePost,
+  updateBrandPaymentDetails,
+  updateCreatorPaymentDetails,
   uploadContentDraft,
   subscribeToTermApprovals,
   type DealThread,
@@ -43,9 +50,11 @@ import {
   type CreativeBriefState,
   type CanonicalDeliverableState,
   type CanonicalDeliverable,
+  type BrandPaymentDetailsInput,
+  type CreatorPaymentDetailsInput,
+  type PaymentDetailsState,
   type SummaryChecklist,
   type TermsReviewState,
-  type TransitionAction,
 } from '@/lib/deals';
 import {
   fetchPrivateDeliverableLabels,
@@ -59,10 +68,8 @@ import {
  * composer. It shows the right buttons + context for THIS user in THIS stage,
  * per deal-engine.md's per-stage sticky-action-bar tables and rbac.md.
  *
- * The buttons only ever REQUEST a transition — the server (the engine) is the
- * source of truth. Each maps 1:1 to a documented endpoint (backend/api/deals.py).
- * Pending actions and the Chatting Gate-A summary request are live. Later
- * contract, content and payment actions remain stub-built and return a clean 409.
+ * The buttons only ever request server-authorized actions. The server remains
+ * the source of truth for every role, version, and stage gate.
  *
  * On any successful transition we call onTransitioned() so the screen refetches
  * (stage bar + this bar update immediately on the acting client). NOTE: `deals`
@@ -98,9 +105,14 @@ export function StickyActionBar({
   const [deliverablesError, setDeliverablesError] = useState<string | null>(null);
   const [privateLabels, setPrivateLabels] = useState<PrivateDeliverableLabelMap>({});
   const [privateLabelsError, setPrivateLabelsError] = useState<string | null>(null);
+  const [paymentDetails, setPaymentDetails] = useState<PaymentDetailsState | null>(null);
+  const [paymentDetailsLoading, setPaymentDetailsLoading] = useState(false);
+  const [paymentDetailsError, setPaymentDetailsError] = useState<string | null>(null);
+  const [paymentSaving, setPaymentSaving] = useState(false);
   const [contentDeliverable, setContentDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [revisionDeliverable, setRevisionDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [rejectedApprovalDeliverable, setRejectedApprovalDeliverable] = useState<CanonicalDeliverable | null>(null);
+  const [livePostAction, setLivePostAction] = useState<{ deliverableId: string; mode: 'submit' | 'flag' } | null>(null);
   const [signing, setSigning] = useState(false);
   const alignmentStartRef = useRef<string | null>(null);
 
@@ -165,7 +177,7 @@ export function StickyActionBar({
   }, [loadBriefs, thread.stage]);
 
   const loadDeliverables = useCallback(async (showLoading = false) => {
-    if (thread.stage !== 'creating') return;
+    if (!['creating', 'posted', 'payment', 'closed'].includes(thread.stage)) return;
     if (showLoading) {
       setDeliverablesLoading(true);
       setDeliverablesError(null);
@@ -174,7 +186,7 @@ export function StickyActionBar({
     if (result.ok) {
       setDeliverables(result.data);
       setDeliverablesError(null);
-      if (thread.myRole === 'creator') {
+      if (thread.stage === 'creating' && thread.myRole === 'creator') {
         const labelResult = await fetchPrivateDeliverableLabels(
           result.data.deliverables.map((deliverable) => deliverable.id),
         );
@@ -199,13 +211,37 @@ export function StickyActionBar({
   }, [thread.dealId, thread.myRole, thread.stage]);
 
   useEffect(() => {
-    if (thread.stage === 'creating') void loadDeliverables(true);
+    if (['creating', 'posted', 'payment', 'closed'].includes(thread.stage)) void loadDeliverables(true);
     else {
       setDeliverables(null);
       setPrivateLabels({});
       setPrivateLabelsError(null);
     }
   }, [loadDeliverables, thread.stage]);
+
+  const loadPaymentDetails = useCallback(async (showLoading = false) => {
+    if (!['posted', 'payment', 'closed'].includes(thread.stage)) return;
+    if (showLoading) {
+      setPaymentDetailsLoading(true);
+      setPaymentDetailsError(null);
+    }
+    const result = await fetchPaymentDetails(thread.dealId);
+    if (result.ok) {
+      setPaymentDetails(result.data);
+      setPaymentDetailsError(null);
+    } else {
+      setPaymentDetailsError(result.message);
+    }
+    setPaymentDetailsLoading(false);
+  }, [thread.dealId, thread.stage]);
+
+  useEffect(() => {
+    if (['posted', 'payment', 'closed'].includes(thread.stage)) void loadPaymentDetails(true);
+    else {
+      setPaymentDetails(null);
+      setPaymentDetailsError(null);
+    }
+  }, [loadPaymentDetails, thread.stage]);
 
   // Generation is followed by one authoritative alignment start. The backend
   // reservation makes concurrent participants/idempotent refreshes safe.
@@ -227,11 +263,11 @@ export function StickyActionBar({
       void loadTerms();
       if (thread.stage === 'chatting') void loadSummary();
       if (thread.stage === 'approval') void loadContract();
-      if (thread.stage === 'creating') {
-        void loadBriefs();
-        void loadDeliverables();
-      }
-    }, [loadBriefs, loadContract, loadDeliverables, loadSummary, loadTerms, thread.stage]),
+      if (thread.stage === 'creating') void loadBriefs();
+      if (['creating', 'posted', 'payment', 'closed'].includes(thread.stage)) void loadDeliverables();
+      if (['posted', 'payment', 'closed'].includes(thread.stage)) void loadPaymentDetails();
+      onTransitioned();
+    }, [loadBriefs, loadContract, loadDeliverables, loadPaymentDetails, loadSummary, loadTerms, onTransitioned, thread.stage]),
   );
 
   useEffect(() => {
@@ -272,11 +308,6 @@ export function StickyActionBar({
       setActing(false);
     },
     [acting, thread.dealId, onTransitioned],
-  );
-
-  const onTransition = useCallback(
-    (action: TransitionAction) => run(() => requestDealTransition(thread.dealId, action)),
-    [run, thread.dealId],
   );
 
   const runSummary = useCallback(
@@ -480,13 +511,132 @@ export function StickyActionBar({
     setActing(false);
   }, [acting, deliverables, privateLabels, thread.myRole]);
 
+  const actOnLivePost = useCallback(async (value: string) => {
+    const action = livePostAction;
+    const deliverable = deliverables?.deliverables.find((item) => item.id === action?.deliverableId);
+    if (!action || !deliverable || acting) return { ok: false as const, message: 'This live-post proof changed. Refresh and try again.' };
+    const currentVersion = deliverable.post_state.current?.version ?? 0;
+    setActing(true);
+    setDeliverablesError(null);
+    const result = action.mode === 'submit'
+      ? await submitLivePost(thread.dealId, deliverable.id, value, currentVersion)
+      : await flagLivePost(thread.dealId, deliverable.id, currentVersion, value);
+    await loadDeliverables();
+    if (result.ok) onTransitioned();
+    else setDeliverablesError(result.message);
+    setActing(false);
+    return result;
+  }, [acting, deliverables, livePostAction, loadDeliverables, onTransitioned, thread.dealId]);
+
+  const saveCreatorPaymentDetails = useCallback(async (
+    expectedVersion: number,
+    input: CreatorPaymentDetailsInput,
+  ) => {
+    if (paymentSaving) return { ok: false as const, message: 'A save is already in progress.' };
+    setPaymentSaving(true);
+    setPaymentDetailsError(null);
+    const result = await updateCreatorPaymentDetails(thread.dealId, expectedVersion, input);
+    await loadPaymentDetails();
+    if (!result.ok) setPaymentDetailsError(result.message);
+    setPaymentSaving(false);
+    return result;
+  }, [loadPaymentDetails, paymentSaving, thread.dealId]);
+
+  const saveBrandPaymentDetails = useCallback(async (
+    expectedVersion: number,
+    input: BrandPaymentDetailsInput,
+  ) => {
+    if (paymentSaving) return { ok: false as const, message: 'A save is already in progress.' };
+    setPaymentSaving(true);
+    setPaymentDetailsError(null);
+    const result = await updateBrandPaymentDetails(thread.dealId, expectedVersion, input);
+    await loadPaymentDetails();
+    if (!result.ok) setPaymentDetailsError(result.message);
+    setPaymentSaving(false);
+    return result;
+  }, [loadPaymentDetails, paymentSaving, thread.dealId]);
+
+  const confirmPosts = useCallback(async () => {
+    if (acting || !deliverables || !paymentDetails) return;
+    const postsAllowed = deliverables.post_confirmation.future_actions.can_confirm_all;
+    const detailsAllowed = paymentDetails.allowed_actions.can_confirm_posts;
+    if (!postsAllowed || !detailsAllowed) return;
+    setActing(true);
+    setError(null);
+    const result = await confirmLivePosts(
+      thread.dealId,
+      deliverables.post_confirmation.expected_versions,
+      paymentDetails.creator_version,
+      paymentDetails.brand_version,
+    );
+    await Promise.all([loadDeliverables(), loadPaymentDetails()]);
+    if (result.ok) onTransitioned();
+    else setError(result.message);
+    setActing(false);
+  }, [acting, deliverables, loadDeliverables, loadPaymentDetails, onTransitioned, paymentDetails, thread.dealId]);
+
+  const openVerifiedPost = useCallback(async (url: string) => {
+    if (!/^https:\/\/[^\s]+$/i.test(url)) {
+      setDeliverablesError('This verified link cannot be opened safely. Refresh and try again.');
+      return;
+    }
+    try {
+      await Linking.openURL(url);
+    } catch {
+      setDeliverablesError('The verified post could not be opened. Please try again.');
+    }
+  }, []);
+
   // ── Role / relationship derivations (rbac.md + deal-engine.md) ──
   const { stage, myRole, isDisputed } = thread;
   const isInitiator = thread.createdBy === userId;
-  const isCreator = myRole === 'creator';
   const isBrandActor = myRole === 'brand_admin' || myRole === 'brand_maker';
   // Checker can't accept/decline/cancel/close (rbac.md "Deal flow — by stage").
   const canRespond = myRole === 'creator' || isBrandActor;
+  const livePostDeliverable = livePostAction
+    ? deliverables?.deliverables.find((item) => item.id === livePostAction.deliverableId) ?? null
+    : null;
+
+  const deliverablesView = () => deliverables ? (
+    <DeliverablesCard
+      state={deliverables}
+      acting={acting}
+      error={deliverablesError ?? privateLabelsError}
+      myRole={myRole}
+      privateLabels={privateLabels}
+      onSubmit={setContentDeliverable}
+      onRequestRevision={setRevisionDeliverable}
+      onApprove={(deliverable) => void approveContent(deliverable)}
+      onApprovalDecision={(deliverable, decision) => { void decideApproval(deliverable, decision); }}
+      onDownload={(deliverableId, revisionId) => void downloadContent(deliverableId, revisionId)}
+      onPrivateLabelChange={(deliverableId, value) => { void changePrivateLabel(deliverableId, value); }}
+      onLivePost={(deliverable) => setLivePostAction({ deliverableId: deliverable.id, mode: 'submit' })}
+      onFlagPost={(deliverable) => setLivePostAction({ deliverableId: deliverable.id, mode: 'flag' })}
+      onOpenVerifiedPost={(url) => { void openVerifiedPost(url); }}
+    />
+  ) : deliverablesLoading ? (
+    <Waiting text="Loading the agreed deliverables…" />
+  ) : (
+    <Actions label="Agreed deliverables" error={deliverablesError}>
+      <InlineButton label="Retry" onPress={() => void loadDeliverables(true)} disabled={deliverablesLoading} />
+    </Actions>
+  );
+
+  const paymentDetailsView = () => paymentDetails ? (
+    <PaymentDetailsCard
+      state={paymentDetails}
+      saving={paymentSaving}
+      error={paymentDetailsError}
+      onSaveCreator={saveCreatorPaymentDetails}
+      onSaveBrand={saveBrandPaymentDetails}
+    />
+  ) : paymentDetailsLoading ? (
+    <Waiting text="Loading off-platform payment information…" />
+  ) : (
+    <Actions label="Off-platform payment information" error={paymentDetailsError}>
+      <InlineButton label="Retry" onPress={() => void loadPaymentDetails(true)} disabled={paymentDetailsLoading} />
+    </Actions>
+  );
 
   const termsReview = (readOnly: boolean): ReactNode => {
     if (termsLoading && !terms) return <Waiting text="Loading the terms review…" />;
@@ -579,27 +729,7 @@ export function StickyActionBar({
         return (
           <View className="gap-2.5">
             {termsReview(true)}
-            {deliverables ? (
-              <DeliverablesCard
-                state={deliverables}
-                acting={acting}
-                error={deliverablesError ?? privateLabelsError}
-                myRole={myRole}
-                privateLabels={privateLabels}
-                onSubmit={setContentDeliverable}
-                onRequestRevision={setRevisionDeliverable}
-                onApprove={(deliverable) => void approveContent(deliverable)}
-                onApprovalDecision={(deliverable, decision) => { void decideApproval(deliverable, decision); }}
-                onDownload={(deliverableId, revisionId) => void downloadContent(deliverableId, revisionId)}
-                onPrivateLabelChange={(deliverableId, value) => { void changePrivateLabel(deliverableId, value); }}
-              />
-            ) : deliverablesLoading ? (
-              <Waiting text="Loading the agreed deliverables…" />
-            ) : (
-              <Actions label="Agreed deliverables" error={deliverablesError}>
-                <InlineButton label="Retry" onPress={() => void loadDeliverables(true)} disabled={deliverablesLoading} />
-              </Actions>
-            )}
+            {deliverablesView()}
             {briefs ? (
               <CreativeBriefCard
                 state={briefs}
@@ -619,32 +749,37 @@ export function StickyActionBar({
         );
 
       case 'posted':
-        if (isBrandActor) {
-          return (
-            <Actions label="Posted — confirm the post" error={error}>
-              <ButtonRow>
-                <PrimaryButton label="Confirm post live" onPress={() => onTransition('confirm-posts')} disabled={acting} />
-              </ButtonRow>
-            </Actions>
-          );
-        }
-        return <Waiting text="Waiting for the brand to confirm the post." />;
+        return (
+          <View className="gap-2.5">
+            {deliverablesView()}
+            {paymentDetailsView()}
+            {deliverables?.post_confirmation.future_actions.can_confirm_all
+              && paymentDetails?.allowed_actions.can_confirm_posts ? (
+                <Actions label="Posted — exact confirmation" error={error}>
+                  <PrimaryButton label={acting ? 'Confirming…' : 'Confirm posts live'} onPress={() => void confirmPosts()} disabled={acting} />
+                </Actions>
+              ) : (
+                <Waiting text={paymentDetails && (!paymentDetails.creator_complete || !paymentDetails.brand_complete)
+                  ? `Payment information missing: ${[
+                    !paymentDetails.creator_complete ? 'creator' : null,
+                    !paymentDetails.brand_complete ? 'brand' : null,
+                  ].filter(Boolean).join(' and ')}`
+                  : isBrandActor ? 'Review every current live-post proof before confirming.' : 'Waiting for the brand to confirm the current proof.'} />
+              )}
+          </View>
+        );
 
       case 'payment':
-        if (isDisputed) return <Waiting text="Dispute in progress — payment paused." />;
-        if (canRespond) {
-          return (
-            <Actions label="Payment — track to completion" error={error}>
-              <ButtonRow>
-                <PrimaryButton label="Close deal" onPress={() => onTransition('close')} disabled={acting} />
-              </ButtonRow>
-            </Actions>
-          );
-        }
-        return <Waiting text="Payment in progress." />;
+        return (
+          <View className="gap-2.5">
+            {deliverablesView()}
+            {paymentDetailsView()}
+            <Waiting text={isDisputed ? 'Dispute in progress — payment paused.' : 'Payment tracking is not available yet.'} />
+          </View>
+        );
 
       case 'closed':
-        return <Waiting text="This deal is closed." />;
+        return <View className="gap-2.5">{deliverablesView()}{paymentDetailsView()}<Waiting text="This deal is closed." /></View>;
       case 'declined':
         return <Waiting text="This connection was declined." />;
       case 'cancelled':
@@ -671,6 +806,14 @@ export function StickyActionBar({
           roundMax={contentDeliverable.revision_max}
           onClose={() => setContentDeliverable(null)}
           onSubmit={submitContent}
+        />
+      ) : null}
+      {livePostAction && livePostDeliverable ? (
+        <LivePostSheet
+          deliverable={livePostDeliverable}
+          mode={livePostAction.mode}
+          onClose={() => setLivePostAction(null)}
+          onSubmit={actOnLivePost}
         />
       ) : null}
       {revisionDeliverable?.current_submission ? (

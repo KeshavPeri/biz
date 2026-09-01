@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { PrivateDeliverableLabelPicker } from '@/components/deal/private-deliverable-label-picker';
@@ -59,6 +60,9 @@ export function DeliverablesCard({
   myRole,
   privateLabels,
   onPrivateLabelChange,
+  onLivePost,
+  onFlagPost,
+  onOpenVerifiedPost,
 }: {
   state: CanonicalDeliverableState;
   acting: boolean;
@@ -71,6 +75,9 @@ export function DeliverablesCard({
   myRole: ParticipantRole | null;
   privateLabels: PrivateDeliverableLabelMap;
   onPrivateLabelChange: (deliverableId: string, value: PrivateDeliverableLabel | null) => void;
+  onLivePost: (deliverable: CanonicalDeliverable) => void;
+  onFlagPost: (deliverable: CanonicalDeliverable) => void;
+  onOpenVerifiedPost: (url: string) => void;
 }) {
   return (
     <View className="gap-3 rounded-2xl border border-hairline bg-surface-card p-3">
@@ -99,6 +106,10 @@ export function DeliverablesCard({
           myRole={myRole}
           privateLabel={privateLabels[deliverable.id] ?? null}
           onPrivateLabelChange={(value) => onPrivateLabelChange(deliverable.id, value)}
+          showPrivateLabel={state.stage === 'creating'}
+          onLivePost={() => onLivePost(deliverable)}
+          onFlagPost={() => onFlagPost(deliverable)}
+          onOpenVerifiedPost={onOpenVerifiedPost}
         />
       ))}
       {error ? <Text className="font-geist-medium text-[12px] text-status-critical">{error}</Text> : null}
@@ -117,6 +128,10 @@ function DeliverableRow({
   myRole,
   privateLabel,
   onPrivateLabelChange,
+  showPrivateLabel,
+  onLivePost,
+  onFlagPost,
+  onOpenVerifiedPost,
 }: {
   deliverable: CanonicalDeliverable;
   acting: boolean;
@@ -128,7 +143,14 @@ function DeliverableRow({
   myRole: ParticipantRole | null;
   privateLabel: PrivateDeliverableLabel | null;
   onPrivateLabelChange: (value: PrivateDeliverableLabel | null) => void;
+  showPrivateLabel: boolean;
+  onLivePost: () => void;
+  onFlagPost: () => void;
+  onOpenVerifiedPost: (url: string) => void;
 }) {
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const currentPost = deliverable.post_state.current;
+  const priorPosts = deliverable.post_state.history.filter((item) => item.id !== currentPost?.id);
   return (
     <View className="gap-2 rounded-xl bg-surface-recess p-3">
       <View className="flex-row items-start justify-between gap-3">
@@ -145,13 +167,47 @@ function DeliverableRow({
       <Detail label="Posting" value={postingLabel(deliverable)} />
       {deliverable.location ? <Detail label="Location" value={deliverable.location} /> : null}
       <Detail label="Revisions" value={`Round ${deliverable.revision_current} of ${deliverable.revision_max}`} />
-      {myRole === 'creator' ? (
+      {showPrivateLabel && myRole === 'creator' ? (
         <PrivateDeliverableLabelPicker
           deliverableName={deliverable.display_name}
           value={privateLabel}
           acting={acting}
           onChange={onPrivateLabelChange}
         />
+      ) : null}
+      {currentPost ? (
+        <View className="gap-2 border-t border-hairline pt-2">
+          <Text className="font-geist-medium text-[10.5px] uppercase tracking-wide text-ink-3">Current live proof</Text>
+          <PostEvidence evidence={currentPost} current onOpenVerifiedPost={onOpenVerifiedPost} />
+          {currentPost.verification_status === 'flagged' && currentPost.flag_reason ? (
+            <View className="rounded-lg bg-status-critical-tint px-2.5 py-2">
+              <Text className="font-geist-semibold text-[11px] text-status-critical">Flagged for correction</Text>
+              <Text selectable className="mt-0.5 font-geist text-[10.5px] text-ink-2">{currentPost.flag_reason}</Text>
+            </View>
+          ) : null}
+          {priorPosts.length || deliverable.post_state.history_truncated ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={historyExpanded ? 'Hide prior live post versions' : 'Show prior live post versions'}
+              onPress={() => setHistoryExpanded((value) => !value)}
+              className="items-center rounded-full border border-hairline bg-surface-card py-2"
+            >
+              <Text className="font-geist-semibold text-[11px] text-ink-2">
+                {historyExpanded ? 'Hide prior versions' : `Show prior versions${priorPosts.length ? ` (${priorPosts.length})` : ''}`}
+              </Text>
+            </Pressable>
+          ) : null}
+          {historyExpanded ? (
+            <View className="gap-2">
+              {priorPosts.map((evidence) => <PostEvidence key={evidence.id} evidence={evidence} current={false} onOpenVerifiedPost={onOpenVerifiedPost} />)}
+              {deliverable.post_state.history_truncated ? (
+                <Text className="font-geist text-[10.5px] text-ink-3">Earlier proof history is truncated.</Text>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+      ) : deliverable.status === 'approved' ? (
+        <Text className="border-t border-hairline pt-2 font-geist text-[10.5px] text-ink-3">No live URL submitted yet.</Text>
       ) : null}
       {deliverable.content_ops_attention ? (
         <View className="rounded-lg bg-status-critical-tint px-2.5 py-2">
@@ -272,6 +328,28 @@ function DeliverableRow({
           <Text className="font-geist-semibold text-[12px] text-white">Approve content</Text>
         </Pressable>
       ) : null}
+      {deliverable.post_state.future_actions.can_submit_or_replace ? (
+        <Pressable
+          onPress={onLivePost}
+          disabled={acting}
+          accessibilityRole="button"
+          accessibilityLabel={`${currentPost ? 'Replace' : 'Submit'} live URL for ${deliverable.display_name}`}
+          className={`items-center rounded-full bg-ink py-2.5 ${acting ? 'opacity-50' : ''}`}
+        >
+          <Text className="font-geist-semibold text-[12px] text-white">{currentPost ? 'Replace live URL' : 'Submit live URL'}</Text>
+        </Pressable>
+      ) : null}
+      {deliverable.post_state.future_actions.can_flag && currentPost ? (
+        <Pressable
+          onPress={onFlagPost}
+          disabled={acting}
+          accessibilityRole="button"
+          accessibilityLabel={`Flag live URL for ${deliverable.display_name}`}
+          className={`items-center rounded-full border border-hairline bg-surface-card py-2.5 ${acting ? 'opacity-50' : ''}`}
+        >
+          <Text className="font-geist-semibold text-[12px] text-ink">Flag issue</Text>
+        </Pressable>
+      ) : null}
       {deliverable.status === 'submitted' && !deliverable.available_actions.can_approve_content && !deliverable.content_approval ? (
         <Text className="font-geist text-[10.5px] text-ink-3">
           This submission is awaiting brand review.
@@ -279,6 +357,56 @@ function DeliverableRow({
       ) : null}
     </View>
   );
+}
+
+function PostEvidence({ evidence, current, onOpenVerifiedPost }: {
+  evidence: CanonicalDeliverable['post_state']['history'][number];
+  current: boolean;
+  onOpenVerifiedPost: (url: string) => void;
+}) {
+  const status = evidence.verification_status === 'confirmed'
+    ? 'Confirmed'
+    : evidence.verification_status === 'flagged' ? 'Flagged' : 'Verified';
+  return (
+    <View className="gap-1 rounded-lg bg-surface-card px-2.5 py-2">
+      <View className="flex-row items-start justify-between gap-2">
+        <Text className="min-w-0 flex-1 font-geist-semibold text-[11.5px] text-ink">
+          {status} · v{evidence.version}{current ? ' · current' : ''}
+        </Text>
+        <Text className="font-geist text-[10px] text-ink-3">{evidence.host}</Text>
+      </View>
+      {evidence.title ? <Text selectable className="font-geist-semibold text-[11px] text-ink-2">{evidence.title}</Text> : null}
+      {evidence.site_name ? <Text selectable className="font-geist text-[10.5px] text-ink-3">{evidence.site_name}</Text> : null}
+      {evidence.description ? <Text selectable className="font-geist text-[10.5px] leading-[15px] text-ink-2">{evidence.description}</Text> : null}
+      <Text selectable numberOfLines={3} className="font-geist text-[10.5px] leading-[15px] text-ink-2">
+        {evidence.final_url}
+      </Text>
+      <Text className="font-geist text-[10px] text-ink-3">Submitted by {evidence.submitted_by_name} · {formatTimestamp(evidence.verified_at)}</Text>
+      {evidence.flagged_at && evidence.flagged_by_name ? (
+        <Text className="font-geist text-[10px] text-ink-3">Flagged by {evidence.flagged_by_name} · {formatTimestamp(evidence.flagged_at)}</Text>
+      ) : null}
+      {evidence.confirmed_at && evidence.confirmed_by_name ? (
+        <Text className="font-geist text-[10px] text-ink-3">Confirmed by {evidence.confirmed_by_name} · {formatTimestamp(evidence.confirmed_at)}</Text>
+      ) : null}
+      {current ? (
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={`Open verified post version ${evidence.version}`}
+          onPress={() => onOpenVerifiedPost(evidence.final_url)}
+          className="mt-1 self-start rounded-full border border-hairline px-2.5 py-1.5"
+        >
+          <Text className="font-geist-semibold text-[10.5px] text-ink-2">Open verified post</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function formatTimestamp(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(undefined, {
+    day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit',
+  }).format(date);
 }
 
 function submissionLabel(value: CanonicalDeliverable['submission_history'][number]['lifecycle']): string {

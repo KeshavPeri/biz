@@ -52,6 +52,39 @@ export async function postJson<T>(
   }
 }
 
+/** PUT JSON for versioned API resources, with the same bounded error surface. */
+export async function putJson<T>(
+  path: string,
+  body: unknown,
+  accessToken: string,
+): Promise<ApiResult<T>> {
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      let message = 'Something went wrong. Please try again.';
+      try {
+        const payload = await res.json();
+        if (typeof payload?.detail === 'string') message = payload.detail;
+      } catch {
+        // Keep the generic message for malformed/non-JSON responses.
+      }
+      return { ok: false, message };
+    }
+
+    return { ok: true, data: (await res.json()) as T };
+  } catch {
+    return { ok: false, message: 'Could not reach the server. Check your connection.' };
+  }
+}
+
 /** GET JSON from FastAPI with the same friendly-error contract as postJson. */
 export async function getJson<T>(path: string, accessToken: string): Promise<ApiResult<T>> {
   try {
