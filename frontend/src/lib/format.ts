@@ -17,6 +17,18 @@ export function formatINR(amount: number | null | undefined): string {
   return `₹${Math.round(amount).toLocaleString('en-IN')}`;
 }
 
+/**
+ * Groups an exact server decimal for display without converting it to a JS
+ * number. That preserves every digit and never rounds or performs currency
+ * conversion. The currency code stays visible for an unambiguous ledger label.
+ */
+export function formatExactMoney(amount: string, currency: string): string {
+  const match = /^(-?)(\d+)(\.\d+)?$/.exec(amount);
+  if (!match) return `${currency} ${amount}`;
+  const [, sign, integer, fraction = ''] = match;
+  return `${currency} ${sign}${integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${fraction}`;
+}
+
 /** 4.6 → "4.6%"; null → "—". */
 export function formatPercent(n: number | null | undefined): string {
   if (n === null || n === undefined) return '—';

@@ -9,6 +9,7 @@ import { DeliverablesCard } from '@/components/deal/deliverables-card';
 import { ContentApprovalRejectSheet, ContentSubmissionSheet, RevisionRequestSheet } from '@/components/deal/content-submission-sheet';
 import { LivePostSheet } from '@/components/deal/live-post-sheet';
 import { PaymentDetailsCard } from '@/components/deal/payment-details-card';
+import { PaymentTrackingCard } from '@/components/deal/payment-tracking-card';
 
 import {
   acceptDeal,
@@ -22,7 +23,9 @@ import {
   deferTermsSummaryRequest,
   decideTermsSummary,
   confirmLivePosts,
+  confirmPaymentReceipt,
   fetchPaymentDetails,
+  fetchPaymentTracking,
   flagLivePost,
   fetchContract,
   fetchCreativeBriefs,
@@ -42,6 +45,8 @@ import {
   submitLivePost,
   updateBrandPaymentDetails,
   updateCreatorPaymentDetails,
+  updatePaymentMilestoneState,
+  updatePaymentTrackingState,
   uploadContentDraft,
   subscribeToTermApprovals,
   type DealThread,
@@ -53,6 +58,9 @@ import {
   type BrandPaymentDetailsInput,
   type CreatorPaymentDetailsInput,
   type PaymentDetailsState,
+  type PaymentTrackingActionResult,
+  type PaymentTrackingState,
+  type ReportablePaymentState,
   type SummaryChecklist,
   type TermsReviewState,
 } from '@/lib/deals';
@@ -109,12 +117,19 @@ export function StickyActionBar({
   const [paymentDetailsLoading, setPaymentDetailsLoading] = useState(false);
   const [paymentDetailsError, setPaymentDetailsError] = useState<string | null>(null);
   const [paymentSaving, setPaymentSaving] = useState(false);
+  const [paymentTracking, setPaymentTracking] = useState<PaymentTrackingState | null>(null);
+  const [paymentTrackingLoading, setPaymentTrackingLoading] = useState(false);
+  const [paymentTrackingError, setPaymentTrackingError] = useState<string | null>(null);
   const [contentDeliverable, setContentDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [revisionDeliverable, setRevisionDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [rejectedApprovalDeliverable, setRejectedApprovalDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [livePostAction, setLivePostAction] = useState<{ deliverableId: string; mode: 'submit' | 'flag' } | null>(null);
   const [signing, setSigning] = useState(false);
   const alignmentStartRef = useRef<string | null>(null);
+  const paymentTrackingRequestRef = useRef(0);
+  const paymentTrackingContextRef = useRef('');
+  const paymentTrackingContext = `${thread.dealId}:${thread.stage}`;
+  paymentTrackingContextRef.current = paymentTrackingContext;
 
   const loadSummary = useCallback(async () => {
     if (thread.stage !== 'chatting') return;
@@ -243,6 +258,37 @@ export function StickyActionBar({
     }
   }, [loadPaymentDetails, thread.stage]);
 
+  const loadPaymentTracking = useCallback(async (showLoading = false) => {
+    if (!['payment', 'closed'].includes(thread.stage)) return;
+    const requestId = ++paymentTrackingRequestRef.current;
+    const requestContext = `${thread.dealId}:${thread.stage}`;
+    if (showLoading) {
+      setPaymentTrackingLoading(true);
+      setPaymentTrackingError(null);
+    }
+    const result = await fetchPaymentTracking(thread.dealId);
+    if (requestId !== paymentTrackingRequestRef.current
+      || requestContext !== paymentTrackingContextRef.current) return null;
+    if (result.ok) {
+      setPaymentTracking(result.data);
+      setPaymentTrackingError(null);
+    } else {
+      setPaymentTrackingError(result.message);
+    }
+    setPaymentTrackingLoading(false);
+    return result;
+  }, [thread.dealId, thread.stage]);
+
+  useEffect(() => {
+    if (['payment', 'closed'].includes(thread.stage)) void loadPaymentTracking(true);
+    else {
+      paymentTrackingRequestRef.current += 1;
+      setPaymentTracking(null);
+      setPaymentTrackingError(null);
+      setPaymentTrackingLoading(false);
+    }
+  }, [loadPaymentTracking, thread.stage]);
+
   // Generation is followed by one authoritative alignment start. The backend
   // reservation makes concurrent participants/idempotent refreshes safe.
   useEffect(() => {
@@ -266,8 +312,9 @@ export function StickyActionBar({
       if (thread.stage === 'creating') void loadBriefs();
       if (['creating', 'posted', 'payment', 'closed'].includes(thread.stage)) void loadDeliverables();
       if (['posted', 'payment', 'closed'].includes(thread.stage)) void loadPaymentDetails();
+      if (['payment', 'closed'].includes(thread.stage)) void loadPaymentTracking();
       onTransitioned();
-    }, [loadBriefs, loadContract, loadDeliverables, loadPaymentDetails, loadSummary, loadTerms, onTransitioned, thread.stage]),
+    }, [loadBriefs, loadContract, loadDeliverables, loadPaymentDetails, loadPaymentTracking, loadSummary, loadTerms, onTransitioned, thread.stage]),
   );
 
   useEffect(() => {
@@ -556,6 +603,57 @@ export function StickyActionBar({
     return result;
   }, [loadPaymentDetails, paymentSaving, thread.dealId]);
 
+  const finishPaymentTrackingAction = useCallback(async (
+    action: () => Promise<PaymentTrackingActionResult>,
+  ): Promise<PaymentTrackingActionResult> => {
+    const actionContext = paymentTrackingContextRef.current;
+    const actionFence = ++paymentTrackingRequestRef.current;
+    setPaymentTrackingError(null);
+    const result = await action();
+    if (actionContext !== paymentTrackingContextRef.current) return result;
+    if (result.ok && actionFence === paymentTrackingRequestRef.current) {
+      setPaymentTracking(result.data);
+    }
+    const refresh = await loadPaymentTracking();
+    if (actionContext !== paymentTrackingContextRef.current) return result;
+    if (!result.ok && result.stale) {
+      setPaymentTrackingError('The payment status changed. Review the refreshed record before trying again.');
+    } else if (!result.ok && refresh && !refresh.ok) {
+      setPaymentTrackingError(refresh.message);
+    }
+    return result;
+  }, [loadPaymentTracking]);
+
+  const recordAggregatePayment = useCallback((
+    expectedVersion: number,
+    state?: ReportablePaymentState,
+  ) => {
+    if (!state) return Promise.resolve({ ok: false as const, message: 'Choose a payment status.' });
+    return finishPaymentTrackingAction(() => updatePaymentTrackingState(thread.dealId, expectedVersion, state));
+  }, [finishPaymentTrackingAction, thread.dealId]);
+
+  const recordMilestonePayment = useCallback((
+    milestoneId: string,
+    expectedVersion: number,
+    state?: ReportablePaymentState,
+  ) => {
+    if (!state) return Promise.resolve({ ok: false as const, message: 'Choose a payment status.' });
+    return finishPaymentTrackingAction(() => updatePaymentMilestoneState(
+      thread.dealId,
+      milestoneId,
+      expectedVersion,
+      state,
+    ));
+  }, [finishPaymentTrackingAction, thread.dealId]);
+
+  const confirmAggregateReceipt = useCallback((expectedVersion: number) => (
+    finishPaymentTrackingAction(() => confirmPaymentReceipt(thread.dealId, expectedVersion))
+  ), [finishPaymentTrackingAction, thread.dealId]);
+
+  const confirmMilestoneReceipt = useCallback((milestoneId: string, expectedVersion: number) => (
+    finishPaymentTrackingAction(() => confirmPaymentReceipt(thread.dealId, expectedVersion, milestoneId))
+  ), [finishPaymentTrackingAction, thread.dealId]);
+
   const confirmPosts = useCallback(async () => {
     if (acting || !deliverables || !paymentDetails) return;
     const postsAllowed = deliverables.post_confirmation.future_actions.can_confirm_all;
@@ -588,7 +686,7 @@ export function StickyActionBar({
   }, []);
 
   // ── Role / relationship derivations (rbac.md + deal-engine.md) ──
-  const { stage, myRole, isDisputed } = thread;
+  const { stage, myRole } = thread;
   const isInitiator = thread.createdBy === userId;
   const isBrandActor = myRole === 'brand_admin' || myRole === 'brand_maker';
   // Checker can't accept/decline/cancel/close (rbac.md "Deal flow — by stage").
@@ -636,6 +734,20 @@ export function StickyActionBar({
     <Actions label="Off-platform payment information" error={paymentDetailsError}>
       <InlineButton label="Retry" onPress={() => void loadPaymentDetails(true)} disabled={paymentDetailsLoading} />
     </Actions>
+  );
+
+  const paymentTrackingView = () => (
+    <PaymentTrackingCard
+      state={paymentTracking}
+      loading={paymentTrackingLoading}
+      error={paymentTrackingError}
+      isDisputed={thread.isDisputed}
+      onRetry={() => void loadPaymentTracking(true)}
+      onRecordAggregate={recordAggregatePayment}
+      onRecordMilestone={recordMilestonePayment}
+      onConfirmAggregate={confirmAggregateReceipt}
+      onConfirmMilestone={confirmMilestoneReceipt}
+    />
   );
 
   const termsReview = (readOnly: boolean): ReactNode => {
@@ -774,12 +886,12 @@ export function StickyActionBar({
           <View className="gap-2.5">
             {deliverablesView()}
             {paymentDetailsView()}
-            <Waiting text={isDisputed ? 'Dispute in progress — payment paused.' : 'Payment tracking is not available yet.'} />
+            {paymentTrackingView()}
           </View>
         );
 
       case 'closed':
-        return <View className="gap-2.5">{deliverablesView()}{paymentDetailsView()}<Waiting text="This deal is closed." /></View>;
+        return <View className="gap-2.5">{deliverablesView()}{paymentDetailsView()}{paymentTrackingView()}<Waiting text="This deal is closed." /></View>;
       case 'declined':
         return <Waiting text="This connection was declined." />;
       case 'cancelled':
