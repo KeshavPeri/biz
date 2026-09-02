@@ -245,6 +245,9 @@ def main() -> None:
     check('complete milestone schedule reconciles exactly with total', not rejected(milestone))
     milestone['milestone_schedule']['value'][1]['amount']['amount'] = 29999
     check('milestone mismatch is rejected', rejected(milestone))
+    combination = copy.deepcopy(milestone)
+    combination['payment_terms_type'] = found('combination')
+    check('combination schedules must also reconcile exactly', rejected(combination))
 
     prompt = build_extraction_prompt(MESSAGES)
     check('prompt versions the contract and includes every field', SCHEMA_VERSION in prompt and PROMPT_VERSION in prompt and all(field in prompt for field in EXPECTED_FIELDS))

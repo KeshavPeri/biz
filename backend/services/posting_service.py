@@ -265,6 +265,12 @@ def commit_post_confirmation(ctx: Any) -> dict[str, Any]:
         except (TypeError, ValueError, AttributeError) as exc:
             raise DealError(422, "Confirm the exact current set of deliverable versions.") from exc
         normalized_versions.append({"deliverable_id": deliverable_id, "version": version})
+    # The database repeats the canonical field checks inside the same transaction.
+    # This service-side pass additionally applies the locked 22-field model before
+    # any mutation RPC is entered, so stored approved JSON is never trusted.
+    from services.payment_tracking_service import validate_approved_payment_terms
+
+    validate_approved_payment_terms(ctx.client, ctx.deal["id"])
     try:
         return ctx.client.rpc(
             "confirm_live_posts",

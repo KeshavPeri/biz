@@ -16,7 +16,9 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — workplan 9.13-E creator-private deliverable labels are merged through
+- **Current phase:** Phase 9 — workplan 9.15 is **In progress (backend built)**. The authoritative
+  B3-035 payment-state/milestone backend is implemented while its successor Expo controls remain
+  pending. Workplan 9.13-E creator-private deliverable labels are merged through
   PR #19, completing the 9.13 Creating scope after 9.13-D merged through PR #18.
   Workplan 9.13-C draft submission/revision is merged through PR #17, 9.13-A creative briefs through
   PR #10, and 9.13-B canonical deliverables through PR #16. The optional short fictional 9.13-E
@@ -26,14 +28,22 @@ up exactly where the last one left off, with zero context lost.
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Current build:** issue #22 completes the Expo journey for the merged 9.14-A live-post gate and
-  9.15-A payment-information prerequisite on base `fa2a369`. The deal room now fetches canonical
-  deliverables through Creating/Posted/Payment/Closed, renders bounded current/prior text proof,
-  and exposes submit/replace/flag only from participant-safe server action flags. Every mutation
-  uses the displayed exact version; failures refetch authoritative state while keeping an active
-  URL/reason draft available for a deliberate retry. Only an explicit tap opens the current
-  server-returned HTTPS final URL in the system browser; no client URL fetch, WebView, image, HTML,
-  or invented authenticity claim exists.
+- **Current build:** issue #25 / workplan 9.15-C adds migration 038 and a participant-safe FastAPI
+  payment-tracking boundary. Exact Posted → Payment confirmation now atomically materializes one
+  immutable tracker from the executed contract's approved 22-field summary. Active brand
+  admin/maker reports use exact versions; only the named creator confirms receipt of a current
+  partial/full report; structured payments derive their aggregate in Postgres. Direct participant
+  table/RPC access is revoked, disputes already fail closed, Closed is read-only, and Payment →
+  Closed remains unavailable. This is tracking only: no gateway, transfer, verification, invoice,
+  reminder, dispute workflow or frontend control is activated.
+  - **9.15-C verified evidence:** development inventory was 0 canonical/historical payments and
+    0 milestones before migration 038. The focused union passed after each candidate repair;
+    payment tracking reaches **30/30**, Payment entry/posting **34/34**, payment details **29/29**,
+    stage engine **23/23** and RLS **4/4**. Independent QA and mandatory security review passed.
+    The one complete final regression passed with unchanged source fingerprint
+    `cc52ad608431e4fae2e12b8b21360a39a0d7b813`: term extraction unit/database, approvals **32/32**,
+    contract flow **28/28**, backend compile and diff hygiene all passed. All created records were
+    fictional and cleaned.
   - **Payment-information UI:** Posted/Payment/Closed read the dedicated FastAPI projection only.
     Creator and brand forms are enabled solely by side-specific server action flags, keep values in
     component state, and save with the displayed independent version. They never use Supabase,
@@ -528,10 +538,10 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **Issue #22 founder review:** exercise the fictional two-persona live-post and payment-information
-   flow from its draft PR. Device/browser and live-provider evidence remain intentionally `LIMITED`.
-2. **9.15 — Payment:** prepare B3-035 payment tracking and states after the 9.14/9.15 capture-gate
-   draft is merged; no payment movement, invoice, or reminder work is included here.
+1. **Issue #25 founder review:** review the draft backend payment-tracking PR; the Expo controls,
+   reminders, dispute workflow and Payment → Closed remain deliberately out of scope.
+2. **9.15 successor UI:** build the participant-facing payment-tracking controls against the settled
+   backend projection; no payment movement, invoice, or reminder work is included.
 3. **9.16 — Dispute overlay:** remains Waiting behind payment tracking.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
@@ -883,6 +893,19 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-09-02 — Issue #25: authoritative payment tracking backend candidate
+- **Backend:** additive migration 038 makes exact Posted → Payment confirmation atomically
+  materialize one immutable tracker from the complete approved summary. It adds service-role-only,
+  exact-version payment reporting/receipt RPCs, participant-safe API projections, structured
+  milestone aggregates, metadata-only audit, dispute/Closed guards, and removes direct participant
+  writes. No payment movement, invoice, reminder, dispute workflow, close flow, or Expo control was
+  activated.
+- **Evidence:** development payment/milestone inventory and final cleanup were 0/0. QA and mandatory
+  security review passed after two focused validator-parity repairs. Final regression passed at
+  `cc52ad608431e4fae2e12b8b21360a39a0d7b813`: payment tracking **30/30**, payment details **29/29**,
+  posting **34/34**, stage **23/23**, term approvals **32/32**, contract flow **28/28**, RLS **4/4**,
+  compile and diff hygiene.
 
 ### 2026-09-01 — Issue #22: live-post and payment-information Expo candidate
 - **UI:** creator exact-version submit/replacement, shared bounded proof/history, server-authorized
