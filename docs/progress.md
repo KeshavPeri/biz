@@ -16,9 +16,11 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — workplan 9.15 is **In progress (backend built)**. The authoritative
-  B3-035 payment-state/milestone backend is implemented while its successor Expo controls remain
-  pending. Workplan 9.13-E creator-private deliverable labels are merged through
+- **Current phase:** Phase 9 — core workplan 9.15 and B3-035 are **Complete/Built**. The
+  authoritative payment-state/milestone backend and its participant-facing Expo tracking journey
+  are implemented. Automated reminders B3-037 remain pending for Phase 12 scheduling, while 9.16
+  disputes, 9.17 close/ratings, 9.18 lifecycle testing and the 9.19 phase gate remain incomplete.
+  Workplan 9.13-E creator-private deliverable labels are merged through
   PR #19, completing the 9.13 Creating scope after 9.13-D merged through PR #18.
   Workplan 9.13-C draft submission/revision is merged through PR #17, 9.13-A creative briefs through
   PR #10, and 9.13-B canonical deliverables through PR #16. The optional short fictional 9.13-E
@@ -28,14 +30,29 @@ up exactly where the last one left off, with zero context lost.
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Current build:** issue #25 / workplan 9.15-C adds migration 038 and a participant-safe FastAPI
-  payment-tracking boundary. Exact Posted → Payment confirmation now atomically materializes one
-  immutable tracker from the executed contract's approved 22-field summary. Active brand
-  admin/maker reports use exact versions; only the named creator confirms receipt of a current
-  partial/full report; structured payments derive their aggregate in Postgres. Direct participant
-  table/RPC access is revoked, disputes already fail closed, Closed is read-only, and Payment →
-  Closed remains unavailable. This is tracking only: no gateway, transfer, verification, invoice,
-  reminder, dispute workflow or frontend control is activated.
+- **Current build:** issue #27 / workplan 9.15-D consumes issue #25's participant-safe FastAPI
+  payment-tracking boundary in Payment and Closed. The strict client validates the discriminated
+  projection before rendering; exact decimal strings stay strings; aggregate and milestone state,
+  receipt facts, due dates, versions and action flags remain server-owned. Active controls appear
+  only from the exact returned action flags and submit the displayed item/version. Stale conflicts
+  refetch and require a new choice; network failures retain the last valid projection. Disputed and
+  Closed deals are read-only. Tracking and payment instructions stay separate, component-local
+  channels with no direct Supabase table access, persistence, route/chat/analytics/log leakage or
+  money-movement language.
+  - **9.15-D pre-review evidence:** the exact de-duplicated affected/ticket union passed: strict
+    TypeScript; lint with 0 errors and the 3 pre-existing `signature-pad.tsx` warnings; Expo web
+    export with 36 routes; payment tracking **30/30**; payment details **29/29**; posting **34/34**;
+    private labels **21/21**; content approval **20/20**; deliverables **17/17**; stage engine
+    **23/23**; term approvals **32/32**; maker-checker **10/10**; contract flow **28/28**; briefs
+    **28/28**; RLS **4/4**; and diff hygiene. Every stateful suite cleaned its fictional data.
+    Interactive fictional brand/creator/checker, stale, disputed and Closed walkthrough evidence is
+    `LIMITED` pending founder browser/device review; no real payment or campaign data was used.
+  - **9.15-C backend foundation:** migration 038 and the participant-safe FastAPI boundary atomically
+    materialize one immutable tracker from the executed contract's approved summary. Active brand
+    admin/maker reports use exact versions; only the named creator confirms receipt of a current
+    partial/full report; structured aggregates are database-derived. Direct participant table/RPC
+    access remains revoked, disputes fail closed, Closed is read-only and Payment → Closed remains
+    unavailable. No gateway, transfer, verification, invoice, reminder or dispute workflow is added.
   - **9.15-C verified evidence:** development inventory was 0 canonical/historical payments and
     0 milestones before migration 038. The focused union passed after each candidate repair;
     payment tracking reaches **30/30**, Payment entry/posting **34/34**, payment details **29/29**,
@@ -893,6 +910,18 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-09-02 — Issue #27: participant payment-tracking Expo candidate
+- **UI:** Payment and Closed now fetch one strict FastAPI-only payment projection and render a
+  separate off-platform tracking ledger. Single and structured controls follow independent server
+  action flags, send exact displayed versions, isolate row actions, refetch after outcomes and force
+  renewed review after a stale conflict. High-consequence bad-debt/refunded labels require a second
+  tracking-only confirmation. Disputed and Closed evidence stays visible without mutation controls.
+- **Boundary:** exact decimal strings are grouped without numeric conversion; no aggregate, receipt,
+  due/overdue or close truth is calculated in JavaScript. No backend, migration, RLS, API, payment
+  detail, dispute, reminder, close, rating, persistence or telemetry behavior changed.
+- **Limit:** the deterministic command set is mandatory; the fictional two-persona/checker
+  browser/device walkthrough remains `LIMITED` for founder review.
 
 ### 2026-09-02 — Issue #25: authoritative payment tracking backend candidate
 - **Backend:** additive migration 038 makes exact Posted → Payment confirmation atomically

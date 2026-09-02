@@ -542,6 +542,256 @@ export async function updateBrandPaymentDetails(
   return result.ok ? { ok: true } : { ok: false, message: result.message };
 }
 
+/* ── Participant-safe off-platform payment tracking (workplan 9.15-D) ─── */
+
+export type PaymentState =
+  | 'paid_full'
+  | 'paid_partial'
+  | 'not_paid_in_window'
+  | 'not_paid_delayed'
+  | 'bad_debt'
+  | 'disputed'
+  | 'refunded';
+
+export type ReportablePaymentState = Exclude<PaymentState, 'disputed'>;
+export type PaymentStructure = 'single' | 'milestone' | 'combination';
+
+export type PaymentTrackingMilestone = {
+  id: string;
+  sequence: number;
+  trigger: string;
+  amount: string;
+  due_date: string | null;
+  state: PaymentState;
+  version: number;
+  reported_at: string;
+  receipt_confirmed: boolean;
+  receipt_confirmed_at: string | null;
+  allowed_actions: {
+    can_update_state: boolean;
+    can_confirm_receipt: boolean;
+  };
+};
+
+export type PaymentTrackingAvailable = {
+  available: true;
+  deal_id: string;
+  stage: 'payment' | 'closed';
+  payment_id: string;
+  source_version_identifier: 'executed-contract-v1';
+  amount: string;
+  currency: string;
+  structure: PaymentStructure;
+  state: PaymentState;
+  due_date: string | null;
+  due_date_pending: boolean;
+  version: number;
+  reported_at: string;
+  receipt_confirmed: boolean;
+  receipt_confirmed_at: string | null;
+  receipt_complete: boolean;
+  milestones: PaymentTrackingMilestone[];
+  allowed_actions: {
+    can_update_state: boolean;
+    can_update_milestones: boolean;
+    can_confirm_receipt: boolean;
+  };
+  future_actions: {
+    can_request_close: boolean;
+    payment_reported_full: boolean;
+    receipt_complete: boolean;
+  };
+};
+
+export type PaymentTrackingUnavailable = {
+  available: false;
+  deal_id: string;
+  stage: DealStage;
+  reason: 'not_yet_available';
+  allowed_actions: Record<string, never>;
+  future_actions: {
+    can_request_close: false;
+    receipt_complete: false;
+  };
+};
+
+export type PaymentTrackingState = PaymentTrackingAvailable | PaymentTrackingUnavailable;
+export type PaymentTrackingActionResult =
+  | { ok: true; data: PaymentTrackingAvailable }
+  | { ok: false; message: string; stale?: boolean };
+
+const PAYMENT_STATES: readonly PaymentState[] = [
+  'paid_full',
+  'paid_partial',
+  'not_paid_in_window',
+  'not_paid_delayed',
+  'bad_debt',
+  'disputed',
+  'refunded',
+];
+const PAYMENT_STRUCTURES: readonly PaymentStructure[] = ['single', 'milestone', 'combination'];
+const DEAL_STAGES: readonly DealStage[] = [
+  'pending', 'chatting', 'approval', 'creating', 'posted', 'payment', 'closed', 'declined', 'cancelled',
+];
+const PAYMENT_CONFLICT_MESSAGE = 'This payment status changed. Refresh and try again.';
+const INVALID_PAYMENT_RESPONSE = 'Payment tracking returned an invalid response. Refresh and try again.';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0;
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || isNonEmptyString(value);
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0;
+}
+
+function hasBooleanFields(value: unknown, keys: readonly string[]): value is Record<string, boolean> {
+  return isRecord(value)
+    && Object.keys(value).length === keys.length
+    && keys.every((key) => typeof value[key] === 'boolean');
+}
+
+function isDecimalString(value: unknown): value is string {
+  return typeof value === 'string' && /^\d+(?:\.\d+)?$/.test(value);
+}
+
+function isPaymentState(value: unknown): value is PaymentState {
+  return typeof value === 'string' && PAYMENT_STATES.includes(value as PaymentState);
+}
+
+function isPaymentMilestone(value: unknown): value is PaymentTrackingMilestone {
+  if (!isRecord(value)) return false;
+  return isNonEmptyString(value.id)
+    && isPositiveInteger(value.sequence)
+    && isNonEmptyString(value.trigger)
+    && isDecimalString(value.amount)
+    && isNullableString(value.due_date)
+    && isPaymentState(value.state)
+    && isPositiveInteger(value.version)
+    && isNonEmptyString(value.reported_at)
+    && typeof value.receipt_confirmed === 'boolean'
+    && isNullableString(value.receipt_confirmed_at)
+    && hasBooleanFields(value.allowed_actions, ['can_update_state', 'can_confirm_receipt']);
+}
+
+function parsePaymentTracking(value: unknown): PaymentTrackingState | null {
+  if (!isRecord(value) || typeof value.available !== 'boolean' || !isNonEmptyString(value.deal_id)) return null;
+  if (value.available === false) {
+    if (!DEAL_STAGES.includes(value.stage as DealStage)
+      || value.reason !== 'not_yet_available'
+      || !isRecord(value.allowed_actions)
+      || Object.keys(value.allowed_actions).length !== 0
+      || !isRecord(value.future_actions)
+      || value.future_actions.can_request_close !== false
+      || value.future_actions.receipt_complete !== false) return null;
+    return value as PaymentTrackingUnavailable;
+  }
+  if (value.stage !== 'payment' && value.stage !== 'closed') return null;
+  if (!isNonEmptyString(value.payment_id)
+    || value.source_version_identifier !== 'executed-contract-v1'
+    || !isDecimalString(value.amount)
+    || typeof value.currency !== 'string'
+    || !/^[A-Z]{3}$/.test(value.currency)
+    || !PAYMENT_STRUCTURES.includes(value.structure as PaymentStructure)
+    || !isPaymentState(value.state)
+    || !isNullableString(value.due_date)
+    || typeof value.due_date_pending !== 'boolean'
+    || !isPositiveInteger(value.version)
+    || !isNonEmptyString(value.reported_at)
+    || typeof value.receipt_confirmed !== 'boolean'
+    || !isNullableString(value.receipt_confirmed_at)
+    || typeof value.receipt_complete !== 'boolean'
+    || !Array.isArray(value.milestones)
+    || !value.milestones.every(isPaymentMilestone)
+    || !hasBooleanFields(value.allowed_actions, ['can_update_state', 'can_update_milestones', 'can_confirm_receipt'])
+    || !hasBooleanFields(value.future_actions, ['can_request_close', 'payment_reported_full', 'receipt_complete'])) return null;
+  const structure = value.structure as PaymentStructure;
+  if ((structure === 'single' && value.milestones.length !== 0)
+    || (structure !== 'single' && value.milestones.length === 0)) return null;
+  return value as PaymentTrackingAvailable;
+}
+
+function paymentActionFailure(message: string): PaymentTrackingActionResult {
+  return { ok: false, message, stale: message === PAYMENT_CONFLICT_MESSAGE };
+}
+
+export async function fetchPaymentTracking(
+  dealId: string,
+): Promise<{ ok: true; data: PaymentTrackingState } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await getJson<unknown>(`/deals/${dealId}/payment-tracking`, token);
+  if (!result.ok) return { ok: false, message: result.message };
+  const parsed = parsePaymentTracking(result.data);
+  return parsed?.deal_id === dealId
+    ? { ok: true, data: parsed }
+    : { ok: false, message: INVALID_PAYMENT_RESPONSE };
+}
+
+export async function updatePaymentTrackingState(
+  dealId: string,
+  expectedVersion: number,
+  state: ReportablePaymentState,
+): Promise<PaymentTrackingActionResult> {
+  const token = await sessionToken();
+  if (!token) return paymentActionFailure('Your session has expired. Please sign in again.');
+  const result = await putJson<unknown>(
+    `/deals/${dealId}/payment-tracking/state`,
+    { expected_version: expectedVersion, state },
+    token,
+  );
+  if (!result.ok) return paymentActionFailure(result.message);
+  const parsed = parsePaymentTracking(result.data);
+  return parsed?.available && parsed.deal_id === dealId
+    ? { ok: true, data: parsed }
+    : paymentActionFailure(INVALID_PAYMENT_RESPONSE);
+}
+
+export async function updatePaymentMilestoneState(
+  dealId: string,
+  milestoneId: string,
+  expectedVersion: number,
+  state: ReportablePaymentState,
+): Promise<PaymentTrackingActionResult> {
+  const token = await sessionToken();
+  if (!token) return paymentActionFailure('Your session has expired. Please sign in again.');
+  const result = await putJson<unknown>(
+    `/deals/${dealId}/payment-tracking/milestones/${milestoneId}/state`,
+    { expected_version: expectedVersion, state },
+    token,
+  );
+  if (!result.ok) return paymentActionFailure(result.message);
+  const parsed = parsePaymentTracking(result.data);
+  return parsed?.available && parsed.deal_id === dealId
+    ? { ok: true, data: parsed }
+    : paymentActionFailure(INVALID_PAYMENT_RESPONSE);
+}
+
+export async function confirmPaymentReceipt(
+  dealId: string,
+  expectedVersion: number,
+  milestoneId?: string,
+): Promise<PaymentTrackingActionResult> {
+  const token = await sessionToken();
+  if (!token) return paymentActionFailure('Your session has expired. Please sign in again.');
+  const body = milestoneId == null
+    ? { expected_version: expectedVersion }
+    : { milestone_id: milestoneId, expected_version: expectedVersion };
+  const result = await postJson<unknown>(`/deals/${dealId}/payment-tracking/confirm-receipt`, body, token);
+  if (!result.ok) return paymentActionFailure(result.message);
+  const parsed = parsePaymentTracking(result.data);
+  return parsed?.available && parsed.deal_id === dealId
+    ? { ok: true, data: parsed }
+    : paymentActionFailure(INVALID_PAYMENT_RESPONSE);
+}
+
 export async function confirmLivePosts(
   dealId: string,
   versions: CanonicalDeliverableState['post_confirmation']['expected_versions'],
