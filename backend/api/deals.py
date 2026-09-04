@@ -88,6 +88,11 @@ from services.payment_tracking_service import (
     update_milestone_state,
     update_payment_state,
 )
+from services.dispute_service import (
+    DisputeConflict,
+    get_disputes,
+    raise_dispute,
+)
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
@@ -790,5 +795,34 @@ def confirm_payment_receipt(
 ) -> dict[str, Any]:
     try:
         return confirm_receipt(deal_id, user_id, body, _client_ip(request))
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get("/{deal_id}/disputes")
+def read_disputes(
+    deal_id: str,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return get_disputes(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post("/{deal_id}/disputes")
+def open_dispute(
+    deal_id: str,
+    request: Request,
+    body: Any = Body(...),
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return raise_dispute(deal_id, user_id, body, _client_ip(request))
+    except DisputeConflict as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"message": exc.detail, "disputes": exc.projection},
+        ) from exc
     except DealError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
