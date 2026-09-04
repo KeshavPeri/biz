@@ -16,10 +16,12 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Current phase:** Phase 9 — core workplan 9.15 and B3-035 are **Complete/Built**. The
-  authoritative payment-state/milestone backend and its participant-facing Expo tracking journey
-  are implemented. Automated reminders B3-037 remain pending for Phase 12 scheduling, while 9.16
-  disputes, 9.17 close/ratings, 9.18 lifecycle testing and the 9.19 phase gate remain incomplete.
+- **Current phase:** Phase 9 — core workplan 9.15 and B3-035 are **Complete/Built**. Workplan
+  9.16 / B3-039 is **In progress (backend raise/read built)**: the secure Payment dispute
+  transaction and participant-safe API are implemented, while the Expo raise/view journey,
+  authenticated platform-ops resolution authority and critical email/ops delivery remain gated.
+  Automated reminders B3-037 remain pending for Phase 12 scheduling; 9.17 close/ratings, 9.18
+  lifecycle testing and the 9.19 phase gate remain incomplete.
   Workplan 9.13-E creator-private deliverable labels are merged through
   PR #19, completing the 9.13 Creating scope after 9.13-D merged through PR #18.
   Workplan 9.13-C draft submission/revision is merged through PR #17, 9.13-A creative briefs through
@@ -30,7 +32,34 @@ up exactly where the last one left off, with zero context lost.
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Current build:** issue #27 / workplan 9.15-D consumes issue #25's participant-safe FastAPI
+- **Current build:** issue #29 / workplan 9.16-A adds the backend-owned Payment dispute foundation.
+  Any current creator or active brand admin/maker/checker participant can submit one bounded
+  plain-text narrative with up to ten exact same-deal message/live-post references. Migration 039
+  takes the established deal-then-canonical-payment lock order and atomically stores immutable
+  request provenance and the prior aggregate state, changes only the aggregate to `disputed`, sets
+  the deal overlay, writes one metadata-only audit event and creates one generic Critical in-app
+  notification per current eligible participant. Additive migration 040 corrects the already-applied
+  migration 039 function so stale invited/inactive brand-member rows receive neither API history
+  nor notices. Exact retries are idempotent; different and concurrent raises converge on one safe
+  conflict. Payment report/receipt races serialize around the same
+  locks, and every participant database mutation/RPC path remains revoked.
+  - `GET/POST /deals/{deal_id}/disputes` are the only participant boundary. Reads expose bounded
+    sanitized narrative, safe raiser labels and text-only message snippets without raw HTML, URLs,
+    email-carried/internal hosts, IPv4/IPv6, sender ids, fingerprints or audit/payment details.
+    Live-post evidence is a generic label and never derives from preview or network metadata.
+    Before Payment is stably unavailable;
+    Payment/Closed inconsistencies fail closed; `can_resolve` is always false. No resolution,
+    refund, close, email, external support/ops delivery or platform-ops identity is invented.
+  - Development inventory before migration 039 found **0** disputes, open disputes, flagged
+    Payment deals, flag-without-open rows and duplicate-open deals. The additive migration applied
+    without rewriting historical data. Independent QA and security re-review pass after the
+    participant-safe sanitizer was hardened for dotless/internal email and host forms, complete
+    network-token removal and bounded linear processing. The single final regression passed at
+    fingerprint `5d6f366d7eb12fa707770c8f3a33601b7f1efef1`: disputes **42/42**, payment tracking
+    **30/30**, payment details **29/29**, posting gate **34/34**, stage engine **23/23**, term
+    approvals **32/32**, contract flow **28/28**, RLS **4/4**, backend compile and diff hygiene —
+    **222/222** assertions total. Every stateful suite cleaned its fictional data.
+- **Merged payment UI dependency:** issue #27 / workplan 9.15-D consumes issue #25's participant-safe FastAPI
   payment-tracking boundary in Payment and Closed. The strict client validates the discriminated
   projection before rendering; exact decimal strings stay strings; aggregate and milestone state,
   receipt facts, due dates, versions and action flags remain server-owned. Active controls appear
@@ -555,11 +584,12 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **Issue #25 founder review:** review the draft backend payment-tracking PR; the Expo controls,
-   reminders, dispute workflow and Payment → Closed remain deliberately out of scope.
-2. **9.15 successor UI:** build the participant-facing payment-tracking controls against the settled
-   backend projection; no payment movement, invoice, or reminder work is included.
-3. **9.16 — Dispute overlay:** remains Waiting behind payment tracking.
+1. **Issue #29 founder review:** review the secure backend Payment-dispute draft PR, especially
+   participant eligibility, safe dispute history and the deliberate absence of resolution controls.
+2. **9.16 successor UI:** build the participant-facing raise/view experience and red Payment overlay
+   against the settled FastAPI projection; no client-derived authorization or raw evidence rendering.
+3. **9.16 ops completion:** define authenticated platform-ops resolution authority and Critical
+   email/ops delivery in a separately reviewed slice before B3-039 can be marked Built.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
 
@@ -586,6 +616,10 @@ do not proceed. I'll resolve these at the start of my next session.*
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
 
+- 2026-09-04 — **Participant-safe dispute text boundary.** Current and historical descriptions,
+  resolution notes, display names and message snippets are capped before parsing, stripped of HTML
+  and control characters, and replace URL/email/internal-network tokens with a neutral label using
+  bounded forward scans and DNS-limited matching. Live-post evidence remains a fixed safe label.
 - 2026-08-31 — **Live-post verification boundary.** Named social deliverables accept only their
   exact canonical registrable-domain families; the locked generic Podcast value accepts any
   DNS-stable public HTTPS host without claiming provider matching. Every redirect is revalidated and
@@ -910,6 +944,19 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-09-04 — Issue #29: secure Payment dispute backend candidate
+- **Backend:** migrations 039–040 and the FastAPI dispute service add one atomic, race-safe Payment
+  dispute overlay for current participants, immutable same-deal evidence, metadata-only audit, generic
+  Critical in-app notices, safe idempotency/conflicts and read-only current/historical projections.
+- **Privacy:** arbitrary participant-facing text is bounded and removes HTML, controls, URLs, email
+  forms, host/port paths and IPv4/IPv6 locators without erasing ordinary narrative; live-post evidence
+  never derives from preview metadata. Direct participant table/RPC mutations remain revoked.
+- **Evidence:** targeted QA and security pass. The unchanged final fingerprint
+  `5d6f366d7eb12fa707770c8f3a33601b7f1efef1` passed the single final regression: disputes **42/42**,
+  payment tracking **30/30**, payment details **29/29**, posting **34/34**, stage **23/23**, term
+  approvals **32/32**, contract **28/28**, RLS **4/4**, compile and diff hygiene (**222/222** total).
+  All integration data was fictional and cleaned. UI, ops resolution and email remain pending.
 
 ### 2026-09-02 — Issue #27: participant payment-tracking Expo candidate
 - **UI:** Payment and Closed now fetch one strict FastAPI-only payment projection and render a
