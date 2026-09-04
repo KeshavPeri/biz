@@ -27,9 +27,13 @@ Immediately before creating or materially revising the GitHub issue, the standin
 
 Every ticket body begins with hidden execution metadata in this exact form, using the current 40-character `main` commit:
 
-`<!-- biz-factory-ticket:v2 base=<commit> dependency=<none|issue-number> route=<builder|senior_builder> security=<required|not-required> -->`
+`<!-- biz-factory-ticket:v3 base=<commit> dependency=<none|issue-number> route=<builder|senior_builder> review=<qa|combined|qa-security> regression=<affected|full> -->`
 
-The header exists only for cheap build routing. `dependency` names the one immediate prerequisite GitHub issue whose merged pull request must be on `main`, or `none` when all dependencies were already part of the authored base. `route` and `security` must match `factory/BUNDLING-RULES.md`.
+The header exists only for cheap build routing. `dependency` names the one immediate prerequisite GitHub issue whose merged pull request must be on `main`, or `none` when all dependencies were already part of the authored base. `route`, `review`, and `regression` must match `factory/BUNDLING-RULES.md`:
+
+- `review=qa regression=affected` for routine work;
+- `review=combined regression=affected` for medium-risk work; and
+- `review=qa-security regression=full` only for high-risk trust-boundary work.
 
 When the founder releases the issue, the build factory compares this header to current repository and GitHub state. It does not re-read the broad product context, verify the ticket sections, or spawn a planning agent. Any base mismatch is blocked and returned to the standing orchestrator for revalidation or revision.
 
@@ -97,16 +101,16 @@ Use these sections. Combine sections only when the result remains equally clear.
 
 ### Verification plan
 
-- Exact focused pre-review tests and the separately named final regression commands from `factory/PROJECT-CONFIG.md`.
+- Exact focused pre-review tests and the risk-proportional final verification mode from `factory/PROJECT-CONFIG.md`.
 - Require the implementation agent to combine the conservative output of `scripts/factory-affected-tests.sh` with ticket-specific focused checks, de-duplicate them, and run each command once per candidate state before review. Ticket-specific checks may add to this floor but never replace or subtract from it.
-- Assign the single complete final regression pass to the implementation agent after review; QA, security, and the orchestrator use targeted checks and do not duplicate that unchanged pass.
+- For `regression=affected`, retain the passing affected/focused evidence when the source fingerprint is unchanged; do not replay it after review. For `regression=full`, assign one complete final regression pass to the implementation agent after review. Reviewers and the orchestrator never duplicate an unchanged pass.
 - Required fictional fixtures, arithmetic reconciliations, concurrency cases, security review, device/browser checks, or external-service smoke checks.
 - The shortest founder review path and any check a substitute cannot perform.
 
 ### Risk, routing, and owner actions
 
-- Routine/high-risk classification with reasons.
-- `builder` or `senior_builder`, required independent reviews, and owner-only actions or `None`.
+- Routine/medium/high-risk classification with reasons.
+- `builder` or `senior_builder`, the exact `qa`/`combined`/`qa-security` review route, `affected`/`full` regression route, and owner-only actions or `None`.
 - Explicitly repeat any forbidden production, secret, billing, destructive-data, or real-private-data action relevant to the block.
 
 ### Completion and documentation contract
@@ -126,9 +130,9 @@ Return BLOCKED rather than READY unless all are true:
 - Important negative and regression cases are named.
 - Likely files and forbidden surfaces are grounded in the current codebase.
 - Manual or unavailable evidence is explicit and cannot be mistaken for an automated pass.
-- The route and reviews match `factory/BUNDLING-RULES.md`.
+- The route, review mode, and regression mode match `factory/BUNDLING-RULES.md`.
 - No unresolved founder decision is hidden as an implementation detail.
 - The ticket is specific because the evidence is specific, not because it guesses implementation details.
 - The workplan/RTM IDs do not duplicate any open issue or already merged scope.
 - A standing-orchestrator ticket is the single next safe block and is saved as `factory:planned`, never auto-released or built during ticket preparation.
-- The ticket contains the exact v2 execution metadata needed for cheap build-start validation and routing.
+- The ticket contains the exact v3 execution metadata needed for cheap build-start validation and routing.

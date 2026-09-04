@@ -41,13 +41,19 @@ for conflicting_label in factory:planned factory:review factory:blocked; do
 done
 
 metadata="$(gh issue view "$issue_number" --repo "$REPO" --json body --jq '.body | split("\n")[0]')"
-metadata_pattern='^<!-- biz-factory-ticket:v2 base=([0-9a-f]{40}) dependency=(none|[0-9]+) route=(builder|senior_builder) security=(required|not-required) -->$'
-[[ "$metadata" =~ $metadata_pattern ]] || fail "issue #$issue_number has invalid or missing v2 execution metadata"
+metadata_pattern='^<!-- biz-factory-ticket:v3 base=([0-9a-f]{40}) dependency=(none|[0-9]+) route=(builder|senior_builder) review=(qa|combined|qa-security) regression=(affected|full) -->$'
+[[ "$metadata" =~ $metadata_pattern ]] || fail "issue #$issue_number has invalid or missing v3 execution metadata"
 
 ticket_base="${BASH_REMATCH[1]}"
 dependency="${BASH_REMATCH[2]}"
 route="${BASH_REMATCH[3]}"
-security="${BASH_REMATCH[4]}"
+review="${BASH_REMATCH[4]}"
+regression="${BASH_REMATCH[5]}"
+
+case "$route:$review:$regression" in
+  builder:qa:affected|builder:combined:affected|senior_builder:combined:affected|senior_builder:qa-security:full) ;;
+  *) fail "unsupported route/review/regression combination: $route/$review/$regression" ;;
+esac
 
 local_main="$(git rev-parse refs/heads/main)"
 remote_main="$(git ls-remote --heads origin refs/heads/main | awk 'NR == 1 { print $1 }')"
@@ -108,4 +114,4 @@ for branch_name in $worktree_factory_branches; do
   [[ "$branch_name" == "$expected_branch_prefix"* ]] || fail "conflicting factory worktree branch: $branch_name"
 done
 
-echo "Factory ticket preflight passed: issue=$issue_number base=$ticket_base dependency=$dependency route=$route security=$security"
+echo "Factory ticket preflight passed: issue=$issue_number base=$ticket_base dependency=$dependency route=$route review=$review regression=$regression"

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Turn ready workplan rows into the largest **safe, coherent, reviewable** build block. A block is one GitHub issue, one feature branch or worktree, one code-writing agent at a time, one independent QA pass, and one draft pull request.
+Turn ready workplan rows into the largest **safe, coherent, reviewable** build block. A block is one GitHub issue, one feature branch or worktree, one code-writing agent at a time, risk-proportional independent review, and one draft pull request.
 
 Larger is not automatically more autonomous. A block is autonomous only when one agent can understand, implement, verify, and explain the whole outcome without losing completion discipline.
 
@@ -51,9 +51,9 @@ Split the work when any condition below applies:
 
 Never bundle a phase gate, manual device test, production deployment, account creation, secret entry, or destructive migration into an autonomous coding block.
 
-## Risk and model routing
+## Risk, review, and regression routing
 
-### Routine block — Builder, Terra High
+### Routine block — Builder, QA, affected verification
 
 Use `builder` when the block is tightly specified and avoids high-risk boundaries. Typical examples:
 
@@ -63,7 +63,20 @@ Use `builder` when the block is tightly specified and avoids high-risk boundarie
 - focused tests or a small regression fix;
 - documentation directly required by a completed implementation.
 
-### High-risk block — Senior Builder, Sol High
+Use `route=builder review=qa regression=affected`. QA runs on Terra Medium. The passing focused/affected evidence is final when its source fingerprint remains unchanged after review; do not run a second regression pass.
+
+### Medium-risk block — Builder or Senior Builder, Combined Verifier, affected verification
+
+Use this tier when the change has a meaningful integrity or privacy boundary but does not alter authentication, RLS/grants, money/payment state, signatures, AI decisions, secrets, destructive data handling, or concurrency-critical state. Typical examples include:
+
+- a participant-safe projection using already-proven authorization;
+- a bounded validation or privacy hardening change inside an established service;
+- a cross-stack feature consuming existing backend contracts without new authority; or
+- recovery of a narrowly reproduced defect with a known cause and no schema/authority change.
+
+Use `review=combined regression=affected`. Route implementation to `builder` when established patterns suffice, otherwise `senior_builder`. One Terra High `verifier` performs both acceptance and bounded security/integrity checks so the same diff and evidence are read once.
+
+### High-risk block — Senior Builder, separate QA/Security, full regression
 
 Use `senior_builder` when any of these apply:
 
@@ -72,10 +85,12 @@ Use `senior_builder` when any of these apply:
 - stage transitions, signatures, contracts, payments, concurrency, idempotency or atomicity;
 - a new shared architectural abstraction;
 - cross-stack work spanning database, backend and frontend;
-- recovery of incomplete or conflicting work;
+- recovery whose cause or trust-boundary impact remains ambiguous;
 - a bug whose cause is ambiguous across several subsystems.
 
-If uncertain between the two, route to `senior_builder`; do not enlarge the block to justify a stronger model.
+Use `route=senior_builder review=qa-security regression=full`. Keep independent QA and Sol High security review, then run one complete ticket-defined regression on the reviewed candidate.
+
+If uncertain, choose the higher risk tier; do not enlarge the block to justify a stronger model. QA and security stay separate for high-risk work because their independent failure modes are valuable.
 
 ## Parallelism rules
 

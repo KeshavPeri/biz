@@ -79,7 +79,7 @@ Mark only one ticket `factory:ready` at a time. The factory now requires exactly
 
 When no open workplan ticket remains, ask the standing orchestrator chat to prepare the next ticket. It inspects current code, specifications, workplan/RTM evidence, and issue/PR history, then creates exactly one fresh `factory:planned` ticket. It never marks that ticket ready or starts implementation.
 
-The ticket begins with a hidden execution header recording the exact `main` commit, immediate dependency, builder route, and whether security review is required. When you later apply `factory:ready`, the scheduled build verifies only that small header and current queue safety; it does not pay Sol High to review or rewrite the detailed contract.
+The ticket begins with a hidden execution header recording the exact `main` commit, immediate dependency, builder route, risk-proportional reviewer route, and affected/full regression route. When you later apply `factory:ready`, the scheduled build verifies only that small header and current queue safety; it does not pay Sol High to review or rewrite the detailed contract.
 
 If `main` changed after ticket preparation, the build run marks the ticket blocked and returns it to the standing orchestrator. The orchestrator—not the build factory—decides whether the change matters and updates the ticket when needed.
 
@@ -109,9 +109,9 @@ No founder action is normally required during the build. The factory will:
 7. Create an isolated feature branch/worktree based on the verified `main` commit.
 8. Quietly prepare dependencies, verify the approved ignored test environment, and calculate a conservative affected-test floor.
 9. Route the implementation to one builder using a compact no-history handoff and the explicitly configured model.
-10. Run independent QA and any required security review in parallel when safe.
+10. Run QA for routine work, one combined acceptance/integrity verifier for medium risk, or separate QA and security review for high-risk trust boundaries.
 11. Allow up to two focused repair rounds if a review fails.
-12. Run one complete final regression after the reviews pass; independent deterministic lanes may run concurrently, while database work remains serial.
+12. Reuse the passing affected-test evidence when review leaves routine/medium code unchanged. Run one complete final regression only for high-risk tickets; database work remains serial.
 13. Update progress and RTM evidence.
 14. Commit and push the feature branch.
 15. Create or update a draft PR containing `Closes #<ticket-number>`.
@@ -191,7 +191,7 @@ There is no need to rush this step. Leaving all tickets without `factory:ready` 
 
 Answers founder questions and prepares one detailed planned ticket when asked. It performs the workplan, product, code, dependency, risk, and acceptance-quality review once before creating the issue. It is not part of the scheduled build run.
 
-### Build orchestrator — Terra High
+### Build orchestrator — Terra Medium
 
 Owns the run, lock, issue selection, labels, worktree, branch, commits, push, PR, recovery, and final report. It does not normally write feature code.
 
@@ -203,9 +203,13 @@ Implements routine, tightly specified work using established architecture.
 
 Implements high-risk work involving migrations, RLS/RBAC, AI contracts, authentication, contracts, signatures, payments, concurrency, state transitions, or broad cross-stack changes.
 
-### QA — Terra High, read-only
+### QA — Terra Medium, read-only
 
 Independently checks the completed diff and evidence against every ticket criterion. QA does not edit the implementation.
+
+### Combined Verifier — Terra High, read-only
+
+For medium-risk work, performs separate acceptance and security/integrity passes over the same diff and evidence so context is loaded once. It must reroute any authentication, RLS/grants, payment, signature, AI-decision, secret, or concurrency-critical change to the high-risk path.
 
 ### Security Reviewer — Sol High, read-only
 
@@ -213,9 +217,9 @@ Reviews high-risk trust boundaries, authorization, RLS/grants, secrets, AI outpu
 
 Only one implementation agent writes code for a ticket. Review agents are separate so the builder does not grade its own work.
 
-To control usage without weakening review, the factory reuses those same agents after repairs. The builder runs focused checks before review and one complete ticket-defined regression pass after review on the final code. QA and security run targeted validation instead of independently repeating the whole suite, and the orchestrator reuses the recorded final evidence while the code remains unchanged.
+To control usage without weakening review, the factory reuses those same agents after repairs. The builder runs the focused/affected union once per candidate state. Routine and medium tickets reuse that evidence when review makes no code change; only high-risk tickets add a complete final regression. Reviewers run at most a narrow reproduction for a concrete uncertainty and never replay the builder's suite.
 
-Role handoffs do not inherit the orchestrator's full conversation. Each receives only the issue, worktree, base commit, relevant evidence, and exact role output. Model routing is explicit: Senior Builder and Security Reviewer use Sol High; the build Orchestrator, routine Builder, and QA use Terra High. The scheduled run does not spawn a ticket-authoring or readiness-review agent.
+Role handoffs do not inherit the orchestrator's full conversation. Each receives only the issue URL, worktree, base commit, changed files, fingerprint, named criteria/trust boundaries, compact evidence manifest, and exact role output. Model routing is explicit: Senior Builder and Security Reviewer use Sol High; the routine Builder and Combined Verifier use Terra High; the build Orchestrator and QA use Terra Medium. The scheduled run does not spawn a ticket-authoring or readiness-review agent.
 
 ## Safety and concurrency controls
 

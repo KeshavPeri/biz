@@ -33,10 +33,9 @@ Map every acceptance criterion to observed evidence. Do not use a general statem
 
 - Focused pre-review tests:
 - Targeted reviewer checks:
-- Single final regression pass and source-state fingerprint:
+- Regression route (`affected` evidence reused or one `full` final pass) and source-state fingerprint:
 - Frontend typecheck/lint/build:
-- Independent QA result:
-- Security review result or `Not required`:
+- Independent review result (`QA`, `Combined Verifier`, or separate `QA`/`Security`):
 - Manual or environment limitations:
 
 ## Migrations and data

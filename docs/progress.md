@@ -32,7 +32,7 @@ up exactly where the last one left off, with zero context lost.
   accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
   scheduling decision, not invented test evidence. Crisp later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Current build:** issue #29 / workplan 9.16-A adds the backend-owned Payment dispute foundation.
+- **Current build:** issue #29 / PR #30 / workplan 9.16-A is merged and adds the backend-owned Payment dispute foundation.
   Any current creator or active brand admin/maker/checker participant can submit one bounded
   plain-text narrative with up to ten exact same-deal message/live-post references. Migration 039
   takes the established deal-then-canonical-payment lock order and atomically stores immutable
@@ -944,6 +944,18 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-09-05 — Risk-proportional factory verification
+- **Why:** transcript evidence from the issue #29 run and targeted recovery showed roughly 71–76% of
+  effective usage in builder/orchestrator context churn, while repeated broad reads, tool turns and
+  unchanged regression replay added more cost than the reviewer split alone.
+- **Changed:** v3 tickets now route routine work to Terra Medium QA, medium-risk work to one Terra High
+  Combined Verifier, and high-risk trust boundaries to separate Terra Medium QA plus Sol High security.
+  Routine/medium tickets reuse fingerprinted affected-test evidence after an unchanged review; only
+  high-risk tickets add one complete final regression. Role contracts require diff-first bounded reads,
+  compact evidence, batched commands, recovery-delta context and no repeated status probes.
+- **Preserved:** one writer/worktree, founder release/merge, additive migration safety, mandatory separate
+  high-risk security review, fictional test data, affected-test floors and high-risk full regression.
 
 ### 2026-09-04 — Issue #29: secure Payment dispute backend candidate
 - **Backend:** migrations 039–040 and the FastAPI dispute service add one atomic, race-safe Payment
