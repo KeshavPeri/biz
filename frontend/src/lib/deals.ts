@@ -735,6 +735,163 @@ export async function fetchPaymentTracking(
     : { ok: false, message: INVALID_PAYMENT_RESPONSE };
 }
 
+/* ── Payment disputes (workplan 9.16-B) ───────────────────────────────── */
+
+export type DisputeEvidenceReference = { kind: 'message' | 'live_post'; id: string };
+
+export type DisputeEvidenceItem = DisputeEvidenceReference & { snippet: string };
+
+export type DisputeItem = {
+  id: string;
+  status: 'open' | 'resolved';
+  description: string;
+  raised_by: {
+    display_name: string;
+    side: 'creator' | 'brand';
+    role: ParticipantRole;
+    role_label: string;
+  };
+  created_at: string;
+  resolved_at: string | null;
+  resolution_note: string | null;
+  evidence: DisputeEvidenceItem[];
+};
+
+export type DisputeProjection = {
+  available: boolean;
+  deal_id: string;
+  stage: DealStage;
+  reason?: 'not_yet_available';
+  history: DisputeItem[];
+  current_open: DisputeItem | null;
+  allowed_actions: { can_raise: boolean; can_resolve: false };
+};
+
+const DISPUTE_SAFE_FAILURE = 'The current dispute record could not be read safely. Please try again.';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isBoundedText(value: unknown, maximum: number, minimum = 1): value is string {
+  return typeof value === 'string' && value.length >= minimum && value.length <= maximum;
+}
+
+function isDisputeReference(value: unknown): value is DisputeEvidenceReference {
+  return isRecord(value)
+    && (value.kind === 'message' || value.kind === 'live_post')
+    && typeof value.id === 'string'
+    && UUID_RE.test(value.id);
+}
+
+function parseDisputeItem(value: unknown): DisputeItem | null {
+  if (!isRecord(value)
+    || !isBoundedText(value.id, 64)
+    || !UUID_RE.test(value.id)
+    || (value.status !== 'open' && value.status !== 'resolved')
+    || !isBoundedText(value.description, 2000)
+    || !isRecord(value.raised_by)
+    || !isBoundedText(value.raised_by.display_name, 160)
+    || (value.raised_by.side !== 'creator' && value.raised_by.side !== 'brand')
+    || !['creator', 'brand_admin', 'brand_maker', 'brand_checker'].includes(String(value.raised_by.role))
+    || !isBoundedText(value.raised_by.role_label, 80)
+    || !isBoundedText(value.created_at, 64)
+    || !isNullableString(value.resolved_at)
+    || (value.resolved_at !== null && !isBoundedText(value.resolved_at, 64))
+    || !isNullableString(value.resolution_note)
+    || (value.resolution_note !== null && !isBoundedText(value.resolution_note, 500))
+    || !Array.isArray(value.evidence)
+    || value.evidence.length > 10) return null;
+
+  const evidence: DisputeEvidenceItem[] = [];
+  const seen = new Set<string>();
+  for (const item of value.evidence) {
+    if (!isRecord(item)) return null;
+    const snippet = item.snippet;
+    if (!isDisputeReference(item) || !isBoundedText(snippet, 160)) return null;
+    const key = `${item.kind}:${item.id}`;
+    if (seen.has(key)) return null;
+    seen.add(key);
+    evidence.push({ kind: item.kind, id: item.id, snippet });
+  }
+  return {
+    id: value.id,
+    status: value.status,
+    description: value.description,
+    raised_by: {
+      display_name: value.raised_by.display_name,
+      side: value.raised_by.side,
+      role: value.raised_by.role as ParticipantRole,
+      role_label: value.raised_by.role_label,
+    },
+    created_at: value.created_at,
+    resolved_at: value.resolved_at,
+    resolution_note: value.resolution_note,
+    evidence,
+  };
+}
+
+function parseDisputeProjection(value: unknown): DisputeProjection | null {
+  if (!isRecord(value)
+    || typeof value.available !== 'boolean'
+    || !isBoundedText(value.deal_id, 64)
+    || !['pending', 'chatting', 'approval', 'creating', 'posted', 'payment', 'closed', 'declined', 'cancelled'].includes(String(value.stage))
+    || !Array.isArray(value.history)
+    || value.history.length > 50
+    || !isRecord(value.allowed_actions)
+    || typeof value.allowed_actions.can_raise !== 'boolean'
+    || value.allowed_actions.can_resolve !== false
+    || (value.current_open !== null && value.current_open === undefined)) return null;
+  if (!value.available && value.reason !== 'not_yet_available') return null;
+  const history = value.history.map(parseDisputeItem);
+  if (history.some((item) => item === null)) return null;
+  const currentOpen = value.current_open === null ? null : parseDisputeItem(value.current_open);
+  if (currentOpen === null && value.current_open !== null) return null;
+  if (currentOpen && (currentOpen.status !== 'open' || !history.some((item) => item?.id === currentOpen.id))) return null;
+  return {
+    available: value.available,
+    deal_id: value.deal_id,
+    stage: value.stage as DealStage,
+    ...(value.reason === 'not_yet_available' ? { reason: 'not_yet_available' as const } : {}),
+    history: history as DisputeItem[],
+    current_open: currentOpen,
+    allowed_actions: { can_raise: value.allowed_actions.can_raise, can_resolve: false },
+  };
+}
+
+export async function fetchDisputes(
+  dealId: string,
+): Promise<{ ok: true; data: DisputeProjection } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await getJson<unknown>(`/deals/${dealId}/disputes`, token);
+  if (!result.ok) return { ok: false, message: result.message };
+  const parsed = parseDisputeProjection(result.data);
+  return parsed?.deal_id === dealId
+    ? { ok: true, data: parsed }
+    : { ok: false, message: DISPUTE_SAFE_FAILURE };
+}
+
+export async function raisePaymentDispute(
+  dealId: string,
+  description: string,
+  evidence: DisputeEvidenceReference[],
+): Promise<{ ok: true; data: DisputeProjection } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const trimmed = description.trim();
+  const unique = Array.from(new Map(
+    evidence.filter(isDisputeReference).map((item) => [`${item.kind}:${item.id}`, item]),
+  ).values());
+  if (trimmed.length < 10 || trimmed.length > 2000 || unique.length !== evidence.length || unique.length > 10) {
+    return { ok: false, message: 'Review the dispute description and selected evidence before trying again.' };
+  }
+  const body = unique.length ? { description: trimmed, evidence: unique } : { description: trimmed };
+  const result = await postJson<unknown>(`/deals/${dealId}/disputes`, body, token);
+  if (!result.ok) return { ok: false, message: result.message };
+  const parsed = parseDisputeProjection(result.data);
+  return parsed?.deal_id === dealId
+    ? { ok: true, data: parsed }
+    : { ok: false, message: DISPUTE_SAFE_FAILURE };
+}
+
 export async function updatePaymentTrackingState(
   dealId: string,
   expectedVersion: number,

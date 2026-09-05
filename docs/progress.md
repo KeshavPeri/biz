@@ -18,8 +18,9 @@ up exactly where the last one left off, with zero context lost.
 
 - **Current phase:** Phase 9 — core workplan 9.15 and B3-035 are **Complete/Built**. Workplan
   9.16 / B3-039 is **In progress (backend raise/read built)**: the secure Payment dispute
-  transaction and participant-safe API are implemented, while the Expo raise/view journey,
-  authenticated platform-ops resolution authority and critical email/ops delivery remain gated.
+  transaction and participant-safe API are implemented; the Expo participant raise/view journey is
+  built in the current candidate, while authenticated platform-ops resolution authority and critical
+  email/ops delivery remain gated.
   Automated reminders B3-037 remain pending for Phase 12 scheduling; 9.17 close/ratings, 9.18
   lifecycle testing and the 9.19 phase gate remain incomplete.
   Workplan 9.13-E creator-private deliverable labels are merged through
@@ -50,6 +51,23 @@ up exactly where the last one left off, with zero context lost.
     Before Payment is stably unavailable;
     Payment/Closed inconsistencies fail closed; `can_resolve` is always false. No resolution,
     refund, close, email, external support/ops delivery or platform-ops identity is invented.
+  - **9.16-B candidate:** issue #31 adds the narrow Expo raise/view composition in
+    `frontend/src/lib/deals.ts`, `frontend/src/components/deal/{sticky-action-bar,dispute-card,dispute-sheet}.tsx`
+    and `frontend/src/app/deal/[id].tsx`. Strict runtime parsing fences the GET/POST projection;
+    only returned `can_raise` and `current_open` drive actions. Draft narrative/evidence remains
+    component-local, exact same-deal loaded message/current-live-post ids are deduplicated and capped,
+    and every POST outcome refetches dispute, tracking and thread state without replay. The restrained
+    Critical notice preserves the existing Payment overlay/tracker freeze; Closed remains read-only.
+    Candidate code fingerprint `345f2fb232acdaee757498982b331d6e450fd8db`: affected/ticket union passed;
+    repair 1 reset/closed the sheet on authenticated account change and reran TypeScript, lint, Expo export
+    and diff hygiene. The full prior affected backend union remains valid because the repair is frontend-only.
+    (private labels 21/21; content approval 20/20; deliverables 17/17; stage engine 23/23; term
+    approvals 32/32; maker-checker 10/10; contract flow 28/28; briefs 28/28; RLS 4/4; disputes
+    42/42; payment tracking 30/30; strict TypeScript; lint 0 errors with 3 pre-existing warnings;
+    Expo web export; diff hygiene). All stateful fixtures cleaned. Interactive device/browser evidence
+    is `LIMITED`; combined verifier passed after the account-switch draft-reset and fingerprint-coverage
+    repair. No resolution, upload, email/ops delivery,
+    money movement or production action was added.
   - Development inventory before migration 039 found **0** disputes, open disputes, flagged
     Payment deals, flag-without-open rows and duplicate-open deals. The additive migration applied
     without rewriting historical data. Independent QA and security re-review pass after the

@@ -221,6 +221,7 @@ export default function DealRoomScreen() {
             thread={thread}
             userId={userId ?? ''}
             accessToken={session?.access_token ?? null}
+            messages={messages}
             onTransitioned={loadThread}
           />
 

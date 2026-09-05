@@ -10,6 +10,8 @@ import { ContentApprovalRejectSheet, ContentSubmissionSheet, RevisionRequestShee
 import { LivePostSheet } from '@/components/deal/live-post-sheet';
 import { PaymentDetailsCard } from '@/components/deal/payment-details-card';
 import { PaymentTrackingCard } from '@/components/deal/payment-tracking-card';
+import { DisputeCard, DisputeDetailSheet } from '@/components/deal/dispute-card';
+import { DisputeSheet, type DisputeEvidenceChoice } from '@/components/deal/dispute-sheet';
 
 import {
   acceptDeal,
@@ -26,6 +28,7 @@ import {
   confirmPaymentReceipt,
   fetchPaymentDetails,
   fetchPaymentTracking,
+  fetchDisputes,
   flagLivePost,
   fetchContract,
   fetchCreativeBriefs,
@@ -40,6 +43,7 @@ import {
   proposeChecklistOverride,
   requestContentRevision,
   requestTermsSummary,
+  raisePaymentDispute,
   runContractAlignment,
   signContract,
   submitLivePost,
@@ -60,6 +64,8 @@ import {
   type PaymentDetailsState,
   type PaymentTrackingActionResult,
   type PaymentTrackingState,
+  type DisputeProjection,
+  type ChatMessage,
   type ReportablePaymentState,
   type SummaryChecklist,
   type TermsReviewState,
@@ -88,11 +94,13 @@ export function StickyActionBar({
   thread,
   userId,
   accessToken,
+  messages,
   onTransitioned,
 }: {
   thread: DealThread;
   userId: string;
   accessToken: string | null;
+  messages: ChatMessage[];
   onTransitioned: () => void;
 }) {
   const [acting, setActing] = useState(false);
@@ -120,6 +128,12 @@ export function StickyActionBar({
   const [paymentTracking, setPaymentTracking] = useState<PaymentTrackingState | null>(null);
   const [paymentTrackingLoading, setPaymentTrackingLoading] = useState(false);
   const [paymentTrackingError, setPaymentTrackingError] = useState<string | null>(null);
+  const [dispute, setDispute] = useState<DisputeProjection | null>(null);
+  const [disputeLoading, setDisputeLoading] = useState(false);
+  const [disputeError, setDisputeError] = useState<string | null>(null);
+  const [disputeFeedback, setDisputeFeedback] = useState<string | null>(null);
+  const [disputeSheetOpen, setDisputeSheetOpen] = useState(false);
+  const [disputeDetailOpen, setDisputeDetailOpen] = useState(false);
   const [contentDeliverable, setContentDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [revisionDeliverable, setRevisionDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [rejectedApprovalDeliverable, setRejectedApprovalDeliverable] = useState<CanonicalDeliverable | null>(null);
@@ -128,8 +142,12 @@ export function StickyActionBar({
   const alignmentStartRef = useRef<string | null>(null);
   const paymentTrackingRequestRef = useRef(0);
   const paymentTrackingContextRef = useRef('');
+  const disputeRequestRef = useRef(0);
+  const disputeContextRef = useRef('');
   const paymentTrackingContext = `${thread.dealId}:${thread.stage}`;
   paymentTrackingContextRef.current = paymentTrackingContext;
+  const disputeContext = `${thread.dealId}:${thread.stage}`;
+  disputeContextRef.current = disputeContext;
 
   const loadSummary = useCallback(async () => {
     if (thread.stage !== 'chatting') return;
@@ -279,6 +297,47 @@ export function StickyActionBar({
     return result;
   }, [thread.dealId, thread.stage]);
 
+  const loadDispute = useCallback(async (showLoading = false) => {
+    if (!['payment', 'closed'].includes(thread.stage)) return null;
+    const requestId = ++disputeRequestRef.current;
+    const requestContext = `${thread.dealId}:${thread.stage}`;
+    if (showLoading) {
+      setDisputeLoading(true);
+      setDisputeError(null);
+    }
+    const result = await fetchDisputes(thread.dealId);
+    if (requestId !== disputeRequestRef.current || requestContext !== disputeContextRef.current) return null;
+    if (result.ok) {
+      setDispute(result.data);
+      setDisputeError(null);
+    } else {
+      setDisputeError(result.message);
+    }
+    setDisputeLoading(false);
+    return result;
+  }, [thread.dealId, thread.stage]);
+
+  useEffect(() => {
+    if (['payment', 'closed'].includes(thread.stage)) void loadDispute(true);
+    else {
+      disputeRequestRef.current += 1;
+      setDispute(null);
+      setDisputeError(null);
+      setDisputeFeedback(null);
+      setDisputeLoading(false);
+      setDisputeSheetOpen(false);
+      setDisputeDetailOpen(false);
+    }
+  }, [loadDispute, thread.stage]);
+
+  // A signed-out or switched account must never inherit this account's sensitive
+  // local dispute draft, even if the deal route remains mounted briefly.
+  useEffect(() => {
+    setDisputeSheetOpen(false);
+    setDisputeDetailOpen(false);
+    setDisputeFeedback(null);
+  }, [userId]);
+
   useEffect(() => {
     if (['payment', 'closed'].includes(thread.stage)) void loadPaymentTracking(true);
     else {
@@ -313,8 +372,9 @@ export function StickyActionBar({
       if (['creating', 'posted', 'payment', 'closed'].includes(thread.stage)) void loadDeliverables();
       if (['posted', 'payment', 'closed'].includes(thread.stage)) void loadPaymentDetails();
       if (['payment', 'closed'].includes(thread.stage)) void loadPaymentTracking();
+      if (['payment', 'closed'].includes(thread.stage)) void loadDispute();
       onTransitioned();
-    }, [loadBriefs, loadContract, loadDeliverables, loadPaymentDetails, loadPaymentTracking, loadSummary, loadTerms, onTransitioned, thread.stage]),
+    }, [loadBriefs, loadContract, loadDeliverables, loadDispute, loadPaymentDetails, loadPaymentTracking, loadSummary, loadTerms, onTransitioned, thread.stage]),
   );
 
   useEffect(() => {
@@ -624,6 +684,31 @@ export function StickyActionBar({
     return result;
   }, [loadPaymentTracking]);
 
+  const submitDispute = useCallback(async (description: string, evidence: { kind: 'message' | 'live_post'; id: string }[]) => {
+    const actionContext = disputeContextRef.current;
+    const actionFence = ++disputeRequestRef.current;
+    setDisputeError(null);
+    setDisputeFeedback(null);
+    const result = await raisePaymentDispute(thread.dealId, description, evidence);
+    // A mutation result is never trusted as the visual state. This also covers
+    // 409s, timeouts and any ambiguous transport failure without replaying POST.
+    const [refreshedDispute] = await Promise.all([
+      loadDispute(),
+      loadPaymentTracking(),
+      Promise.resolve(onTransitioned()),
+    ]);
+    if (actionContext !== disputeContextRef.current) return { ok: false as const, message: 'The deal changed. Review the current dispute record.', opened: false };
+    const opened = refreshedDispute?.ok === true && refreshedDispute.data.current_open !== null;
+    if (result.ok && actionFence === disputeRequestRef.current && !opened) {
+      setDisputeError('The dispute was submitted, but the current record is still unavailable. Please retry the refresh.');
+    }
+    if (opened) {
+      if (!result.ok) setDisputeFeedback('A dispute is already open. Showing the current record.');
+      return { ok: true as const };
+    }
+    return { ok: false as const, message: result.ok ? 'The dispute result is still being confirmed. Retry only when ready.' : result.message, opened: false };
+  }, [loadDispute, loadPaymentTracking, onTransitioned, thread.dealId]);
+
   const recordAggregatePayment = useCallback((
     expectedVersion: number,
     state?: ReportablePaymentState,
@@ -747,6 +832,38 @@ export function StickyActionBar({
       onRecordMilestone={recordMilestonePayment}
       onConfirmAggregate={confirmAggregateReceipt}
       onConfirmMilestone={confirmMilestoneReceipt}
+    />
+  );
+
+  const disputeEvidenceChoices: DisputeEvidenceChoice[] = [
+    ...messages
+      .filter((message) => Boolean(message.body?.trim()))
+      .map((message) => ({
+        kind: 'message' as const,
+        id: message.id,
+        label: `Message from ${message.senderName}`,
+        snippet: localPlainSnippet(message.body ?? ''),
+      })),
+    ...(deliverables?.deliverables.flatMap((deliverable) => {
+      const current = deliverable.post_state.current;
+      return current ? [{
+        kind: 'live_post' as const,
+        id: current.id,
+        label: `Current live post · ${deliverable.display_name}`,
+        snippet: 'Current live-post evidence',
+      }] : [];
+    }) ?? []),
+  ].slice(0, 10);
+
+  const disputeView = () => (
+    <DisputeCard
+      dispute={dispute}
+      loading={disputeLoading}
+      error={disputeError}
+      feedback={disputeFeedback}
+      onRetry={() => void loadDispute(true)}
+      onRaise={() => setDisputeSheetOpen(true)}
+      onView={() => setDisputeDetailOpen(true)}
     />
   );
 
@@ -887,11 +1004,12 @@ export function StickyActionBar({
             {deliverablesView()}
             {paymentDetailsView()}
             {paymentTrackingView()}
+            {disputeView()}
           </View>
         );
 
       case 'closed':
-        return <View className="gap-2.5">{deliverablesView()}{paymentDetailsView()}{paymentTrackingView()}<Waiting text="This deal is closed." /></View>;
+        return <View className="gap-2.5">{deliverablesView()}{paymentDetailsView()}{paymentTrackingView()}{disputeView()}<Waiting text="This deal is closed." /></View>;
       case 'declined':
         return <Waiting text="This connection was declined." />;
       case 'cancelled':
@@ -944,8 +1062,26 @@ export function StickyActionBar({
           onSubmit={(comment) => decideApproval(rejectedApprovalDeliverable, 'reject', comment)}
         />
       ) : null}
+      <DisputeSheet
+        visible={disputeSheetOpen}
+        dealId={thread.dealId}
+        accountId={userId}
+        evidenceChoices={disputeEvidenceChoices}
+        onClose={() => setDisputeSheetOpen(false)}
+        onSubmit={submitDispute}
+      />
+      <DisputeDetailSheet
+        visible={disputeDetailOpen}
+        dispute={dispute?.current_open ?? null}
+        history={dispute?.history ?? []}
+        onClose={() => setDisputeDetailOpen(false)}
+      />
     </>
   );
+}
+
+function localPlainSnippet(value: string) {
+  return value.replace(/<[^>]*>/g, ' ').replace(/(?:https?:\/\/|www\.)\S+/gi, '[link removed]').replace(/\s+/g, ' ').trim().slice(0, 160) || 'Message evidence';
 }
 
 function ContractCard({
