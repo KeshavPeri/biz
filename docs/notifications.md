@@ -146,8 +146,8 @@ are intentionally omitted.
 | Payment overdue | Critical | In-app + email | 3 days overdue; 7 days overdue |
 | Bad-debt flag | Critical | In-app + email | 30 days overdue |
 | Payment status updated / received confirmed | Informational | In-app | Immediate |
-| Dispute raised | Critical | In-app + email (both parties + ops) | Immediate |
-| Dispute resolved | Important | In-app + email | On resolution |
+| Dispute raised | Critical | In-app now (both parties + ops); email in CC-N003 / Phase 12 | Immediate |
+| Dispute resolved | Important | In-app now; email in CC-N003 / Phase 12 | On resolution |
 
 ### Trackers, deadlines & expiries (scheduled)
 | Event | Tier | Channels | Timing |
