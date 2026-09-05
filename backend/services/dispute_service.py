@@ -47,6 +47,31 @@ _PUBLIC_NETWORK = re.compile(
     r"|(?<![\w])(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?(?:/[^\s<>\"']*)?"
     r")"
 )
+_PUBLIC_PHONE_CANDIDATE = re.compile(
+    r"(?<![\w])(?:\+|\()?\d[\d().:\s/,\-\u2010-\u2015\u2212]{5,46}\d(?![\w])"
+)
+_PUBLIC_DATETIME_ONLY = re.compile(
+    r"(?:"
+    r"(?:"
+    r"\d{4}[-/. ](?:0?[1-9]|1[0-2])[-/. ](?:0?[1-9]|[12]\d|3[01])"
+    r"|(?:0?[1-9]|[12]\d|3[01])[-/. ](?:0?[1-9]|1[0-2])[-/. ]\d{4}"
+    r")"
+    r"(?:[ T](?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,6})?)?)?"
+    r"|(?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,6})?)?"
+    r")"
+)
+_PUBLIC_DATETIME_TOKEN = re.compile(
+    r"(?<![\w])"
+    r"(?:"
+    r"(?:"
+    r"\d{4}[-/. ](?:0?[1-9]|1[0-2])[-/. ](?:0?[1-9]|[12]\d|3[01])"
+    r"|(?:0?[1-9]|[12]\d|3[01])[-/. ](?:0?[1-9]|1[0-2])[-/. ]\d{4}"
+    r")"
+    r"(?:[ T](?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,6})?)?)?"
+    r"|(?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,6})?)?"
+    r")"
+    r"(?![\w])"
+)
 _RPC_ERRORS: dict[str, tuple[int, str]] = {
     "PAYMENT_DISPUTE_DEAL_NOT_FOUND": (404, "This deal could not be found."),
     "PAYMENT_DISPUTE_NOT_PARTICIPANT": (404, "This deal could not be found."),
@@ -351,14 +376,63 @@ def _strip_scheme_urls(value: str) -> str:
     return "".join(parts)
 
 
+def _normalize_controls(value: str) -> str:
+    return "".join(
+        " " if unicodedata.category(char).startswith("C") else char
+        for char in value
+    )
+
+
+def _phone_contact(match: re.Match[str]) -> str:
+    candidate = match.group(0)
+    digits = sum(char.isdigit() for char in candidate)
+    if 7 <= digits <= 30 and not _PUBLIC_DATETIME_ONLY.fullmatch(candidate.strip()):
+        return "[phone removed]"
+    return candidate
+
+
+def _contains_phone_contact(value: str) -> bool:
+    """Detect bounded phone-like contact tokens without scanning unbounded input."""
+    bounded = _normalize_controls(html.unescape(value[:_PUBLIC_TEXT_INPUT_LIMIT]))
+    bounded, _ = _protect_timestamps(bounded)
+    return any(
+        _phone_contact(match) != match.group(0)
+        for match in _PUBLIC_PHONE_CANDIDATE.finditer(bounded)
+    )
+
+
+def _protect_timestamps(value: str) -> tuple[str, list[tuple[str, str]]]:
+    """Temporarily isolate validated timestamps from network/contact patterns."""
+    prefix = "publictimestampplaceholder"
+    while prefix in value.lower():
+        prefix = f"x{prefix}"
+    protected: list[tuple[str, str]] = []
+
+    def replace(match: re.Match[str]) -> str:
+        token = f"{prefix}{len(protected)}token"
+        protected.append((token, match.group(0)))
+        return token
+
+    return _PUBLIC_DATETIME_TOKEN.sub(replace, value), protected
+
+
+def _contains_private_network(value: str) -> bool:
+    bounded = _normalize_controls(html.unescape(value[:_PUBLIC_TEXT_INPUT_LIMIT]))
+    bounded, _ = _protect_timestamps(bounded)
+    return bool(_PUBLIC_NETWORK.search(bounded))
+
+
 def _public_text(value: Any, fallback: str, limit: int) -> str:
     if not isinstance(value, str):
         return fallback
-    plain = html.unescape(value[:_PUBLIC_TEXT_INPUT_LIMIT])
+    plain = _normalize_controls(html.unescape(value[:_PUBLIC_TEXT_INPUT_LIMIT]))
     plain = _strip_html(plain)
     plain = _strip_scheme_urls(plain)
+    plain, timestamps = _protect_timestamps(plain)
     plain = _PUBLIC_NETWORK.sub("[link removed]", plain)
-    plain = "".join(" " if unicodedata.category(char).startswith("C") else char for char in plain)
+    plain = _PUBLIC_PHONE_CANDIDATE.sub(_phone_contact, plain)
+    for token, timestamp in timestamps:
+        plain = plain.replace(token, timestamp)
     plain = re.sub(r"\s+", " ", plain).strip()
     return plain[:limit] or fallback
 
@@ -419,6 +493,76 @@ def _evidence_display(
             raise DealError(409, "The dispute history can't be displayed safely.")
         display_rows.append({"kind": item["kind"], "id": item["id"], "snippet": snippet})
     return display_rows
+
+
+def safe_dispute_projection(
+    client: Client,
+    deal: dict[str, Any],
+    row: dict[str, Any],
+    *,
+    display_name: str | None = None,
+    can_resolve: bool = False,
+    include_allowed_actions: bool = False,
+) -> dict[str, Any]:
+    """Build the shared, purpose-limited participant/operations projection."""
+    deal_id = deal["id"]
+    stored_role = row.get("raiser_role")
+    safe_role = stored_role if stored_role in _ROLES else None
+    side = row.get("raiser_side") if row.get("raiser_side") in {"creator", "brand"} else None
+    if safe_role is None:
+        participant_rows = (
+            client.table("deal_participants")
+            .select("participant_role")
+            .eq("deal_id", deal_id)
+            .eq("profile_id", row["raised_by"])
+            .limit(1)
+            .execute()
+            .data
+        )
+        safe_role = participant_rows[0]["participant_role"] if participant_rows else "creator"
+    if side is None:
+        side = "creator" if row["raised_by"] == deal["creator_id"] else "brand"
+    if display_name is None:
+        profiles = (
+            client.table("profiles")
+            .select("display_name")
+            .eq("id", row["raised_by"])
+            .limit(1)
+            .execute()
+            .data
+        )
+        display_name = profiles[0].get("display_name") if profiles else None
+    legitimate_resolution = (
+        row["status"] == "resolved"
+        and row.get("resolved_at") is not None
+        and row.get("resolved_by") is not None
+    )
+    projection = {
+        "id": row["id"],
+        "status": row["status"],
+        "description": _public_text(
+            row.get("description"), "Dispute description unavailable", 2000
+        ),
+        "raised_by": {
+            "display_name": _public_text(display_name, "Participant", 160),
+            "side": side,
+            "role": safe_role,
+            "role_label": _ROLE_LABELS.get(safe_role, "Participant"),
+        },
+        "created_at": row["created_at"],
+        "resolved_at": row.get("resolved_at") if legitimate_resolution else None,
+        "resolution_note": (
+            _public_text(row.get("resolution_note"), "Resolution recorded", 1000)
+            if legitimate_resolution and row.get("resolution_note")
+            else None
+        ),
+        "evidence": _evidence_display(client, deal_id, _stored_references(row.get("evidence"))),
+    }
+    if include_allowed_actions:
+        projection["allowed_actions"] = {
+            "can_resolve": can_resolve and row["status"] == "open"
+        }
+    return projection
 
 
 def get_disputes(
@@ -484,52 +628,16 @@ def get_disputes(
             for row in profiles
         }
 
-    history: list[dict[str, Any]] = []
-    for row in rows:
-        references = _stored_references(row.get("evidence"))
-        stored_role = row.get("raiser_role")
-        safe_role = stored_role if stored_role in _ROLES else None
-        side = row.get("raiser_side") if row.get("raiser_side") in {"creator", "brand"} else None
-        if safe_role is None:
-            participant_rows = (
-                client.table("deal_participants")
-                .select("participant_role")
-                .eq("deal_id", deal_id)
-                .eq("profile_id", row["raised_by"])
-                .limit(1)
-                .execute()
-                .data
-            )
-            safe_role = participant_rows[0]["participant_role"] if participant_rows else "creator"
-        if side is None:
-            side = "creator" if row["raised_by"] == deal["creator_id"] else "brand"
-        legitimate_resolution = (
-            row["status"] == "resolved"
-            and row.get("resolved_at") is not None
-            and row.get("resolved_by") is not None
+    history = [
+        safe_dispute_projection(
+            client,
+            deal,
+            row,
+            display_name=names.get(row["raised_by"]),
+            can_resolve=False,
         )
-        item = {
-            "id": row["id"],
-            "status": row["status"],
-            "description": _public_text(
-                row.get("description"), "Dispute description unavailable", 2000
-            ),
-            "raised_by": {
-                "display_name": names.get(row["raised_by"], "Participant"),
-                "side": side,
-                "role": safe_role,
-                "role_label": _ROLE_LABELS.get(safe_role, "Participant"),
-            },
-            "created_at": row["created_at"],
-            "resolved_at": row.get("resolved_at") if legitimate_resolution else None,
-            "resolution_note": (
-                _public_text(row.get("resolution_note"), "Resolution recorded", 500)
-                if legitimate_resolution and row.get("resolution_note")
-                else None
-            ),
-            "evidence": _evidence_display(client, deal_id, references),
-        }
-        history.append(item)
+        for row in rows
+    ]
 
     current_id = open_rows[0]["id"] if has_open else None
     current_open = next((item for item in history if item["id"] == current_id), None)

@@ -306,8 +306,9 @@ AI summary.
   *not* a stage change — the deal stays in Payment.
 - **Behaviour:** payment progression and the Close action are **paused** while disputed. A
   dispute ticket (`disputes` row) is created and platform ops are notified.
-- **Resolution:** ops mediate (manual for MVP). On resolution, `is_disputed = false` and the
-  normal Payment flow resumes (or the deal is closed/refunded per the resolution).
+- **Resolution:** authenticated platform ops mediate manually. The MVP resolution records a note,
+  restores the exact aggregate Payment state captured when the dispute opened, clears
+  `is_disputed`, and resumes the normal Payment flow. It does not move money, refund or close.
 
 ---
 
@@ -405,4 +406,3 @@ request a summary; the remaining fields, e.g. content ownership, deliverable cou
 and milestone schedule, are captured/confirmed through the summary and contract steps.)
 
 ---
-

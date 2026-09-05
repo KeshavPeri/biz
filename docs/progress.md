@@ -17,10 +17,10 @@ up exactly where the last one left off, with zero context lost.
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
 - **Current phase:** Phase 9 — core workplan 9.15 and B3-035 are **Complete/Built**. Workplan
-  9.16 / B3-039 is **In progress (backend raise/read built)**: the secure Payment dispute
-  transaction and participant-safe API are implemented; the Expo participant raise/view journey is
-  built in the current candidate, while authenticated platform-ops resolution authority and critical
-  email/ops delivery remain gated.
+  9.16 / B3-039 is implemented through the current 9.16-C candidate: secure participant raise/read,
+  the Expo participant journey, generic in-app operations notification, and authenticated
+  platform-operations resume resolution are built. Critical dispute email remains explicitly
+  deferred to CC-N003 / Phase 12.
   Automated reminders B3-037 remain pending for Phase 12 scheduling; 9.17 close/ratings, 9.18
   lifecycle testing and the 9.19 phase gate remain incomplete.
   Workplan 9.13-E creator-private deliverable labels are merged through
@@ -68,6 +68,23 @@ up exactly where the last one left off, with zero context lost.
     is `LIMITED`; combined verifier passed after the account-switch draft-reset and fingerprint-coverage
     repair. No resolution, upload, email/ops delivery,
     money movement or production action was added.
+  - **9.16-C candidate:** issue #33 adds additive migration 041, an explicit server-managed active
+    `platform_ops_members` capability, and bearer-authenticated `/ops/disputes` queue/detail/resolve
+    routes. Operations reads are bounded and use the shared participant-safe text/evidence
+    projection; membership, auth ids, contacts, payment values, raw network content, fingerprints
+    and audit fields are excluded. The only resolution outcome is `resume_payment`: one locked
+    deal → canonical payment → dispute transaction restores the immutable prior aggregate state,
+    clears only the overlay, records resolver provenance and a metadata-only audit, and writes one
+    generic Important in-app notice per current participant. Exact retries are idempotent; changed,
+    reused and concurrent requests fail closed or converge. Raising now adds one generic Critical
+    in-app notice per active operations member and records an explicit zero-recipient count when
+    none exists. No membership API, client credential, customer self-enrolment, money movement,
+    refund, close, email or real staff provisioning is added. Migration 041 is applied to
+    development with no real operations member provisioned. Independent QA/security passed after
+    two privacy-sanitizer repair rounds; final regression passed 11/11 commands and 189/189
+    fictional assertions at code fingerprint `2e9c59e0e2e827cd081da10d5874916719fbcd8d`, with
+    complete cleanup. Real staff provisioning, email delivery, production action, ops UI and
+    native-device walkthrough remain explicitly out of scope/LIMITED.
   - Development inventory before migration 039 found **0** disputes, open disputes, flagged
     Payment deals, flag-without-open rows and duplicate-open deals. The additive migration applied
     without rewriting historical data. Independent QA and security re-review pass after the

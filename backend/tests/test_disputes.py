@@ -40,6 +40,11 @@ REPORTED_PRIVATE_VALUES = (
     "user@internalbox",
     "//internalbox/private",
     "::ffff:10.24.18.9",
+    "+91 98765 43210",
+    "+1 (415) 555-2671",
+    "6123 4567",
+    "020.7946.0958",
+    "98765 43210",
 )
 USERS = {
     "C": (f"dispute.creator.{RUN_ID}@inflo.test", "Fictional Dispute Creator", "creator"),
@@ -235,6 +240,42 @@ def main() -> None:
             mapped_and_relative
             == "Ordinary safe note [link removed] [link removed] remains readable",
         )
+        phone_formats = (
+            "+91 98765 43210",
+            "+1 (415) 555-2671",
+            "+44 20 7946 0958",
+            "020 7946 0958",
+            "6123 4567",
+            "98765-43210",
+            "415.555.2671",
+            "+65\u00a06123\u00a04567",
+            "98765\u201143210",
+            "98765/43210",
+            "98765&#8203;43210",
+        )
+        phone_results = [
+            _public_text(f"Safe context {phone} remains", "fallback", 200)
+            for phone in phone_formats
+        ]
+        check(
+            "bounded public-text sanitizer removes representative phone contact formats",
+            all(
+                "[phone removed]" in result and phone not in result
+                for phone, result in zip(phone_formats, phone_results)
+            )
+            and all(
+                _public_text(f"Recorded {timestamp} safely", "fallback", 200)
+                == f"Recorded {timestamp} safely"
+                for timestamp in (
+                    "2026-09-05",
+                    "2026-09-05 12:30",
+                    "2026/09/05 12:30:45",
+                    "05.09.2026 12:30",
+                    "2026 09 05 12:30",
+                    "2026-09-05T12:30:45.123456",
+                )
+            ),
+        )
         scheme_32 = "a" * 32 + "://internalbox/private"
         scheme_33 = "a" * 33 + "://internalbox/private"
         scheme_boundary = _public_text(
@@ -296,14 +337,15 @@ def main() -> None:
                 "<b>Fictional payment proof</b> https://messages.private.internal/path?token=fixture "
                 "user@corp.internal [2001:db8::25]:8443 localhost:3000 internalbox:9090 "
                 "123server:5432/private user@localhost user@internalbox "
-                "//internalbox/private ::ffff:10.24.18.9"
+                "//internalbox/private ::ffff:10.24.18.9 +1 (415) 555-2671"
             ),
         }).eq("id", main_deal["message_id"]).execute()
         admin.table("profiles").update({
             "display_name": (
                 "<b>Fictional Dispute Checker</b> checker@corp.internal "
                 "[fd00::25]:9443 localhost:4000 123server:5432/private "
-                "user@localhost user@internalbox //internalbox/private ::ffff:10.24.18.9"
+                "user@localhost user@internalbox //internalbox/private ::ffff:10.24.18.9 "
+                "+91 98765 43210"
             ),
         }).eq("id", ids["K"]).execute()
         management_sql(
@@ -438,8 +480,8 @@ def main() -> None:
         notices = admin.table("notifications").select("tier,title,body,profile_id").eq("deal_id", main_deal["deal_id"]).execute().data
         check("audit metadata contains ids/state/count only", set(audit) == {
             "dispute_id", "deal_id", "actor_id", "actor_role", "actor_side",
-            "prior_payment_state", "evidence_count", "outcome",
-        } and audit["evidence_count"] == 2)
+            "prior_payment_state", "evidence_count", "ops_recipient_count", "outcome",
+        } and audit["evidence_count"] == 2 and audit["ops_recipient_count"] == 0)
         notice_recipients = {item["profile_id"] for item in notices}
         check("notifications are generic, critical and limited to current eligible participants", all(item["tier"] == "critical" and "Fictional" not in item["body"] for item in notices) and notice_recipients == {ids[key] for key in ("C", "B", "M", "K")} and ids["I"] not in notice_recipients)
 
@@ -639,7 +681,8 @@ def main() -> None:
             "$legacy$&lt;b&gt;Historical concern&lt;/b&gt; https://description.private.internal/raw "
             "owner@corp.internal [2001:db8::88]:5443 localhost:5050 historynode:6060 "
             "123server:5432/private user@localhost user@internalbox "
-            "//internalbox/private ::ffff:10.24.18.9$legacy$,"
+            "//internalbox/private ::ffff:10.24.18.9 6123 4567 "
+            "98765&#8203;43210$legacy$,"
             "jsonb_build_array("
             f"jsonb_build_object('kind','message','id','{closed['message_id']}'),"
             f"jsonb_build_object('kind','live_post','id','{closed_live_id}')),"
@@ -647,7 +690,7 @@ def main() -> None:
             "$legacy$<script>private</script> Resolved safely at file:///private/network/location "
             "resolver@corp.internal fd00::88 localhost resolutionbox:3030 "
             "123server:5432/private user@localhost user@internalbox "
-            "//internalbox/private ::ffff:10.24.18.9$legacy$,"
+            "//internalbox/private ::ffff:10.24.18.9 020.7946.0958$legacy$,"
             f"'2026-09-03T00:00:00+00:00','{ids['B']}') RETURNING id"
         )[0]["id"]
         closed_read = call("GET", f"/deals/{closed['deal_id']}/disputes", "B")
