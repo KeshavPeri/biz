@@ -246,6 +246,13 @@ def _guard_post_confirmation(ctx: GuardContext) -> GuardOutcome:
     return handled(commit_post_confirmation(ctx))
 
 
+def _guard_close(ctx: GuardContext) -> GuardOutcome:
+    """Persist one side and atomically enter Closed when both sides exist."""
+    from services.close_service import confirm_close
+
+    return handled(confirm_close(ctx))
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # The transition registry — deal-engine.md "Guard conditions" table + the two
 # terminal off-ramps. Keyed by (from_stage, to_stage): a pair that isn't a key is
@@ -303,7 +310,7 @@ REGISTRY: dict[tuple[str, str], Transition] = {
         "posted", "payment", "accept-gate", BRAND_ACTORS, False, False, _guard_post_confirmation, "deal_payment_started"
     ),
     ("payment", "closed"): Transition(  # tasks 9.15-9.17: paid + both confirm + not disputed
-        "payment", "closed", "mutual-gate", RESPONDER_ROLES, False, False, _guard_stub, "deal_closed"
+        "payment", "closed", "mutual-gate", RESPONDER_ROLES, False, False, _guard_close, "deal_closed"
     ),
 }
 
@@ -366,6 +373,8 @@ def request_transition(
     deal = _load_deal_for_transition(client, deal_id)
     role = _participant_role(client, deal_id, user_id)
     if role is None and not system:
+        if target_stage == "closed":
+            raise DealError(404, "This deal could not be found.")
         raise DealError(403, "You're not part of this deal.")
 
     # (b/c) legal-move lookup: forward-only / no-skip / no-backward / registry-only.
@@ -389,12 +398,20 @@ def request_transition(
         and params.get("post_confirmation") is True
         and deal["stage"] == "payment"
     )
+    close_retry = (
+        target_stage == "closed"
+        and isinstance(params.get("close_body"), dict)
+        and isinstance(params["close_body"].get("request_id"), str)
+        and deal["stage"] == "closed"
+    )
     if gate_b_retry:
         transition = REGISTRY.get(("chatting", "approval"))
     elif live_post_request:
         transition = REGISTRY.get(("creating", "posted"))
     elif post_confirmation_retry:
         transition = REGISTRY.get(("posted", "payment"))
+    elif close_retry:
+        transition = REGISTRY.get(("payment", "closed"))
     else:
         transition = REGISTRY.get((deal["stage"], target_stage))
     if transition is None:
@@ -417,7 +434,12 @@ def request_transition(
         raise DealError(outcome.status, outcome.message or "That action isn't allowed right now.")
     if outcome.kind == "handled":
         result = outcome.payload or {"transitioned": False}
-        if result.get("transitioned") and not result.get("idempotent"):
+        notifications_handled = bool(result.pop("notifications_handled", False))
+        if (
+            result.get("transitioned")
+            and not result.get("idempotent")
+            and not notifications_handled
+        ):
             _emit_transition_notification(client, deal, transition, user_id)
         return result
 

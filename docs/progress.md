@@ -21,7 +21,9 @@ up exactly where the last one left off, with zero context lost.
   the Expo participant journey, generic in-app operations notification, and authenticated
   platform-operations resume resolution are built. Critical dispute email remains explicitly
   deferred to CC-N003 / Phase 12.
-  Automated reminders B3-037 remain pending for Phase 12 scheduling; 9.17 close/ratings, 9.18
+  Workplan 9.17-A / issue #35 now implements B3-040's mutual-close and hard read-only-thread slice
+  as a review candidate. Ratings, post-deal comments/private notes, trust score and chat-PDF archival
+  remain pending in 9.17. Automated reminders B3-037 remain pending for Phase 12 scheduling; 9.18
   lifecycle testing and the 9.19 phase gate remain incomplete.
   Workplan 9.13-E creator-private deliverable labels are merged through
   PR #19, completing the 9.13 Creating scope after 9.13-D merged through PR #18.
@@ -85,6 +87,33 @@ up exactly where the last one left off, with zero context lost.
     fictional assertions at code fingerprint `2e9c59e0e2e827cd081da10d5874916719fbcd8d`, with
     complete cleanup. Real staff provisioning, email delivery, production action, ops UI and
     native-device walkthrough remain explicitly out of scope/LIMITED.
+  - **9.17-A candidate:** issue #35 adds additive migration 042 and a service-only, fixed-search-path
+    mutual-close RPC. It locks deal → canonical payment, requires exact current paid-full creator
+    receipt evidence for the single payment or every canonical milestone, rejects an active/open
+    dispute, records one immutable confirmation per creator/brand side, and performs the final
+    Closed transition, transition log, metadata-only audit and generic Important notices in the
+    same transaction. UUID retries converge; reused or changed identities conflict. A defensive
+    deal trigger independently blocks Payment→Closed without both confirmations and the same
+    payment guards. `GET /deals/{deal_id}/close-status` is bounded, current-participant-safe and
+    owns `can_confirm`; payment tracking derives `can_request_close` from that service.
+    PostgreSQL message/attachment triggers take a deal row lock and reject INSERT/UPDATE/DELETE in
+    Closed, Declined or Cancelled, serializing sends with final close while preserving historical
+    reads. Expo adds explicit final confirmation, progress/waiting states, request fences and
+    authoritative close/payment/thread refetch; terminal refresh clears local draft/request state.
+    Migration 042 was applied to development after metadata-only inventory showed zero Payment and
+    Closed deals, canonical payments and open disputes. The de-duplicated affected/ticket union
+    passed 21/21 commands and 411/411 assertions at source fingerprint
+    `052f05215fa3de0774072b05db2c15870045e32c`; the targeted disputed-overlay repair then passed
+    14 changed-path commands and 289/289 assertions. The final source fingerprint
+    `05c0a5503a539d408c0dfcbcd20b7f2df0947753` passed one complete final regression: 21/21
+    commands and 414/414 assertions, including close 26/26, payment tracking 30/30, payment
+    details 29/29, disputes 43/43, stage engine 23/23, RLS 4/4, upstream focused integration/unit
+    suites, backend compile, strict TypeScript, lint (0 errors / 3 pre-existing warnings), Expo web
+    export and diff hygiene. QA returned LIMITED solely for the founder-owned two-persona/device
+    Expo walkthrough; security re-review passed after the dispute projection was made fail-closed.
+    All stateful fixtures cleaned to zero. No ratings,
+    comments/private notes, trust-score work, PDF, refund, payment movement, email, production data
+    or reopen path was added.
   - Development inventory before migration 039 found **0** disputes, open disputes, flagged
     Payment deals, flag-without-open rows and duplicate-open deals. The additive migration applied
     without rewriting historical data. Independent QA and security re-review pass after the

@@ -97,13 +97,15 @@ def auth_client(actor: str) -> Client:
 
 
 def make_deal(label: str, *, stage: str = "payment", structured: bool = False) -> dict[str, str]:
+    requested_stage = stage
+    seed_stage = "payment" if stage in {"closed", "declined", "cancelled"} else stage
     deal_id = admin.table("deals").insert({
         "creator_id": ids["C"],
         "brand_id": brand_id,
         "deal_name": f"Fictional dispute {label} {RUN_ID}",
         "direction": "inbound",
         "created_by": ids["B"],
-        "stage": stage,
+        "stage": seed_stage,
     }).execute().data[0]["id"]
     deal_ids.append(deal_id)
     admin.table("deal_participants").insert([
@@ -149,6 +151,12 @@ def make_deal(label: str, *, stage: str = "payment", structured: bool = False) -
         "sender_id": ids["C"],
         "body": "Fictional payment follow-up confirming the agreed transfer window.",
     }).execute().data[0]["id"]
+    if requested_stage != seed_stage:
+        management_sql(
+            "SET session_replication_role = replica; "
+            f"UPDATE public.deals SET stage='{requested_stage}' WHERE id='{deal_id}'; "
+            "SET session_replication_role = origin;"
+        )
     return {
         "deal_id": deal_id,
         "summary_id": summary_id,
@@ -644,14 +652,18 @@ def main() -> None:
 
         closed = make_deal("closed-history", stage="closed")
         closed_live_id = add_live_post(closed)
-        admin.table("messages").update({
-            "body": (
+        historical_body = (
                 "<strong>Historical message proof</strong> http://message.private.internal/raw "
                 "legacy@corp.internal 2001:db8::99 archivebox:8080 "
                 "123server:5432/private user@localhost user@internalbox "
                 "//internalbox/private ::ffff:10.24.18.9"
-            ),
-        }).eq("id", closed["message_id"]).execute()
+            )
+        historical_sql = historical_body.replace("'", "''")
+        management_sql(
+            "SET session_replication_role = replica; "
+            f"UPDATE public.messages SET body='{historical_sql}' WHERE id='{closed['message_id']}'; "
+            "SET session_replication_role = origin;"
+        )
         admin.table("profiles").update({
             "display_name": (
                 "<svg>Historical Creator</svg> historian@corp.internal "

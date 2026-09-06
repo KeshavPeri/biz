@@ -367,7 +367,7 @@ def main() -> None:
         })
         check("paid-full plus matching creator confirmation derives receipt_complete", (
             complete.status_code == 200 and complete.json()["receipt_complete"]
-            and complete.json()["future_actions"]["can_request_close"] is False
+            and complete.json()["future_actions"]["can_request_close"] is True
         ))
 
         structured = make_deal("milestones", "milestone")
@@ -472,13 +472,19 @@ def main() -> None:
             sum(race_results) == 1 and len(race_rows) == 1
         ))
 
-        admin.table("deals").update({"is_disputed": True}).eq("id", single).execute()
-        disputed_read = call("GET", f"/deals/{single}/payment-tracking", "C")
-        blocked_dispute = call("PUT", f"/deals/{single}/payment-tracking/state", "B", {
-            "expected_version": 3, "state": "refunded",
+        disputed = make_deal("valid-dispute", "on_posting")
+        opened_dispute = call("POST", f"/deals/{disputed}/disputes", "K", {
+            "description": "Fictional payment tracking needs platform review.", "evidence": [],
+        })
+        disputed_read = call("GET", f"/deals/{disputed}/payment-tracking", "C")
+        blocked_dispute = call("PUT", f"/deals/{disputed}/payment-tracking/state", "B", {
+            "expected_version": 1, "state": "refunded",
         })
         check("disputed deal stays readable while every tracking mutation fails closed", (
-            disputed_read.status_code == 200 and blocked_dispute.status_code == 409
+            opened_dispute.status_code == 200
+            and disputed_read.status_code == 200
+            and disputed_read.json()["state"] == "disputed"
+            and blocked_dispute.status_code == 409
         ))
         disputed_uninitialized = make_deal("disputed-uninitialized", "on_posting", initialize=False)
         admin.table("deals").update({"is_disputed": True}).eq("id", disputed_uninitialized).execute()
@@ -495,7 +501,8 @@ def main() -> None:
             disputed_initialization_blocked
             and admin.table("payments").select("id").eq("deal_id", disputed_uninitialized).execute().data == []
         ))
-        admin.table("deals").update({"is_disputed": False, "stage": "closed"}).eq("id", single).execute()
+        call("POST", f"/deals/{single}/close", "C", {"request_id": str(uuid4())})
+        call("POST", f"/deals/{single}/close", "B", {"request_id": str(uuid4())})
         closed = call("GET", f"/deals/{single}/payment-tracking", "B")
         closed_write = call("PUT", f"/deals/{single}/payment-tracking/state", "B", {
             "expected_version": 3, "state": "refunded",

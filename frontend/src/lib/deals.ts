@@ -735,6 +735,107 @@ export async function fetchPaymentTracking(
     : { ok: false, message: INVALID_PAYMENT_RESPONSE };
 }
 
+/* ── Server-authoritative mutual close gate (workplan 9.17-A) ─────────── */
+
+export type CloseConfirmation = {
+  confirmed: boolean;
+  display_label: string | null;
+  confirmed_at: string | null;
+};
+
+export type CloseStatusAvailable = {
+  available: true;
+  deal_id: string;
+  stage: 'payment' | 'closed';
+  payment_complete: boolean;
+  dispute_blocked: boolean;
+  confirmations: { creator: CloseConfirmation; brand: CloseConfirmation };
+  allowed_actions: { can_confirm: boolean };
+};
+
+export type CloseStatusUnavailable = {
+  available: false;
+  deal_id: string;
+  stage: DealStage;
+  reason: 'not_yet_available';
+  payment_complete: false;
+  dispute_blocked: false;
+  confirmations: { creator: CloseConfirmation; brand: CloseConfirmation };
+  allowed_actions: { can_confirm: false };
+};
+
+export type CloseStatus = CloseStatusAvailable | CloseStatusUnavailable;
+const INVALID_CLOSE_RESPONSE = 'Close status returned an invalid response. Refresh and try again.';
+
+function isCloseConfirmation(value: unknown): value is CloseConfirmation {
+  if (!isRecord(value)
+    || Object.keys(value).length !== 3
+    || typeof value.confirmed !== 'boolean'
+    || !(value.display_label === null || isBoundedText(value.display_label, 160))
+    || !(value.confirmed_at === null || isBoundedText(value.confirmed_at, 64))) return false;
+  return value.confirmed
+    ? value.display_label !== null && value.confirmed_at !== null
+    : value.display_label === null && value.confirmed_at === null;
+}
+
+function parseCloseStatus(value: unknown): CloseStatus | null {
+  if (!isRecord(value)
+    || typeof value.available !== 'boolean'
+    || !isBoundedText(value.deal_id, 64)
+    || !DEAL_STAGES.includes(value.stage as DealStage)
+    || typeof value.payment_complete !== 'boolean'
+    || typeof value.dispute_blocked !== 'boolean'
+    || !isRecord(value.confirmations)
+    || Object.keys(value.confirmations).length !== 2
+    || !isCloseConfirmation(value.confirmations.creator)
+    || !isCloseConfirmation(value.confirmations.brand)
+    || !hasBooleanFields(value.allowed_actions, ['can_confirm'])) return null;
+  if (!value.available) {
+    if (Object.keys(value).length !== 8
+      || value.reason !== 'not_yet_available'
+      || value.payment_complete !== false
+      || value.dispute_blocked !== false
+      || value.allowed_actions.can_confirm !== false
+      || value.confirmations.creator.confirmed
+      || value.confirmations.brand.confirmed) return null;
+    return value as CloseStatusUnavailable;
+  }
+  if (Object.keys(value).length !== 7
+    || (value.stage !== 'payment' && value.stage !== 'closed')
+    || (value.dispute_blocked && value.allowed_actions.can_confirm)
+    || (value.stage === 'closed' && (
+      !value.payment_complete
+      || value.dispute_blocked
+      || !value.confirmations.creator.confirmed
+      || !value.confirmations.brand.confirmed
+      || value.allowed_actions.can_confirm
+    ))) return null;
+  return value as CloseStatusAvailable;
+}
+
+export async function fetchCloseStatus(
+  dealId: string,
+): Promise<{ ok: true; data: CloseStatus } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await getJson<unknown>(`/deals/${dealId}/close-status`, token);
+  if (!result.ok) return { ok: false, message: result.message };
+  const parsed = parseCloseStatus(result.data);
+  return parsed?.deal_id === dealId
+    ? { ok: true, data: parsed }
+    : { ok: false, message: INVALID_CLOSE_RESPONSE };
+}
+
+export async function confirmDealClose(
+  dealId: string,
+  requestId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<unknown>(`/deals/${dealId}/close`, { request_id: requestId }, token);
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
+}
+
 /* ── Payment disputes (workplan 9.16-B) ───────────────────────────────── */
 
 export type DisputeEvidenceReference = { kind: 'message' | 'live_post'; id: string };
@@ -1504,7 +1605,7 @@ export async function sendMessage(
   dealId: string,
   senderId: string,
   body: string,
-): Promise<{ ok: true; message: ChatMessage } | { ok: false; message: string }> {
+): Promise<{ ok: true; message: ChatMessage } | { ok: false; message: string; readOnly?: boolean }> {
   if (!supabase) return { ok: false, message: 'Not signed in.' };
   const text = body.trim();
   if (!text) return { ok: false, message: 'Message is empty.' };
@@ -1514,7 +1615,12 @@ export async function sendMessage(
     .insert({ deal_id: dealId, sender_id: senderId, body: text })
     .select('id, sender_id, body, created_at')
     .single();
-  if (error || !data) return { ok: false, message: 'Couldn’t send your message. Try again.' };
+  if (error || !data) {
+    const readOnly = JSON.stringify(error ?? {}).includes('DEAL_THREAD_READ_ONLY');
+    return readOnly
+      ? { ok: false, readOnly: true, message: 'This deal is closed, so the thread is now read-only.' }
+      : { ok: false, message: 'Couldn’t send your message. Try again.' };
+  }
 
   return {
     ok: true,

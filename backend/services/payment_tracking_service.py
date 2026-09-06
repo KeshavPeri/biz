@@ -188,6 +188,7 @@ def _payment_rows(client: Client, deal_id: str) -> tuple[dict[str, Any], list[di
 
 
 def _safe_projection(
+    client: Client,
     deal: dict[str, Any],
     role: str,
     active_brand: bool,
@@ -195,6 +196,8 @@ def _safe_projection(
     payment: dict[str, Any],
     milestones: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    from services.close_service import get_close_status
+
     editable = deal["stage"] == "payment" and not deal["is_disputed"]
     structured = payment["structure"] != "single"
     payment_confirmed = payment.get("creator_receipt_version") == payment["version"]
@@ -230,6 +233,14 @@ def _safe_projection(
                 },
             }
         )
+    try:
+        close_allowed = get_close_status(
+            deal["id"], user_id, _client=client
+        )["allowed_actions"]["can_confirm"]
+    except DealError as exc:
+        if exc.status_code != 404:
+            raise
+        close_allowed = False
     return {
         "available": True,
         "deal_id": deal["id"],
@@ -255,7 +266,7 @@ def _safe_projection(
             and payment["state"] in {"paid_partial", "paid_full"} and not payment_confirmed,
         },
         "future_actions": {
-            "can_request_close": False,
+            "can_request_close": close_allowed,
             "payment_reported_full": payment["state"] == "paid_full",
             "receipt_complete": receipt_complete,
         },
@@ -280,7 +291,7 @@ def get_payment_tracking(
             "future_actions": {"can_request_close": False, "receipt_complete": False},
         }
     payment, milestones = _payment_rows(client, deal_id)
-    return _safe_projection(deal, role, active_brand, user_id, payment, milestones)
+    return _safe_projection(client, deal, role, active_brand, user_id, payment, milestones)
 
 
 def update_payment_state(
