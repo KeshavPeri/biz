@@ -156,6 +156,13 @@ def close_counts(deal_id: str) -> tuple[int, int, int, int]:
 
 def cleanup() -> None:
     print("\nCleaning up fictional close-gate data...")
+    if deal_ids:
+        try:
+            admin.storage.from_("deal-chat-archives").remove([
+                f"deals/{deal_id}/chat-record.pdf" for deal_id in deal_ids
+            ])
+        except Exception:
+            pass
     if ids:
         admin.table("platform_ops_members").delete().in_("profile_id", list(ids.values())).execute()
         quoted = ",".join(f"'{value}'" for value in ids.values())
@@ -302,6 +309,15 @@ def main() -> None:
             and final_status["confirmations"]["creator"]["confirmed"]
             and final_status["confirmations"]["brand"]["confirmed"]
             and close_counts(single) == (2, 1, 1, 4)
+        ))
+        archive_rows = admin.table("deal_chat_archives").select(
+            "state,source_message_count,message_count"
+        ).eq("deal_id", single).execute().data
+        check("the committed close creates one source-bound archive and attempts post-commit generation", (
+            len(archive_rows) == 1
+            and archive_rows[0]["state"] in {"ready", "failed"}
+            and archive_rows[0]["source_message_count"] == 1
+            and (archive_rows[0]["state"] != "ready" or archive_rows[0]["message_count"] == 1)
         ))
         check("close preserves the canonical payment record exactly", payment_before == payment_after)
         closed_retry = call("POST", f"/deals/{single}/close", "M", {"request_id": brand_request})

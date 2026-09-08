@@ -836,6 +836,171 @@ export async function confirmDealClose(
   return result.ok ? { ok: true } : { ok: false, message: result.message };
 }
 
+/* ── Closed outcomes: ratings, entries, immutable chat archive (9.17-B) ── */
+
+export type PostCloseRating = {
+  side: 'creator' | 'brand';
+  score: number;
+  review: string | null;
+  display_label: string;
+  created_at: string;
+};
+
+export type PostCloseRatings = {
+  deal_id: string;
+  ratings: PostCloseRating[];
+  status: { creator: boolean; brand: boolean };
+  allowed_actions: { can_rate: boolean };
+};
+
+export type PostCloseEntry = {
+  id: string;
+  body: string;
+  visibility: 'shared' | 'private';
+  author_label: string;
+  created_at: string;
+};
+
+export type PostCloseEntryFeed = {
+  deal_id: string;
+  visibility: 'shared' | 'private';
+  entries: PostCloseEntry[];
+  next_cursor: string | null;
+};
+
+export type ChatArchiveStatus =
+  | { deal_id: string; state: 'preparing'; allowed_actions: { can_retry: false; can_download: false } }
+  | { deal_id: string; state: 'failed'; failure: string; allowed_actions: { can_retry: true; can_download: false } }
+  | { deal_id: string; state: 'ready'; message_count: number; page_count: number; allowed_actions: { can_retry: false; can_download: true } };
+
+const INVALID_POST_CLOSE_RESPONSE = 'Post-deal information returned an invalid response. Refresh and try again.';
+
+function parsePostCloseRatings(value: unknown): PostCloseRatings | null {
+  if (!isRecord(value) || Object.keys(value).length !== 4 || !isBoundedText(value.deal_id, 64)
+    || !Array.isArray(value.ratings) || value.ratings.length > 2
+    || !hasBooleanFields(value.status, ['creator', 'brand'])
+    || !hasBooleanFields(value.allowed_actions, ['can_rate'])) return null;
+  const seen = new Set<string>();
+  const ratings: PostCloseRating[] = [];
+  for (const item of value.ratings) {
+    if (!isRecord(item) || Object.keys(item).length !== 5
+      || (item.side !== 'creator' && item.side !== 'brand') || seen.has(item.side)
+      || !Number.isInteger(item.score) || (item.score as number) < 1 || (item.score as number) > 5
+      || !(item.review === null || isBoundedText(item.review, 1000))
+      || !isBoundedText(item.display_label, 160) || !isBoundedText(item.created_at, 64)) return null;
+    seen.add(item.side);
+    ratings.push(item as PostCloseRating);
+  }
+  if (value.status.creator !== seen.has('creator') || value.status.brand !== seen.has('brand')) return null;
+  return {
+    deal_id: value.deal_id,
+    ratings,
+    status: { creator: value.status.creator, brand: value.status.brand },
+    allowed_actions: { can_rate: value.allowed_actions.can_rate },
+  };
+}
+
+function parsePostCloseFeed(value: unknown, visibility: 'shared' | 'private'): PostCloseEntryFeed | null {
+  if (!isRecord(value) || Object.keys(value).length !== 4 || !isBoundedText(value.deal_id, 64)
+    || value.visibility !== visibility || !Array.isArray(value.entries) || value.entries.length > 50
+    || !(value.next_cursor === null || isBoundedText(value.next_cursor, 512))) return null;
+  const entries: PostCloseEntry[] = [];
+  for (const item of value.entries) {
+    if (!isRecord(item) || Object.keys(item).length !== 5 || !isBoundedText(item.id, 64)
+      || !isBoundedText(item.body, 2000) || item.visibility !== visibility
+      || !isBoundedText(item.author_label, 160) || !isBoundedText(item.created_at, 64)) return null;
+    entries.push(item as PostCloseEntry);
+  }
+  return { deal_id: value.deal_id, visibility, entries, next_cursor: value.next_cursor };
+}
+
+function parseChatArchiveStatus(value: unknown): ChatArchiveStatus | null {
+  if (!isRecord(value) || !isBoundedText(value.deal_id, 64)
+    || !hasBooleanFields(value.allowed_actions, ['can_retry', 'can_download'])) return null;
+  if (value.state === 'preparing' && Object.keys(value).length === 3
+    && !value.allowed_actions.can_retry && !value.allowed_actions.can_download) return value as ChatArchiveStatus;
+  if (value.state === 'failed' && Object.keys(value).length === 4 && isBoundedText(value.failure, 200)
+    && value.allowed_actions.can_retry && !value.allowed_actions.can_download) return value as ChatArchiveStatus;
+  if (value.state === 'ready' && Object.keys(value).length === 5
+    && Number.isInteger(value.message_count) && (value.message_count as number) >= 0
+    && Number.isInteger(value.page_count) && (value.page_count as number) >= 1
+    && !value.allowed_actions.can_retry && value.allowed_actions.can_download) return value as ChatArchiveStatus;
+  return null;
+}
+
+export async function fetchPostCloseRatings(dealId: string): Promise<{ ok: true; data: PostCloseRatings } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await getJson<unknown>(`/deals/${dealId}/post-close/ratings`, token);
+  if (!result.ok) return result;
+  const parsed = parsePostCloseRatings(result.data);
+  return parsed?.deal_id === dealId ? { ok: true, data: parsed } : { ok: false, message: INVALID_POST_CLOSE_RESPONSE };
+}
+
+export async function submitPostCloseRating(
+  dealId: string, score: number, review: string | null, requestId: string,
+): Promise<{ ok: true; data: PostCloseRatings } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<unknown>(`/deals/${dealId}/post-close/ratings`, { score, review, request_id: requestId }, token);
+  if (!result.ok) return result;
+  const parsed = parsePostCloseRatings(result.data);
+  return parsed?.deal_id === dealId ? { ok: true, data: parsed } : { ok: false, message: INVALID_POST_CLOSE_RESPONSE };
+}
+
+export async function fetchPostCloseEntries(
+  dealId: string, visibility: 'shared' | 'private', cursor?: string,
+): Promise<{ ok: true; data: PostCloseEntryFeed } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const query = new URLSearchParams({ visibility, limit: '20' });
+  if (cursor) query.set('cursor', cursor);
+  const result = await getJson<unknown>(`/deals/${dealId}/post-close/entries?${query.toString()}`, token);
+  if (!result.ok) return result;
+  const parsed = parsePostCloseFeed(result.data, visibility);
+  return parsed?.deal_id === dealId ? { ok: true, data: parsed } : { ok: false, message: INVALID_POST_CLOSE_RESPONSE };
+}
+
+export async function submitPostCloseEntry(
+  dealId: string, visibility: 'shared' | 'private', body: string, requestId: string,
+): Promise<{ ok: true; data: PostCloseEntryFeed } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<unknown>(`/deals/${dealId}/post-close/entries`, { visibility, body, request_id: requestId }, token);
+  if (!result.ok) return result;
+  const parsed = parsePostCloseFeed(result.data, visibility);
+  return parsed?.deal_id === dealId ? { ok: true, data: parsed } : { ok: false, message: INVALID_POST_CLOSE_RESPONSE };
+}
+
+export async function fetchChatArchiveStatus(dealId: string): Promise<{ ok: true; data: ChatArchiveStatus } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await getJson<unknown>(`/deals/${dealId}/chat-archive`, token);
+  if (!result.ok) return result;
+  const parsed = parseChatArchiveStatus(result.data);
+  return parsed?.deal_id === dealId ? { ok: true, data: parsed } : { ok: false, message: INVALID_POST_CLOSE_RESPONSE };
+}
+
+export async function retryChatArchive(dealId: string): Promise<{ ok: true; data: ChatArchiveStatus } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await postJson<unknown>(`/deals/${dealId}/chat-archive/prepare`, {}, token);
+  if (!result.ok) return result;
+  const parsed = parseChatArchiveStatus(result.data);
+  return parsed?.deal_id === dealId ? { ok: true, data: parsed } : { ok: false, message: INVALID_POST_CLOSE_RESPONSE };
+}
+
+export async function getChatArchiveDownload(dealId: string): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  const result = await getJson<unknown>(`/deals/${dealId}/chat-archive/download`, token);
+  if (!result.ok) return result;
+  if (!isRecord(result.data) || Object.keys(result.data).length !== 2
+    || !isBoundedText(result.data.url, 4096) || result.data.expires_in !== 300
+    || !/^https:\/\//i.test(result.data.url)) return { ok: false, message: INVALID_POST_CLOSE_RESPONSE };
+  return { ok: true, url: result.data.url };
+}
+
 /* ── Payment disputes (workplan 9.16-B) ───────────────────────────────── */
 
 export type DisputeEvidenceReference = { kind: 'message' | 'live_post'; id: string };

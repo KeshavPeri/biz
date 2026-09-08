@@ -49,6 +49,13 @@ frontend_changed=false
 
 while IFS= read -r changed_path; do
   case "$changed_path" in
+    backend/services/post_close_service.py|backend/services/chat_archive_service.py|backend/migrations/*post_close*.sql|backend/tests/test_post_close.py|backend/tests/test_chat_archive.py)
+      add_command 'backend/.venv/bin/python backend/tests/test_post_close.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_chat_archive.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_deal_close.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_stage_engine.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_rls.py'
+      ;;
     backend/services/close_service.py|backend/migrations/*deal*close*.sql|backend/tests/test_deal_close.py)
       add_command 'backend/.venv/bin/python backend/tests/test_deal_close.py'
       add_command 'backend/.venv/bin/python backend/tests/test_payment_tracking.py'
@@ -171,6 +178,9 @@ while IFS= read -r changed_path; do
   esac
 
   case "$changed_path" in
+    frontend/src/lib/post-close-context-fence.ts|frontend/tests/post-close-context-fence.test.mjs|frontend/src/components/deal/sticky-action-bar.tsx)
+      add_command 'cd frontend && NODE_NO_WARNINGS=1 node --test --experimental-strip-types tests/post-close-context-fence.test.mjs'
+      ;;
     frontend/package.json|frontend/package-lock.json)
       add_command 'cd frontend && npm run lint'
       add_command 'cd frontend && npx expo export --platform web'

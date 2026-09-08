@@ -48,7 +48,7 @@ checklist/other-side confirmation. GET `/{id}/terms-summary` and POST
 from typing import Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -89,6 +89,8 @@ from services.payment_tracking_service import (
     update_payment_state,
 )
 from services.close_service import get_close_status
+from services.post_close_service import append_entry, get_entries, get_ratings, submit_rating
+from services.chat_archive_service import archive_download, get_archive_status, prepare_archive
 from services.dispute_service import (
     DisputeConflict,
     get_disputes,
@@ -745,13 +747,31 @@ def close(
     body: Any = Body(...),
     user_id: str = Depends(get_current_user_id),
 ) -> dict[str, Any]:
-    return _transition(
+    result = _transition(
         deal_id,
         user_id,
         "closed",
         request,
         {"close_body": body},
     )
+    if result.get("stage") == "closed":
+        try:
+            result["chat_archive"] = prepare_archive(
+                deal_id, user_id, _client_ip(request), explicit_retry=False
+            )
+        except DealError:
+            # Closing is authoritative and must never roll back or look failed
+            # merely because post-commit document work needs an explicit retry.
+            try:
+                result["chat_archive"] = get_archive_status(deal_id, user_id)
+            except DealError:
+                result["chat_archive"] = {
+                    "deal_id": deal_id,
+                    "state": "failed",
+                    "failure": "The chat record could not be prepared safely.",
+                    "allowed_actions": {"can_retry": True, "can_download": False},
+                }
+    return result
 
 
 @router.get("/{deal_id}/close-status")
@@ -761,6 +781,91 @@ def read_close_status(
 ) -> dict[str, Any]:
     try:
         return get_close_status(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get("/{deal_id}/post-close/ratings")
+def read_post_close_ratings(
+    deal_id: str,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return get_ratings(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post("/{deal_id}/post-close/ratings")
+def create_post_close_rating(
+    deal_id: str,
+    request: Request,
+    body: Any = Body(...),
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return submit_rating(deal_id, user_id, body, _client_ip(request))
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get("/{deal_id}/post-close/entries")
+def read_post_close_entries(
+    deal_id: str,
+    visibility: Literal["shared", "private"] = Query(...),
+    limit: int = Query(20, ge=1, le=50),
+    cursor: str | None = Query(None, max_length=512),
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return get_entries(deal_id, user_id, visibility, limit, cursor)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post("/{deal_id}/post-close/entries")
+def create_post_close_entry(
+    deal_id: str,
+    body: Any = Body(...),
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return append_entry(deal_id, user_id, body)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get("/{deal_id}/chat-archive")
+def read_chat_archive(
+    deal_id: str,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return get_archive_status(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post("/{deal_id}/chat-archive/prepare")
+def retry_chat_archive(
+    deal_id: str,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return prepare_archive(deal_id, user_id, _client_ip(request), explicit_retry=True)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get("/{deal_id}/chat-archive/download")
+def download_chat_archive(
+    deal_id: str,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return archive_download(deal_id, user_id, _client_ip(request))
     except DealError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 

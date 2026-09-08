@@ -21,9 +21,10 @@ up exactly where the last one left off, with zero context lost.
   the Expo participant journey, generic in-app operations notification, and authenticated
   platform-operations resume resolution are built. Critical dispute email remains explicitly
   deferred to CC-N003 / Phase 12.
-  Workplan 9.17-A / issue #35 now implements B3-040's mutual-close and hard read-only-thread slice
-  as a review candidate. Ratings, post-deal comments/private notes, trust score and chat-PDF archival
-  remain pending in 9.17. Automated reminders B3-037 remain pending for Phase 12 scheduling; 9.18
+  Workplan 9.17-B / issue #37 now completes B3-040's ratings, post-deal entries, trust aggregation
+  and private chat-record archive as a reviewed candidate on the merged 9.17-A mutual-close
+  boundary. QA/security re-review and the final full regression passed; only the founder's native
+  reminders B3-037 remain pending for Phase 12 scheduling; 9.18
   lifecycle testing and the 9.19 phase gate remain incomplete.
   Workplan 9.13-E creator-private deliverable labels are merged through
   PR #19, completing the 9.13 Creating scope after 9.13-D merged through PR #18.
@@ -114,6 +115,42 @@ up exactly where the last one left off, with zero context lost.
     All stateful fixtures cleaned to zero. No ratings,
     comments/private notes, trust-score work, PDF, refund, payment movement, email, production data
     or reopen path was added.
+  - **9.17-B implementation candidate:** issue #37 adds additive migration 043 without changing
+    migrations 001–042. Service-only fixed-search-path RPCs derive the creator/brand rating side and
+    exact target from a current Closed deal, enforce one immutable proven rating per side and exact
+    request idempotency, write metadata-only audit evidence and recompute only the corresponding
+    brand `trust_rating` or creator `trust_score` from proven rows. Direct authenticated rating,
+    trust-field and outcome-table access is revoked. Shared comments and author-private notes use
+    separate bounded/cursor-stable API feeds; inserts are Closed-only, append-only and idempotent.
+    Shared comments produce generic Informational notices for other current participants, while
+    private notes produce none and are unavailable through another participant's API, RLS or
+    Realtime/table boundary.
+    A Closed-transition trigger queues one source-watermarked `deal_chat_archives` row. The backend
+    pages the complete bounded terminal chat in deterministic order, escapes text, emits bounded
+    attachment labels only, validates PDF signature/pages/size, writes one deterministic object to
+    the private `deal-chat-archives` bucket, and finalizes under an expiring lease/source hash.
+    Pending/failed work is retryable without changing Closed; participant download returns only a
+    five-minute signed URL. Expo replaces the generic Closed wrap-up with final ratings, separate
+    shared/private sections, component-local drafts and Preparing/Ready/Could-not-prepare archive
+    actions without restoring chat mutation.
+    Development inventory before 043 found 0 ratings, comments, structural inconsistencies, Closed
+    deals and terminal messages; migration/table/functions/private bucket verified and fictional
+    fixtures/storage were cleaned. The de-duplicated affected/ticket union passed **21/21 commands**
+    and **353/353 backend assertions** at code fingerprint
+    `b4290816cc12452bd21053bb092f39c5e12ce528`: post-close 14/14, archive 9/9,
+    close 27/27, stage 23/23, RLS 4/4, payment 30/30, disputes 43/43 and all inherited
+    content/contract/onboarding suites; backend compile, strict TypeScript, lint (0 errors / 3
+    pre-existing warnings), Expo web export and diff hygiene also passed. Review revision 1 now
+    selects and bounds the exact deal name used by the archive PDF, and synchronously invalidates,
+    masks, then clears every post-close state across deal/stage/account changes; initial loads,
+    pagination, mutations, archive retry and signed-download opening all reject late cross-context
+    results. The impacted repair set passed **8/8 commands** (post-close 14/14, archive 9/9 and one
+    deferred A-to-B render fence test) at replacement fingerprint
+    `55608eb3352041897c91a1902542d1c77669d6a7`. Separate QA/security re-review passed, and the one
+    unchanged-fingerprint final regression passed **22/22 commands** with **353/353 backend
+    assertions** at that same fingerprint. The founder two-persona/native PDF-open visual walkthrough
+    remains `LIMITED`. Email, production, public
+    storage, reopening, refunds and money movement remain out of scope.
   - Development inventory before migration 039 found **0** disputes, open disputes, flagged
     Payment deals, flag-without-open rows and duplicate-open deals. The additive migration applied
     without rewriting historical data. Independent QA and security re-review pass after the
