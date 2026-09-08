@@ -16,6 +16,27 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
+- **Issue #39 / B3-004 reviewed candidate:** additive migration 044 normalizes a frozen
+  per-request electorate, revokes direct authenticated request/decision mutation, enforces one
+  pending request per deal and serializes participant admission with Gate A on the deal row.
+  FastAPI alone derives active same-brand candidates, role eligibility, unanimous actions and a
+  bounded identity/checklist view; exact retries are idempotent, rejection is final, and final
+  admission revalidates stage, terms, membership and role before one RLS-anchor row is inserted.
+  Generic notifications run best-effort after commit and audit metadata contains no names, contacts
+  or reason text. The Expo header opens the locked “N in this deal ›” sheet with quiet role text,
+  server-authorized request/decision controls, authoritative action/focus refetch and account/deal
+  response fencing. New Realtime publication, email, removal, role changes, deal rename, labels and
+  attachments remain excluded; two-device automatic refresh is `LIMITED` by design. Migration 044
+  is applied to development and the de-duplicated focused/affected union passed. Review revision 1
+  now quarantines unsafe legacy pending rows before installing the unique invariant, removes their
+  former write policies, requires a role on every future pending row, and rejects every new vote
+  after stage/terms drift without changing decision, request or audit state. The implementation
+  evidence totals 193 backend assertions; the final test-only assertion correction passed the
+  participant suite 29/29 plus compile/diff checks. Independent security review passed; QA is
+  LIMITED only for the expressly founder-owned native/two-device refresh walkthrough. The required
+  post-review full regression passed 13/13 commands and 193/193 backend assertions at canonical
+  fingerprint `e2f5c8cfaace4678a8717c278206d207c7fe0b6e`.
+
 - **Current phase:** Phase 9 — core workplan 9.15 and B3-035 are **Complete/Built**. Workplan
   9.16 / B3-039 is implemented through the current 9.16-C candidate: secure participant raise/read,
   the Expo participant journey, generic in-app operations notification, and authenticated
@@ -1045,6 +1066,24 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-09-08 — Issue #39: unanimous participant admission candidate
+
+- Added migration 044, backend-owned participant request/decision endpoints, frozen unanimous
+  electorate, one-pending-request invariant, Gate-A serialization, bounded participant/candidate
+  projection, privacy-safe audit/notification behavior and the deal-room participant sheet.
+- **Evidence:** migration 044 applied to development. The implementation focused/affected union
+  passed 13/13 commands and 189/189 backend assertions: participant management 25/25, briefs 28/28,
+  stage engine 23/23, summary gate 39/39, term approvals 32/32, maker-checker 10/10, contract flow
+  28/28 and RLS 4/4; backend compile, strict TypeScript, lint (0 errors / 3 pre-existing warnings),
+  Expo web export and diff hygiene passed. Review revision 1 adds stage/terms-drift rollback and a
+  seeded single/duplicate legacy-upgrade proof; participant management now passes 29/29. Its eight
+  unaffected backend commands passed before a test-only pending-row count correction, then the
+  participant suite, backend compile and diff hygiene passed 3/3 at final fingerprint
+  `49151fdf1de74a214b25b4a8446fb7c45467b820`.
+  Fictional fixtures cleaned. Independent QA/security and
+  the required post-review full regression remain pending; the two-device native walkthrough is
+  `LIMITED`.
 
 ### 2026-09-05 — Risk-proportional factory verification
 - **Why:** transcript evidence from the issue #29 run and targeted recovery showed roughly 71–76% of

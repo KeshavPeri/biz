@@ -1551,6 +1551,67 @@ export type DealStage =
 
 export type ParticipantRole = 'creator' | 'brand_admin' | 'brand_maker' | 'brand_checker';
 
+export type ParticipantCandidate = {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+  eligible_roles: Exclude<ParticipantRole, 'creator'>[];
+};
+
+export type ParticipantManagementState = {
+  deal_id: string;
+  stage: DealStage;
+  participants: {
+    display_name: string;
+    avatar_url: string | null;
+    role: ParticipantRole;
+    role_label: string;
+  }[];
+  pending_request: null | {
+    id: string;
+    proposed: { display_name: string; avatar_url: string | null };
+    proposed_role: Exclude<ParticipantRole, 'creator'>;
+    proposed_role_label: string;
+    reason: string;
+    created_at: string;
+    approvals: { display_name: string; status: 'pending' | 'approved' | 'rejected' }[];
+    can_decide: boolean;
+  };
+  candidates: ParticipantCandidate[];
+  available_actions: { can_request: boolean };
+};
+
+export async function fetchParticipantManagement(
+  dealId: string,
+): Promise<{ ok: true; data: ParticipantManagementState } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  return getJson<ParticipantManagementState>(`/deals/${dealId}/participants`, token);
+}
+
+export async function createParticipantRequest(
+  dealId: string,
+  input: { request_id: string; proposed_profile_id: string; proposed_role: Exclude<ParticipantRole, 'creator'>; reason: string },
+): Promise<{ ok: true; data: ParticipantManagementState } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  return postJson<ParticipantManagementState>(`/deals/${dealId}/participant-requests`, input, token);
+}
+
+export async function decideParticipantRequest(
+  dealId: string,
+  requestId: string,
+  decision: 'approved' | 'rejected',
+): Promise<{ ok: true; data: ParticipantManagementState } | { ok: false; message: string }> {
+  const token = await sessionToken();
+  if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
+  return postJson<ParticipantManagementState>(
+    `/deals/${dealId}/participant-requests/${requestId}/decision`,
+    { decision },
+    token,
+  );
+}
+
 /** The next thing THIS user should do, plus whether it's their turn (drives the dot). */
 export type NextAction = { text: string; active: boolean };
 
