@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <style>
+      @page { size: A4; margin: 20mm; }
+      body { color: #1f2933; font-family: sans-serif; font-size: 10pt; line-height: 1.45; }
+      h1 { font-size: 20pt; margin: 0 0 4mm; }
+      .meta { color: #52606d; margin-bottom: 8mm; }
+      .message { border-top: 1px solid #d9e2ec; padding: 4mm 0; break-inside: avoid; }
+      .message-header { color: #52606d; font-size: 8.5pt; margin-bottom: 1.5mm; }
+      .body { white-space: pre-wrap; overflow-wrap: anywhere; }
+      .attachment { color: #52606d; font-size: 8.5pt; margin-top: 1.5mm; }
+      .footer { color: #7b8794; font-size: 8pt; margin-top: 8mm; }
+    </style>
+  </head>
+  <body>
+    <h1>{{ deal_name }}</h1>
+    <div class="meta">Closed {{ closed_at }} · {{ participant_labels }}</div>
+    {% for message in messages %}
+      <section class="message">
+        <div class="message-header">{{ message.created_at }} · {{ message.sender_label }}</div>
+        <div class="body">{{ message.body }}</div>
+        {% for attachment in message.attachments %}
+          <div class="attachment">Attachment: {{ attachment.label }}</div>
+        {% endfor %}
+      </section>
+    {% endfor %}
+    <div class="footer">Immutable chat record prepared by Inflo.</div>
+  </body>
+</html>

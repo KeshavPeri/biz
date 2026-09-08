@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Alert, Linking, Pressable, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as Crypto from 'expo-crypto';
@@ -14,6 +14,9 @@ import { PaymentTrackingCard } from '@/components/deal/payment-tracking-card';
 import { DisputeCard, DisputeDetailSheet } from '@/components/deal/dispute-card';
 import { DisputeSheet, type DisputeEvidenceChoice } from '@/components/deal/dispute-sheet';
 import { CloseStatusCard } from '@/components/deal/close-status-card';
+import { PostCloseCard } from '@/components/deal/post-close-card';
+import { RatingSheet } from '@/components/deal/rating-sheet';
+import { PostCloseEntrySheet } from '@/components/deal/post-close-entry-sheet';
 
 import {
   acceptDeal,
@@ -29,6 +32,13 @@ import {
   confirmLivePosts,
   confirmPaymentReceipt,
   confirmDealClose,
+  fetchPostCloseRatings,
+  submitPostCloseRating,
+  fetchPostCloseEntries,
+  submitPostCloseEntry,
+  fetchChatArchiveStatus,
+  retryChatArchive,
+  getChatArchiveDownload,
   fetchPaymentDetails,
   fetchPaymentTracking,
   fetchDisputes,
@@ -70,6 +80,9 @@ import {
   type PaymentTrackingState,
   type DisputeProjection,
   type CloseStatus,
+  type PostCloseRatings,
+  type PostCloseEntryFeed,
+  type ChatArchiveStatus,
   type ChatMessage,
   type ReportablePaymentState,
   type SummaryChecklist,
@@ -81,6 +94,7 @@ import {
   type PrivateDeliverableLabel,
   type PrivateDeliverableLabelMap,
 } from '@/lib/private-deliverable-labels';
+import { PostCloseContextFence, forPostCloseContext } from '@/lib/post-close-context-fence';
 
 /**
  * StickyActionBar (task 9.7) — the stage-aware AND role-aware bar above the
@@ -143,6 +157,16 @@ export function StickyActionBar({
   const [closeLoading, setCloseLoading] = useState(false);
   const [closeError, setCloseError] = useState<string | null>(null);
   const [closeActing, setCloseActing] = useState(false);
+  const [postCloseRatings, setPostCloseRatings] = useState<PostCloseRatings | null>(null);
+  const [sharedEntries, setSharedEntries] = useState<PostCloseEntryFeed | null>(null);
+  const [privateEntries, setPrivateEntries] = useState<PostCloseEntryFeed | null>(null);
+  const [chatArchive, setChatArchive] = useState<ChatArchiveStatus | null>(null);
+  const [postCloseLoading, setPostCloseLoading] = useState(false);
+  const [postCloseActing, setPostCloseActing] = useState(false);
+  const [postCloseError, setPostCloseError] = useState<string | null>(null);
+  const [postCloseStateContext, setPostCloseStateContext] = useState('');
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const [entryVisibility, setEntryVisibility] = useState<'shared' | 'private' | null>(null);
   const [contentDeliverable, setContentDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [revisionDeliverable, setRevisionDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [rejectedApprovalDeliverable, setRejectedApprovalDeliverable] = useState<CanonicalDeliverable | null>(null);
@@ -157,6 +181,8 @@ export function StickyActionBar({
   const closeContextRef = useRef('');
   const closeMutationRequestRef = useRef<string | null>(null);
   const closeStatusRef = useRef<CloseStatus | null>(null);
+  const postCloseFenceRef = useRef(new PostCloseContextFence());
+  const postCloseLoadRequestRef = useRef(0);
   const paymentTrackingContext = `${thread.dealId}:${thread.stage}`;
   paymentTrackingContextRef.current = paymentTrackingContext;
   const disputeContext = `${thread.dealId}:${thread.stage}`;
@@ -164,6 +190,12 @@ export function StickyActionBar({
   const closeContext = `${thread.dealId}:${thread.stage}:${userId}`;
   closeContextRef.current = closeContext;
   closeStatusRef.current = closeStatus;
+  const postCloseContext = `${thread.dealId}:${thread.stage}:${userId}`;
+  // Ref-only invalidation is safe during render and closes the interval before
+  // the layout-effect cleanup: stale private state is also context-keyed below.
+  if (postCloseFenceRef.current.switchContext(postCloseContext)) {
+    postCloseLoadRequestRef.current += 1;
+  }
 
   const loadSummary = useCallback(async () => {
     if (thread.stage !== 'chatting') return;
@@ -354,6 +386,33 @@ export function StickyActionBar({
     return result;
   }, [thread.dealId, thread.stage, userId]);
 
+  const loadPostClose = useCallback(async (showLoading = false) => {
+    if (thread.stage !== 'closed') return null;
+    const requestContext = `${thread.dealId}:${thread.stage}:${userId}`;
+    const requestTicket = postCloseFenceRef.current.begin(requestContext);
+    if (!postCloseFenceRef.current.isCurrent(requestTicket)) return null;
+    const loadRequest = ++postCloseLoadRequestRef.current;
+    if (showLoading) {
+      setPostCloseLoading(true);
+      setPostCloseError(null);
+    }
+    const [ratingsResult, sharedResult, privateResult, archiveResult] = await Promise.all([
+      fetchPostCloseRatings(thread.dealId),
+      fetchPostCloseEntries(thread.dealId, 'shared'),
+      fetchPostCloseEntries(thread.dealId, 'private'),
+      fetchChatArchiveStatus(thread.dealId),
+    ]);
+    if (!postCloseFenceRef.current.isCurrent(requestTicket) || loadRequest !== postCloseLoadRequestRef.current) return null;
+    if (ratingsResult.ok) setPostCloseRatings(ratingsResult.data);
+    if (sharedResult.ok) setSharedEntries(sharedResult.data);
+    if (privateResult.ok) setPrivateEntries(privateResult.data);
+    if (archiveResult.ok) setChatArchive(archiveResult.data);
+    const failure = [ratingsResult, sharedResult, privateResult, archiveResult].find((result) => !result.ok);
+    setPostCloseError(failure && !failure.ok ? failure.message : null);
+    setPostCloseLoading(false);
+    return { ratingsResult, sharedResult, privateResult, archiveResult };
+  }, [thread.dealId, thread.stage, userId]);
+
   useEffect(() => {
     if (['payment', 'closed'].includes(thread.stage)) void loadDispute(true);
     else {
@@ -398,6 +457,20 @@ export function StickyActionBar({
     }
   }, [loadCloseStatus, thread.dealId, thread.stage, userId]);
 
+  useLayoutEffect(() => {
+    setPostCloseStateContext(postCloseContext);
+    setRatingOpen(false);
+    setEntryVisibility(null);
+    setPostCloseActing(false);
+    setPostCloseRatings(null);
+    setSharedEntries(null);
+    setPrivateEntries(null);
+    setChatArchive(null);
+    setPostCloseError(null);
+    setPostCloseLoading(false);
+    if (thread.stage === 'closed') void loadPostClose(true);
+  }, [loadPostClose, postCloseContext, thread.stage]);
+
   // Generation is followed by one authoritative alignment start. The backend
   // reservation makes concurrent participants/idempotent refreshes safe.
   useEffect(() => {
@@ -424,8 +497,9 @@ export function StickyActionBar({
       if (['payment', 'closed'].includes(thread.stage)) void loadPaymentTracking();
       if (['payment', 'closed'].includes(thread.stage)) void loadDispute();
       if (['payment', 'closed'].includes(thread.stage)) void loadCloseStatus();
+      if (thread.stage === 'closed') void loadPostClose();
       onTransitioned();
-    }, [loadBriefs, loadCloseStatus, loadContract, loadDeliverables, loadDispute, loadPaymentDetails, loadPaymentTracking, loadSummary, loadTerms, onTransitioned, thread.stage]),
+    }, [loadBriefs, loadCloseStatus, loadContract, loadDeliverables, loadDispute, loadPaymentDetails, loadPaymentTracking, loadPostClose, loadSummary, loadTerms, onTransitioned, thread.stage]),
   );
 
   useEffect(() => {
@@ -825,6 +899,112 @@ export function StickyActionBar({
     );
   }, [submitCloseConfirmation]);
 
+  const submitRating = useCallback(async (score: number, review: string | null, requestId: string) => {
+    if (postCloseActing) return { ok: false as const, message: 'Another post-deal action is in progress.' };
+    const requestContext = postCloseContext;
+    const requestTicket = postCloseFenceRef.current.begin(requestContext);
+    if (!postCloseFenceRef.current.isCurrent(requestTicket)) {
+      return { ok: false as const, message: 'The active deal changed before this rating started.' };
+    }
+    setPostCloseActing(true);
+    setPostCloseError(null);
+    const result = await submitPostCloseRating(thread.dealId, score, review, requestId);
+    if (!postCloseFenceRef.current.isCurrent(requestTicket)) {
+      return { ok: false as const, message: 'The active deal changed before this rating completed.' };
+    }
+    const refreshed = await loadPostClose();
+    if (!postCloseFenceRef.current.isContextCurrent(requestContext)) {
+      return { ok: false as const, message: 'The active deal changed before this rating completed.' };
+    }
+    setPostCloseActing(false);
+    if (!result.ok) {
+      const side = thread.myRole === 'creator' ? 'creator' : 'brand';
+      const accepted = refreshed?.ratingsResult.ok === true && refreshed.ratingsResult.data.status[side];
+      if (!accepted) return result;
+    }
+    return { ok: true as const };
+  }, [loadPostClose, postCloseActing, postCloseContext, thread.dealId, thread.myRole]);
+
+  const submitEntry = useCallback(async (body: string, requestId: string) => {
+    const visibility = entryVisibility;
+    if (!visibility || postCloseActing) return { ok: false as const, message: 'This post-deal draft is no longer active.' };
+    const requestContext = postCloseContext;
+    const requestTicket = postCloseFenceRef.current.begin(requestContext);
+    if (!postCloseFenceRef.current.isCurrent(requestTicket)) {
+      return { ok: false as const, message: 'The active deal changed before this entry started.' };
+    }
+    setPostCloseActing(true);
+    setPostCloseError(null);
+    const result = await submitPostCloseEntry(thread.dealId, visibility, body, requestId);
+    if (!postCloseFenceRef.current.isCurrent(requestTicket)) {
+      return { ok: false as const, message: 'The active deal changed before this entry completed.' };
+    }
+    await loadPostClose();
+    if (!postCloseFenceRef.current.isContextCurrent(requestContext)) {
+      return { ok: false as const, message: 'The active deal changed before this entry completed.' };
+    }
+    setPostCloseActing(false);
+    return result.ok ? { ok: true as const } : result;
+  }, [entryVisibility, loadPostClose, postCloseActing, postCloseContext, thread.dealId]);
+
+  const loadOlderEntries = useCallback(async (visibility: 'shared' | 'private') => {
+    const current = visibility === 'shared' ? sharedEntries : privateEntries;
+    if (!current?.next_cursor || postCloseActing) return;
+    const requestContext = postCloseContext;
+    const requestTicket = postCloseFenceRef.current.begin(requestContext);
+    if (!postCloseFenceRef.current.isCurrent(requestTicket)) return;
+    setPostCloseActing(true);
+    setPostCloseError(null);
+    const result = await fetchPostCloseEntries(thread.dealId, visibility, current.next_cursor);
+    if (!postCloseFenceRef.current.isCurrent(requestTicket)) return;
+    if (result.ok) {
+      const merged = { ...result.data, entries: [...current.entries, ...result.data.entries] };
+      if (visibility === 'shared') setSharedEntries(merged);
+      else setPrivateEntries(merged);
+    } else setPostCloseError(result.message);
+    setPostCloseActing(false);
+  }, [postCloseActing, postCloseContext, privateEntries, sharedEntries, thread.dealId]);
+
+  const retryArchive = useCallback(async () => {
+    if (postCloseActing || !chatArchive?.allowed_actions.can_retry) return;
+    const requestContext = postCloseContext;
+    const requestTicket = postCloseFenceRef.current.begin(requestContext);
+    if (!postCloseFenceRef.current.isCurrent(requestTicket)) return;
+    setPostCloseActing(true);
+    setPostCloseError(null);
+    const result = await retryChatArchive(thread.dealId);
+    if (!postCloseFenceRef.current.isCurrent(requestTicket)) return;
+    if (result.ok) setChatArchive(result.data);
+    else {
+      setPostCloseError(result.message);
+      await loadPostClose();
+    }
+    if (postCloseFenceRef.current.isContextCurrent(requestContext)) setPostCloseActing(false);
+  }, [chatArchive, loadPostClose, postCloseActing, postCloseContext, thread.dealId]);
+
+  const downloadArchive = useCallback(async () => {
+    if (postCloseActing || !chatArchive?.allowed_actions.can_download) return;
+    const requestContext = postCloseContext;
+    const requestTicket = postCloseFenceRef.current.begin(requestContext);
+    if (!postCloseFenceRef.current.isCurrent(requestTicket)) return;
+    setPostCloseActing(true);
+    setPostCloseError(null);
+    const result = await getChatArchiveDownload(thread.dealId);
+    if (!postCloseFenceRef.current.isCurrent(requestTicket)) return;
+    if (!result.ok) setPostCloseError(result.message);
+    else {
+      try {
+        if (!postCloseFenceRef.current.isCurrent(requestTicket)) return;
+        await Linking.openURL(result.url);
+      } catch {
+        if (postCloseFenceRef.current.isCurrent(requestTicket)) {
+          setPostCloseError('The secure chat-record link could not be opened. Please try again.');
+        }
+      }
+    }
+    if (postCloseFenceRef.current.isContextCurrent(requestContext)) setPostCloseActing(false);
+  }, [chatArchive, postCloseActing, postCloseContext, thread.dealId]);
+
   const confirmPosts = useCallback(async () => {
     if (acting || !deliverables || !paymentDetails) return;
     const postsAllowed = deliverables.post_confirmation.future_actions.can_confirm_all;
@@ -961,6 +1141,36 @@ export function StickyActionBar({
       acting={closeActing}
       onRetry={() => void loadCloseStatus(true)}
       onConfirm={confirmClose}
+    />
+  );
+
+  const visiblePostCloseRatings = forPostCloseContext(postCloseContext, postCloseStateContext, postCloseRatings, null);
+  const visibleSharedEntries = forPostCloseContext(postCloseContext, postCloseStateContext, sharedEntries, null);
+  const visiblePrivateEntries = forPostCloseContext(postCloseContext, postCloseStateContext, privateEntries, null);
+  const visibleChatArchive = forPostCloseContext(postCloseContext, postCloseStateContext, chatArchive, null);
+  const visiblePostCloseLoading = forPostCloseContext(postCloseContext, postCloseStateContext, postCloseLoading, false);
+  const visiblePostCloseActing = forPostCloseContext(postCloseContext, postCloseStateContext, postCloseActing, false);
+  const visiblePostCloseError = forPostCloseContext(postCloseContext, postCloseStateContext, postCloseError, null);
+  const visibleRatingOpen = forPostCloseContext(postCloseContext, postCloseStateContext, ratingOpen, false);
+  const visibleEntryVisibility = forPostCloseContext(postCloseContext, postCloseStateContext, entryVisibility, null);
+
+  const postCloseView = () => (
+    <PostCloseCard
+      ratings={visiblePostCloseRatings}
+      shared={visibleSharedEntries}
+      privateNotes={visiblePrivateEntries}
+      archive={visibleChatArchive}
+      loading={visiblePostCloseLoading}
+      acting={visiblePostCloseActing}
+      error={visiblePostCloseError}
+      onRetry={() => void loadPostClose(true)}
+      onRate={() => setRatingOpen(true)}
+      onAddShared={() => setEntryVisibility('shared')}
+      onAddPrivate={() => setEntryVisibility('private')}
+      onMoreShared={() => void loadOlderEntries('shared')}
+      onMorePrivate={() => void loadOlderEntries('private')}
+      onRetryArchive={() => void retryArchive()}
+      onDownloadArchive={() => void downloadArchive()}
     />
   );
 
@@ -1107,7 +1317,7 @@ export function StickyActionBar({
         );
 
       case 'closed':
-        return <View className="gap-2.5">{deliverablesView()}{paymentDetailsView()}{paymentTrackingView()}{disputeView()}{closeView()}</View>;
+        return <View className="gap-2.5">{deliverablesView()}{paymentDetailsView()}{paymentTrackingView()}{disputeView()}{closeView()}{postCloseView()}</View>;
       case 'declined':
         return <Waiting text="This connection was declined." />;
       case 'cancelled':
@@ -1173,6 +1383,21 @@ export function StickyActionBar({
         dispute={dispute?.current_open ?? null}
         history={dispute?.history ?? []}
         onClose={() => setDisputeDetailOpen(false)}
+      />
+      <RatingSheet
+        visible={visibleRatingOpen}
+        dealId={thread.dealId}
+        accountId={userId}
+        onClose={() => setRatingOpen(false)}
+        onSubmit={submitRating}
+      />
+      <PostCloseEntrySheet
+        visible={visibleEntryVisibility !== null}
+        dealId={thread.dealId}
+        accountId={userId}
+        visibility={visibleEntryVisibility ?? 'shared'}
+        onClose={() => setEntryVisibility(null)}
+        onSubmit={submitEntry}
       />
     </>
   );
