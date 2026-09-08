@@ -16,6 +16,26 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
+- **Issue #41 / B3-005 implementation candidate:** additive migration 045 gives every existing
+  deal a non-null version without changing its name, stage or timestamps, and exposes one
+  service-role-only, fixed-search-path rename RPC. The transaction locks the deal, proves current
+  participation, rejects terminal/deleted rows, compares the exact displayed version, updates the
+  canonical name/version/timestamp and inserts one metadata-only immutable audit event. Python
+  normalizes NFKC and whitespace and rejects blank, overlong, control and bidi-formatted input;
+  direct authenticated deal UPDATE and RPC execution remain revoked. Exact normalized retries are
+  idempotent and distinct races commit once. The Expo header uses the existing edit affordance and
+  `EditSheet`, hides editing in terminal stages or without a real version, adopts only the
+  authoritative response, and keeps the participant's draft while refetching/showing the winning
+  value after a stale conflict. Account/deal/displayed-version fences reject late results. The
+  de-duplicated focused/affected candidate union passed 15/15 commands and 203/203 backend
+  assertions: deal-name 30/30, upstream deal/API suites, RLS/archive compatibility, backend
+  compile, strict TypeScript, a context-fence test, lint (0 errors / 3 pre-existing warnings), Expo
+  web export and diff hygiene at non-documentation source fingerprint
+  `769b0b2a7f4c0266c2c20e1922745405c14ea648`. Independent security review passed and QA found no defects;
+  QA is `LIMITED` only for the optional two-persona/native refresh walkthrough. The required
+  unchanged-source final regression also passed 15/15 commands at this fingerprint. B3-006 private
+  labels and B3-007 attachments remain separate and still block 9.18/9.19.
+
 - **Issue #39 / B3-004 reviewed candidate:** additive migration 044 normalizes a frozen
   per-request electorate, revokes direct authenticated request/decision mutation, enforces one
   pending request per deal and serializes participant admission with Gate A on the deal row.

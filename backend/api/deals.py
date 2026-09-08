@@ -101,6 +101,7 @@ from services.participant_service import (
     decide_participant_request,
     get_participant_management,
 )
+from services.deal_name_service import rename_deal
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
@@ -151,6 +152,13 @@ class ParticipantDecisionBody(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
     decision: Literal['approved', 'rejected']
+
+
+class DealNameBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    deal_name: str = Field(min_length=1, max_length=640)
+    expected_version: int = Field(ge=0)
 
 
 class AlignmentOverrideBody(BaseModel):
@@ -378,6 +386,21 @@ def terms_summary(deal_id: str, user_id: str = Depends(get_current_user_id)) -> 
 def participant_management(deal_id: str, user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
     try:
         return get_participant_management(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.put('/{deal_id}/name')
+def update_deal_name(
+    deal_id: str,
+    body: DealNameBody,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return rename_deal(
+            deal_id, user_id, body.expected_version, body.deal_name, _client_ip(request)
+        )
     except DealError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 

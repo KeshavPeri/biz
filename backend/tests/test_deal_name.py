@@ -1,0 +1,379 @@
+"""Fictional development-Supabase acceptance checks for B3-005."""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import sys
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from uuid import uuid4
+
+import httpx
+from dotenv import load_dotenv
+from supabase import Client, create_client
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(BACKEND_DIR))
+load_dotenv(BACKEND_DIR.parent / ".env")
+
+from fastapi.testclient import TestClient  # noqa: E402
+from main import app  # noqa: E402
+
+SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
+SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+ACCESS_TOKEN = os.environ["SUPABASE_ACCESS_TOKEN"]
+PROJECT_REF = re.search(r"https://([a-z0-9]+)\.supabase\.co", SUPABASE_URL).group(1)
+RUN_ID = uuid4().hex[:10]
+PASSWORD = f"Deal-name-{RUN_ID}-Fictional!"
+USERS = {
+    "C": (f"deal.name.creator.{RUN_ID}@inflo.test", "Fictional Creator", "creator"),
+    "B": (f"deal.name.admin.{RUN_ID}@inflo.test", "Fictional Brand Admin", "brand"),
+    "M": (f"deal.name.maker.{RUN_ID}@inflo.test", "Fictional Brand Maker", "brand"),
+    "K": (f"deal.name.checker.{RUN_ID}@inflo.test", "Fictional Brand Checker", "brand"),
+    "X": (f"deal.name.outsider.{RUN_ID}@inflo.test", "Fictional Outsider", "creator"),
+}
+
+api = TestClient(app)
+admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+checks: list[tuple[str, bool]] = []
+
+
+def check(label: str, condition: bool) -> None:
+    checks.append((label, condition))
+    print(f"{'PASS' if condition else 'FAIL'} - {label}")
+
+
+def management_sql(sql: str):
+    response = httpx.post(
+        f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query",
+        headers={"Authorization": f"Bearer {ACCESS_TOKEN}"},
+        json={"query": sql},
+        timeout=60,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def apply_migration() -> None:
+    management_sql((BACKEND_DIR / "migrations/045_deal_name_rename.sql").read_text())
+
+
+def token_for(email: str) -> str:
+    return create_client(SUPABASE_URL, SUPABASE_ANON_KEY).auth.sign_in_with_password(
+        {"email": email, "password": PASSWORD}
+    ).session.access_token
+
+
+def auth_client(email: str) -> Client:
+    client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    client.auth.sign_in_with_password({"email": email, "password": PASSWORD})
+    return client
+
+
+def call(deal_id: str, token: str, deal_name: str, expected_version: int):
+    return api.put(
+        f"/deals/{deal_id}/name",
+        json={"deal_name": deal_name, "expected_version": expected_version},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+
+def cleanup() -> None:
+    management_sql(
+        "DROP TRIGGER IF EXISTS test_fail_deal_name_audit ON audit_log; "
+        "DROP FUNCTION IF EXISTS test_fail_deal_name_audit();"
+    )
+    users = [u for u in admin.auth.admin.list_users() if u.email in {row[0] for row in USERS.values()}]
+    ids = [u.id for u in users]
+    if not ids:
+        return
+    quoted = ",".join(f"'{value}'" for value in ids)
+    management_sql(
+        "SET session_replication_role = replica; "
+        f"DELETE FROM audit_log WHERE actor_id IN ({quoted}); "
+        "SET session_replication_role = origin;"
+    )
+    deals = admin.table("deals").select("id").in_("created_by", ids).execute().data
+    for deal in deals:
+        admin.table("deals").delete().eq("id", deal["id"]).execute()
+    memberships = admin.table("brand_members").select("brand_id").in_("profile_id", ids).execute().data
+    for brand_id in {row["brand_id"] for row in memberships}:
+        admin.table("brands").delete().eq("id", brand_id).execute()
+    for user in users:
+        admin.auth.admin.delete_user(user.id)
+
+
+def create_deal(ids: dict[str, str], brand_id: str, stage: str, label: str) -> str:
+    deal_id = admin.table("deals").insert({
+        "creator_id": ids["C"],
+        "brand_id": brand_id,
+        "deal_name": f"Fictional {label} {RUN_ID}",
+        "direction": "inbound",
+        "created_by": ids["B"],
+        "stage": stage,
+    }).execute().data[0]["id"]
+    admin.table("deal_participants").insert([
+        {"deal_id": deal_id, "profile_id": ids["C"], "participant_role": "creator"},
+        {"deal_id": deal_id, "profile_id": ids["B"], "participant_role": "brand_admin"},
+        {"deal_id": deal_id, "profile_id": ids["M"], "participant_role": "brand_maker"},
+        {"deal_id": deal_id, "profile_id": ids["K"], "participant_role": "brand_checker"},
+    ]).execute()
+    return deal_id
+
+
+def main() -> None:
+    cleanup()
+    ids: dict[str, str] = {}
+    try:
+        apply_migration()
+        for key, (email, name, account_type) in USERS.items():
+            ids[key] = admin.auth.admin.create_user(
+                {"email": email, "password": PASSWORD, "email_confirm": True}
+            ).user.id
+            admin.table("profiles").insert({
+                "id": ids[key], "email": email, "display_name": name, "account_type": account_type,
+            }).execute()
+
+        brand_id = admin.table("brands").insert({
+            "company_name": f"Fictional Deal Name Brand {RUN_ID}", "industry": "Media",
+        }).execute().data[0]["id"]
+        admin.table("brand_members").insert([
+            {"brand_id": brand_id, "profile_id": ids["B"], "brand_role": "admin", "status": "active"},
+            {"brand_id": brand_id, "profile_id": ids["M"], "brand_role": "member", "status": "active"},
+            {"brand_id": brand_id, "profile_id": ids["K"], "brand_role": "member", "status": "active"},
+        ]).execute()
+        tokens = {key: token_for(value[0]) for key, value in USERS.items()}
+
+        primary = create_deal(ids, brand_id, "chatting", "primary")
+        before_reapply = admin.table("deals").select(
+            "deal_name,deal_name_version,stage,updated_at"
+        ).eq("id", primary).single().execute().data
+        apply_migration()
+        after_reapply = admin.table("deals").select(
+            "deal_name,deal_name_version,stage,updated_at"
+        ).eq("id", primary).single().execute().data
+        check(
+            "migration backfills version zero without changing existing deal data and reapplies safely",
+            before_reapply == after_reapply and after_reapply["deal_name_version"] == 0,
+        )
+
+        grants = management_sql("""
+            SELECT
+              NOT has_table_privilege('authenticated', 'public.deals', 'UPDATE') AS direct_update_denied,
+              NOT has_function_privilege(
+                'authenticated',
+                'public.apply_deal_name_rename(uuid,uuid,integer,text,text)',
+                'EXECUTE'
+              ) AS authenticated_rpc_denied,
+              has_function_privilege(
+                'service_role',
+                'public.apply_deal_name_rename(uuid,uuid,integer,text,text)',
+                'EXECUTE'
+              ) AS service_rpc_allowed;
+        """)[0]
+        check("direct deal update remains revoked and rename RPC is service-role-only", all(grants.values()))
+
+        direct = auth_client(USERS["C"][0])
+        direct_update_denied = direct_rpc_denied = False
+        try:
+            direct.table("deals").update({"deal_name": "Forbidden direct rename"}).eq("id", primary).execute()
+        except Exception:
+            direct_update_denied = True
+        try:
+            direct.rpc("apply_deal_name_rename", {
+                "p_deal_id": primary, "p_actor_id": ids["C"], "p_expected_version": 0,
+                "p_deal_name": "Forbidden RPC rename", "p_ip_address": "fictional-direct",
+            }).execute()
+        except Exception:
+            direct_rpc_denied = True
+        check("authenticated client cannot update deals or execute rename RPC", direct_update_denied and direct_rpc_denied)
+
+        database_guarded = False
+        try:
+            admin.rpc("apply_deal_name_rename", {
+                "p_deal_id": primary, "p_actor_id": ids["C"], "p_expected_version": 0,
+                "p_deal_name": " ", "p_ip_address": "fictional-service-guard",
+            }).execute()
+        except Exception as exc:
+            database_guarded = "DEAL_NAME_INVALID" in str(exc)
+        check(
+            "database function independently rejects invalid service input",
+            database_guarded
+            and admin.table("deals").select("deal_name_version").eq("id", primary).single().execute().data["deal_name_version"] == 0,
+        )
+
+        current_version = 0
+        for role in ("C", "B", "M", "K"):
+            response = call(primary, tokens[role], f"Fictional rename by {role} {RUN_ID}", current_version)
+            current_version += 1
+            check(
+                f"current participant role {role} can rename",
+                response.status_code == 200
+                and response.json()["deal_name_version"] == current_version
+                and response.json()["idempotent"] is False,
+            )
+
+        outsider = call(primary, tokens["X"], "Outsider rename", current_version)
+        outsider_state = admin.table("deals").select("deal_name_version").eq("id", primary).single().execute().data
+        outsider_audits = admin.table("audit_log").select("id").eq("entity_id", primary).eq(
+            "action", "deal_name_changed"
+        ).execute().data
+        check(
+            "outsider receives 403 with no mutation or audit",
+            outsider.status_code == 403
+            and outsider_state["deal_name_version"] == current_version
+            and len(outsider_audits) == current_version,
+        )
+
+        normalized_input = "  Ｆｉｃｔｉｏｎａｌ\u3000नाम   अभियान！  "
+        old_row = admin.table("deals").select("deal_name,deal_name_version,updated_at").eq(
+            "id", primary
+        ).single().execute().data
+        normalized = call(primary, tokens["C"], normalized_input, current_version)
+        current_version += 1
+        new_row = admin.table("deals").select("deal_name,deal_name_version,updated_at").eq(
+            "id", primary
+        ).single().execute().data
+        latest_audit = admin.table("audit_log").select("metadata").eq("entity_id", primary).eq(
+            "action", "deal_name_changed"
+        ).order("created_at", desc=True).limit(1).single().execute().data["metadata"]
+        check(
+            "NFKC and whitespace normalization preserve multilingual punctuation",
+            normalized.status_code == 200
+            and normalized.json()["deal_name"] == "Fictional नाम अभियान!"
+            and new_row["deal_name"] == "Fictional नाम अभियान!",
+        )
+        check(
+            "successful rename increments once, advances timestamp and stores metadata-only audit",
+            new_row["deal_name_version"] == old_row["deal_name_version"] + 1
+            and new_row["updated_at"] > old_row["updated_at"]
+            and set(latest_audit) == {
+                "previous_version", "new_version", "previous_character_count", "new_character_count"
+            }
+            and normalized_input not in json.dumps(latest_audit, ensure_ascii=False)
+            and new_row["deal_name"] not in json.dumps(latest_audit, ensure_ascii=False),
+        )
+
+        audit_count = len(admin.table("audit_log").select("id").eq("entity_id", primary).eq(
+            "action", "deal_name_changed"
+        ).execute().data)
+        retry = call(primary, tokens["C"], normalized_input, current_version - 1)
+        retry_row = admin.table("deals").select("deal_name_version").eq("id", primary).single().execute().data
+        retry_audits = admin.table("audit_log").select("id").eq("entity_id", primary).eq(
+            "action", "deal_name_changed"
+        ).execute().data
+        check(
+            "exact normalized stale retry is idempotent without another version or audit",
+            retry.status_code == 200 and retry.json()["idempotent"] is True
+            and retry_row["deal_name_version"] == current_version
+            and len(retry_audits) == audit_count,
+        )
+
+        stale = call(primary, tokens["B"], "Distinct stale rename", current_version - 1)
+        check(
+            "distinct stale edit returns friendly 409 without mutation or audit",
+            stale.status_code == 409
+            and "Someone else renamed" in stale.json()["detail"]
+            and admin.table("deals").select("deal_name_version").eq("id", primary).single().execute().data["deal_name_version"] == current_version
+            and len(admin.table("audit_log").select("id").eq("entity_id", primary).eq("action", "deal_name_changed").execute().data) == audit_count,
+        )
+
+        for label, invalid_name in (
+            ("blank", " \u3000 "),
+            ("overlong", "名" * 161),
+            ("control", "Fictional\nname"),
+            ("bidirectional", "Fictional\u202ename"),
+        ):
+            invalid = call(primary, tokens["C"], invalid_name, current_version)
+            check(f"{label} name is rejected with friendly validation", invalid.status_code == 422)
+        check(
+            "invalid inputs produce no mutation or audit",
+            admin.table("deals").select("deal_name_version").eq("id", primary).single().execute().data["deal_name_version"] == current_version
+            and len(admin.table("audit_log").select("id").eq("entity_id", primary).eq("action", "deal_name_changed").execute().data) == audit_count,
+        )
+
+        for stage in ("pending", "approval", "creating", "posted", "payment"):
+            deal_id = create_deal(ids, brand_id, stage, f"eligible {stage}")
+            response = call(deal_id, tokens["C"], f"Renamed in {stage} {RUN_ID}", 0)
+            check(f"{stage} deal remains renameable", response.status_code == 200 and response.json()["deal_name_version"] == 1)
+
+        for stage in ("closed", "declined", "cancelled"):
+            deal_id = create_deal(ids, brand_id, stage, f"terminal {stage}")
+            before = admin.table("deals").select("deal_name,deal_name_version").eq("id", deal_id).single().execute().data
+            response = call(deal_id, tokens["C"], f"Forbidden {stage} rename", 0)
+            after = admin.table("deals").select("deal_name,deal_name_version").eq("id", deal_id).single().execute().data
+            check(f"{stage} deal is read-only", response.status_code == 409 and before == after)
+
+        deleted_id = create_deal(ids, brand_id, "chatting", "deleted")
+        admin.table("deals").update({"deleted_at": "2026-09-09T00:00:00Z"}).eq("id", deleted_id).execute()
+        deleted = call(deleted_id, tokens["C"], "Forbidden deleted rename", 0)
+        check("soft-deleted deal is denied without mutation", deleted.status_code == 404)
+
+        atomic_id = create_deal(ids, brand_id, "chatting", "atomic rollback")
+        atomic_before = admin.table("deals").select("deal_name,deal_name_version,updated_at").eq(
+            "id", atomic_id
+        ).single().execute().data
+        management_sql(f"""
+            CREATE OR REPLACE FUNCTION test_fail_deal_name_audit() RETURNS trigger
+            LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
+            BEGIN
+              IF NEW.action = 'deal_name_changed' AND NEW.entity_id = '{atomic_id}'::uuid THEN
+                RAISE EXCEPTION 'FICTIONAL_FORCED_AUDIT_FAILURE';
+              END IF;
+              RETURN NEW;
+            END;
+            $$;
+            CREATE TRIGGER test_fail_deal_name_audit BEFORE INSERT ON audit_log
+            FOR EACH ROW EXECUTE FUNCTION test_fail_deal_name_audit();
+        """)
+        failed = call(atomic_id, tokens["C"], "Must roll back", 0)
+        atomic_after = admin.table("deals").select("deal_name,deal_name_version,updated_at").eq(
+            "id", atomic_id
+        ).single().execute().data
+        atomic_audits = admin.table("audit_log").select("id").eq("entity_id", atomic_id).eq(
+            "action", "deal_name_changed"
+        ).execute().data
+        check("forced audit failure rolls back name, version and timestamp", failed.status_code == 409 and atomic_before == atomic_after and not atomic_audits)
+        management_sql(
+            "DROP TRIGGER test_fail_deal_name_audit ON audit_log; "
+            "DROP FUNCTION test_fail_deal_name_audit();"
+        )
+
+        race_id = create_deal(ids, brand_id, "chatting", "concurrency")
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            responses = list(pool.map(
+                lambda args: call(race_id, args[0], args[1], 0),
+                ((tokens["C"], "Fictional race alpha"), (tokens["B"], "Fictional race beta")),
+            ))
+        race_row = admin.table("deals").select("deal_name,deal_name_version").eq("id", race_id).single().execute().data
+        race_audits = admin.table("audit_log").select("id").eq("entity_id", race_id).eq(
+            "action", "deal_name_changed"
+        ).execute().data
+        check(
+            "two distinct concurrent edits commit exactly one winner and one stale loser",
+            sorted(response.status_code for response in responses) == [200, 409]
+            and race_row["deal_name"] in {"Fictional race alpha", "Fictional race beta"}
+            and race_row["deal_name_version"] == 1 and len(race_audits) == 1,
+        )
+
+        missing = call(str(uuid4()), tokens["C"], "Missing deal rename", 0)
+        extra = api.put(
+            f"/deals/{primary}/name",
+            json={"deal_name": "Extra", "expected_version": current_version, "unexpected": True},
+            headers={"Authorization": f"Bearer {tokens['C']}"},
+        )
+        check("missing deal is friendly 404 and strict request rejects extra fields", missing.status_code == 404 and extra.status_code == 422)
+    finally:
+        cleanup()
+
+    failed_labels = [label for label, passed in checks if not passed]
+    print(f"\n{len(checks) - len(failed_labels)}/{len(checks)} checks passed")
+    if failed_labels:
+        raise AssertionError("Failed checks: " + "; ".join(failed_labels))
+
+
+if __name__ == "__main__":
+    main()

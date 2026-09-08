@@ -11,7 +11,7 @@
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
 
-export type ApiResult<T> = { ok: true; data: T } | { ok: false; message: string };
+export type ApiResult<T> = { ok: true; data: T } | { ok: false; message: string; status?: number };
 
 /**
  * POST JSON to a FastAPI path with the caller's access token. Maps every failure
@@ -42,7 +42,7 @@ export async function postJson<T>(
       } catch {
         // non-JSON body — keep the generic message
       }
-      return { ok: false, message };
+      return { ok: false, message, status: res.status };
     }
 
     return { ok: true, data: (await res.json()) as T };
@@ -76,7 +76,7 @@ export async function putJson<T>(
       } catch {
         // Keep the generic message for malformed/non-JSON responses.
       }
-      return { ok: false, message };
+      return { ok: false, message, status: res.status };
     }
 
     return { ok: true, data: (await res.json()) as T };
@@ -97,7 +97,7 @@ export async function getJson<T>(path: string, accessToken: string): Promise<Api
       } catch {
         // Keep the generic message for a malformed error response.
       }
-      return { ok: false, message };
+      return { ok: false, message, status: res.status };
     }
     return { ok: true, data: (await res.json()) as T };
   } catch {

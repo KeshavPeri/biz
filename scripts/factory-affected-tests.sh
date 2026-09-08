@@ -49,6 +49,12 @@ frontend_changed=false
 
 while IFS= read -r changed_path; do
   case "$changed_path" in
+    backend/services/deal_name_service.py|backend/migrations/*deal*name*.sql|backend/tests/test_deal_name.py|frontend/src/components/deal/deal-name-sheet.tsx|frontend/src/lib/deal-name-context-fence.ts|frontend/tests/deal-name-context-fence.test.mjs)
+      add_command 'backend/.venv/bin/python backend/tests/test_deal_name.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_chat_archive.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_rls.py'
+      add_command 'cd frontend && NODE_NO_WARNINGS=1 node --test --experimental-strip-types tests/deal-name-context-fence.test.mjs'
+      ;;
     backend/services/participant_service.py|backend/migrations/*participant*add*.sql|backend/tests/test_participant_management.py|frontend/src/components/deal/participant-sheet.tsx)
       add_command 'backend/.venv/bin/python backend/tests/test_participant_management.py'
       add_command 'backend/.venv/bin/python backend/tests/test_summary_gate.py'

@@ -24,11 +24,13 @@ import {
 import { StageProgressBar } from '@/components/deal/stage-progress-bar';
 import { StickyActionBar } from '@/components/deal/sticky-action-bar';
 import { ParticipantSheet } from '@/components/deal/participant-sheet';
+import { DealNameSheet } from '@/components/deal/deal-name-sheet';
 import { formatClockTime } from '@/lib/format';
 import { useAuthStore } from '@/store/auth-store';
 
 import ChevronLeftIcon from '@/assets/icons/chevron-left.svg';
 import SendIcon from '@/assets/icons/send.svg';
+import EditIcon from '@/assets/icons/edit.svg';
 
 /**
  * Deal room (task 9.3) — the chat thread for one deal. A root-stack sibling above
@@ -53,6 +55,7 @@ export default function DealRoomScreen() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [participantsOpen, setParticipantsOpen] = useState(false);
+  const [nameEditorOpen, setNameEditorOpen] = useState(false);
   const [participantRefresh, setParticipantRefresh] = useState(0);
 
   const listRef = useRef<FlatList<ChatMessage>>(null);
@@ -70,14 +73,15 @@ export default function DealRoomScreen() {
   // Load (or reload) the thread. Called on open AND after a stage transition, so
   // the stage bar + action bar update immediately on the acting client (9.7).
   const loadThread = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) return null;
     const ticket = { context: screenContext, generation: loadGeneration.current };
     const data = await fetchDealThread(dealId, userId);
-    if (contextRef.current !== ticket.context || loadGeneration.current !== ticket.generation) return;
+    if (contextRef.current !== ticket.context || loadGeneration.current !== ticket.generation) return null;
     setThreadContext(ticket.context);
     setThread(data);
     setMessages((prev) => (prev.length ? prev : data?.messages ?? []));
     namesRef.current = data?.namesById ?? {};
+    return data;
   }, [dealId, screenContext, userId]);
 
   useEffect(() => {
@@ -103,6 +107,7 @@ export default function DealRoomScreen() {
     setDraft('');
     setSendError(null);
     setParticipantsOpen(false);
+    setNameEditorOpen(false);
   }, [dealId, userId]);
 
   useFocusEffect(useCallback(() => {
@@ -194,8 +199,10 @@ export default function DealRoomScreen() {
     if (isTerminal) {
       setDraft('');
       setSending(false);
+      setNameEditorOpen(false);
     }
-  }, [isTerminal]);
+    if (currentThread?.dealNameVersion === null) setNameEditorOpen(false);
+  }, [currentThread?.dealNameVersion, isTerminal]);
 
   return (
     <SafeAreaView className="flex-1 bg-chatCanvas" edges={['top']}>
@@ -212,9 +219,16 @@ export default function DealRoomScreen() {
             <ChevronLeftIcon width={24} height={24} color="#1C1B18" />
           </Pressable>
           <View className="min-w-0 flex-1">
-            <Text className="font-geist-semibold text-[16px] text-ink" numberOfLines={1}>
-              {currentThread?.dealName ?? 'Deal'}
-            </Text>
+            <View className="flex-row items-center gap-1.5">
+              <Text className="min-w-0 flex-shrink font-geist-semibold text-[16px] text-ink" numberOfLines={1}>
+                {currentThread?.dealName ?? 'Deal'}
+              </Text>
+              {currentThread && !isTerminal && currentThread.dealNameVersion !== null ? (
+                <Pressable accessibilityRole="button" accessibilityLabel="Edit deal name" hitSlop={8} onPress={() => setNameEditorOpen(true)} className="h-8 w-8 items-center justify-center">
+                  <EditIcon width={15} height={15} color="#5D5953" />
+                </Pressable>
+              ) : null}
+            </View>
             {currentThread ? (
               <Pressable accessibilityRole="button" accessibilityLabel={`View ${Object.keys(currentThread.namesById).length} deal participants`} onPress={() => setParticipantsOpen(true)} className="self-start py-0.5">
                 <Text className="font-geist text-[12px] text-ink-2" numberOfLines={1}>
@@ -305,8 +319,27 @@ export default function DealRoomScreen() {
         accountId={userId ?? 'signed-out'}
         refreshToken={participantRefresh}
         onClose={() => setParticipantsOpen(false)}
-        onChanged={loadThread}
+        onChanged={async () => { await loadThread(); }}
       />
+      {currentThread ? (
+        <DealNameSheet
+          visible={nameEditorOpen}
+          dealId={dealId}
+          accountId={userId ?? 'signed-out'}
+          displayedName={currentThread.dealName}
+          displayedVersion={currentThread.dealNameVersion}
+          onClose={() => setNameEditorOpen(false)}
+          onStale={loadThread}
+          onRenamed={(result, expectedVersion) => {
+            if (contextRef.current !== screenContext) return;
+            setThread((current) => current && current.dealNameVersion === expectedVersion ? {
+              ...current,
+              dealName: result.deal_name,
+              dealNameVersion: result.deal_name_version,
+            } : current);
+          }}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

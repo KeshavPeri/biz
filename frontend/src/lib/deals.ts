@@ -1643,6 +1643,8 @@ export type ChatMessage = {
 export type DealThread = {
   dealId: string;
   dealName: string;
+  /** Null fails closed while a local schema is still missing migration 045. */
+  dealNameVersion: number | null;
   stage: DealStage;
   isDisputed: boolean;
   otherNames: string[];
@@ -1769,12 +1771,24 @@ export async function fetchMyDealPreviews(userId: string): Promise<DealPreview[]
 export async function fetchDealThread(dealId: string, userId: string): Promise<DealThread | null> {
   if (!supabase) return null;
 
-  const { data: deal, error: eDeal } = await supabase
+  let { data: deal, error: eDeal } = await supabase
     .from('deals')
-    .select('id, deal_name, stage, is_disputed, created_by, expires_at')
+    .select('id, deal_name, deal_name_version, stage, is_disputed, created_by, expires_at')
     .eq('id', dealId)
     .is('deleted_at', null)
     .maybeSingle();
+  // During a local rolling migration, preserve read-only deal access but never
+  // invent a version that could enable an unsafe rename.
+  if (eDeal && String(eDeal.message).includes('deal_name_version')) {
+    const fallback = await supabase
+      .from('deals')
+      .select('id, deal_name, stage, is_disputed, created_by, expires_at')
+      .eq('id', dealId)
+      .is('deleted_at', null)
+      .maybeSingle();
+    deal = fallback.data ? { ...fallback.data, deal_name_version: null } : null;
+    eDeal = fallback.error;
+  }
   if (eDeal || !deal) return null;
 
   const { data: parts } = await supabase
@@ -1815,6 +1829,7 @@ export async function fetchDealThread(dealId: string, userId: string): Promise<D
   return {
     dealId: deal.id as string,
     dealName: (deal.deal_name as string) ?? 'Deal',
+    dealNameVersion: Number.isInteger(deal.deal_name_version) ? Number(deal.deal_name_version) : null,
     stage: deal.stage as DealStage,
     isDisputed: Boolean(deal.is_disputed),
     otherNames,
@@ -1824,6 +1839,50 @@ export async function fetchDealThread(dealId: string, userId: string): Promise<D
     namesById: Object.fromEntries(nameById),
     messages,
   };
+}
+
+export type DealNameResult = {
+  deal_name: string;
+  deal_name_version: number;
+  idempotent: boolean;
+};
+
+export type RenameDealOutcome =
+  | { ok: true; result: DealNameResult }
+  | { ok: false; message: string; stale: boolean };
+
+/** Backend-owned atomic rename; callers must bind to the exact displayed version. */
+export async function renameDeal(
+  dealId: string,
+  dealName: string,
+  expectedVersion: number,
+): Promise<RenameDealOutcome> {
+  const token = await sessionToken();
+  if (!token) {
+    return { ok: false, message: 'Your session has expired. Please sign in again.', stale: false };
+  }
+  const response = await putJson<DealNameResult>(
+    `/deals/${dealId}/name`,
+    { deal_name: dealName, expected_version: expectedVersion },
+    token,
+  );
+  if (!response.ok) {
+    return {
+      ok: false,
+      message: response.message,
+      stale: response.status === 409 && response.message.startsWith('Someone else renamed this deal.'),
+    };
+  }
+  const result = response.data;
+  if (
+    typeof result.deal_name !== 'string'
+    || !Number.isInteger(result.deal_name_version)
+    || result.deal_name_version < 0
+    || typeof result.idempotent !== 'boolean'
+  ) {
+    return { ok: false, message: 'The server returned an invalid deal name. Refresh and try again.', stale: false };
+  }
+  return { ok: true, result };
 }
 
 /** Send a chat message (Supabase-direct; RLS enforces sender = me + participant). */
