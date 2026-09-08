@@ -96,6 +96,11 @@ from services.dispute_service import (
     get_disputes,
     raise_dispute,
 )
+from services.participant_service import (
+    create_participant_request,
+    decide_participant_request,
+    get_participant_management,
+)
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
@@ -123,6 +128,29 @@ class SummaryDecisionBody(BaseModel):
     summary_id: UUID
     decision: Literal['approved', 'issue_raised']
     comment: str | None = None
+
+
+class ParticipantRequestBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    request_id: UUID
+    proposed_profile_id: UUID
+    proposed_role: Literal['brand_admin', 'brand_maker', 'brand_checker']
+    reason: str = Field(min_length=1, max_length=500)
+
+    @field_validator('reason')
+    @classmethod
+    def participant_reason_not_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError('Add a reason for this request.')
+        return value
+
+
+class ParticipantDecisionBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    decision: Literal['approved', 'rejected']
 
 
 class AlignmentOverrideBody(BaseModel):
@@ -342,6 +370,46 @@ def approve_summary(
 def terms_summary(deal_id: str, user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
     try:
         return get_terms_review(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get('/{deal_id}/participants')
+def participant_management(deal_id: str, user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
+    try:
+        return get_participant_management(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post('/{deal_id}/participant-requests')
+def request_participant_addition(
+    deal_id: str,
+    body: ParticipantRequestBody,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return create_participant_request(
+            deal_id, user_id, str(body.request_id), str(body.proposed_profile_id),
+            body.proposed_role, body.reason, _client_ip(request),
+        )
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.post('/{deal_id}/participant-requests/{participant_request_id}/decision')
+def decide_participant_addition(
+    deal_id: str,
+    participant_request_id: UUID,
+    body: ParticipantDecisionBody,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return decide_participant_request(
+            deal_id, str(participant_request_id), user_id, body.decision, _client_ip(request),
+        )
     except DealError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 

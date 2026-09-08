@@ -63,6 +63,12 @@ def _require_gate_actor(role: str) -> None:
         raise DealError(403, "Your role can view this checklist but can't take this action.")
 
 
+def _require_no_pending_participant_request(client: Client, deal_id: str) -> None:
+    pending = client.rpc('participant_add_pending_for_deal', {'p_deal_id': deal_id}).execute().data
+    if pending:
+        raise DealError(409, 'Finish the pending participant request before requesting a terms summary.')
+
+
 def _overrides_by_key(gate: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
     raw = (gate or {}).get('manual_overrides') or []
     return {row['field_key']: row for row in raw if isinstance(row, dict) and row.get('field_key') in _BY_KEY}
@@ -115,10 +121,14 @@ async def get_summary_checklist(deal_id: str, user_id: str) -> dict[str, Any]:
     items = await _checklist(client, deal_id, gate)
     missing = [item for item in items if not item['is_complete']]
     state = (gate or {}).get('request_status', 'idle')
+    participant_request_pending = bool(
+        client.rpc('participant_add_pending_for_deal', {'p_deal_id': deal_id}).execute().data
+    )
     return {
         'checklist': items,
         'missing_fields': [{'key': item['key'], 'label': item['label'], 'status': item['status'], 'missing_children': item['missing_children']} for item in missing],
-        'summary_request_allowed': not missing and state == 'idle',
+        'summary_request_allowed': not missing and state == 'idle' and not participant_request_pending,
+        'participant_request_pending': participant_request_pending,
         'request_status': state,
         'requester_side': (gate or {}).get('requester_side'),
         'requested_by': (gate or {}).get('requested_by'),
@@ -132,6 +142,7 @@ async def request_summary(deal_id: str, user_id: str, ip_address: str) -> dict[s
     client = get_supabase()
     _, role, side = _require_chatting_participant(client, deal_id, user_id)
     _require_gate_actor(role)
+    _require_no_pending_participant_request(client, deal_id)
     status = await get_summary_checklist(deal_id, user_id)
     if status['missing_fields']:
         count = len(status['missing_fields'])

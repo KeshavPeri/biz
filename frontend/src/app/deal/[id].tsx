@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import {
   fetchDealThread,
@@ -23,6 +23,7 @@ import {
 } from '@/lib/deals';
 import { StageProgressBar } from '@/components/deal/stage-progress-bar';
 import { StickyActionBar } from '@/components/deal/sticky-action-bar';
+import { ParticipantSheet } from '@/components/deal/participant-sheet';
 import { formatClockTime } from '@/lib/format';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -45,25 +46,39 @@ export default function DealRoomScreen() {
   const userId = session?.user.id ?? null;
 
   const [thread, setThread] = useState<DealThread | null>(null);
+  const [threadContext, setThreadContext] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [participantsOpen, setParticipantsOpen] = useState(false);
+  const [participantRefresh, setParticipantRefresh] = useState(0);
 
   const listRef = useRef<FlatList<ChatMessage>>(null);
   // Latest sender-name map, read by the Realtime handler without re-subscribing.
   const namesRef = useRef<Record<string, string>>({});
+  const screenContext = `${userId ?? 'signed-out'}:${dealId}`;
+  const contextRef = useRef(screenContext);
+  const loadGeneration = useRef(0);
+  if (contextRef.current !== screenContext) {
+    contextRef.current = screenContext;
+    loadGeneration.current += 1;
+  }
+  const currentThread = threadContext === screenContext ? thread : null;
 
   // Load (or reload) the thread. Called on open AND after a stage transition, so
   // the stage bar + action bar update immediately on the acting client (9.7).
   const loadThread = useCallback(async () => {
     if (!userId) return;
+    const ticket = { context: screenContext, generation: loadGeneration.current };
     const data = await fetchDealThread(dealId, userId);
+    if (contextRef.current !== ticket.context || loadGeneration.current !== ticket.generation) return;
+    setThreadContext(ticket.context);
     setThread(data);
     setMessages((prev) => (prev.length ? prev : data?.messages ?? []));
     namesRef.current = data?.namesById ?? {};
-  }, [dealId, userId]);
+  }, [dealId, screenContext, userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -71,6 +86,7 @@ export default function DealRoomScreen() {
     setLoading(true);
     fetchDealThread(dealId, userId).then((data) => {
       if (!active) return;
+      setThreadContext(screenContext);
       setThread(data);
       setMessages(data?.messages ?? []);
       namesRef.current = data?.namesById ?? {};
@@ -81,12 +97,20 @@ export default function DealRoomScreen() {
     return () => {
       active = false;
     };
-  }, [dealId, userId]);
+  }, [dealId, screenContext, userId]);
 
   useEffect(() => {
     setDraft('');
     setSendError(null);
+    setParticipantsOpen(false);
   }, [dealId, userId]);
+
+  useFocusEffect(useCallback(() => {
+    if (!userId) return undefined;
+    setParticipantRefresh((value) => value + 1);
+    void loadThread();
+    return undefined;
+  }, [loadThread, userId]));
 
   // Live delivery (task 9.4): append a new message the moment its row is inserted.
   const handleIncoming = useCallback(
@@ -164,7 +188,7 @@ export default function DealRoomScreen() {
   }, [draft, userId, sending, dealId, loadThread]);
 
   // Terminal stages make the thread read-only (deal-engine.md).
-  const isTerminal = thread?.stage === 'closed' || thread?.stage === 'declined' || thread?.stage === 'cancelled';
+  const isTerminal = currentThread?.stage === 'closed' || currentThread?.stage === 'declined' || currentThread?.stage === 'cancelled';
 
   useEffect(() => {
     if (isTerminal) {
@@ -189,25 +213,27 @@ export default function DealRoomScreen() {
           </Pressable>
           <View className="min-w-0 flex-1">
             <Text className="font-geist-semibold text-[16px] text-ink" numberOfLines={1}>
-              {thread?.dealName ?? 'Deal'}
+              {currentThread?.dealName ?? 'Deal'}
             </Text>
-            {thread && thread.otherNames.length > 0 ? (
-              <Text className="mt-0.5 font-geist text-[12px] text-ink-2" numberOfLines={1}>
-                {thread.otherNames.join(', ')}
-              </Text>
+            {currentThread ? (
+              <Pressable accessibilityRole="button" accessibilityLabel={`View ${Object.keys(currentThread.namesById).length} deal participants`} onPress={() => setParticipantsOpen(true)} className="self-start py-0.5">
+                <Text className="font-geist text-[12px] text-ink-2" numberOfLines={1}>
+                  {Object.keys(currentThread.namesById).length} in this deal ›
+                </Text>
+              </Pressable>
             ) : null}
           </View>
         </View>
 
         {/* Stage progress bar (task 9.6). */}
-        {thread ? <StageProgressBar stage={thread.stage} isDisputed={thread.isDisputed} /> : null}
+        {currentThread ? <StageProgressBar stage={currentThread.stage} isDisputed={currentThread.isDisputed} /> : null}
       </View>
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#847F78" />
         </View>
-      ) : !thread ? (
+      ) : !currentThread ? (
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-center font-geist text-body text-ink-2">
             This deal couldn’t be loaded.
@@ -236,7 +262,7 @@ export default function DealRoomScreen() {
 
           {/* Sticky action bar (task 9.7) — stage- + role-aware transition requests. */}
           <StickyActionBar
-            thread={thread}
+            thread={currentThread}
             userId={userId ?? ''}
             accessToken={session?.access_token ?? null}
             messages={messages}
@@ -273,6 +299,14 @@ export default function DealRoomScreen() {
           )}
         </KeyboardAvoidingView>
       )}
+      <ParticipantSheet
+        visible={participantsOpen}
+        dealId={dealId}
+        accountId={userId ?? 'signed-out'}
+        refreshToken={participantRefresh}
+        onClose={() => setParticipantsOpen(false)}
+        onChanged={loadThread}
+      />
     </SafeAreaView>
   );
 }
