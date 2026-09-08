@@ -379,7 +379,11 @@ def main() -> None:
             and detail_row(posted) == frozen_row
             and audit_count(posted) == frozen_audits
         ))
-        admin.table("deals").update({"stage": "closed"}).eq("id", posted).execute()
+        management_sql(
+            "SET session_replication_role = replica; "
+            f"UPDATE public.deals SET stage='closed' WHERE id='{posted}'; "
+            "SET session_replication_role = origin;"
+        )
         check("Closed participant read remains available and read-only", (
             call("GET", f"/deals/{posted}/payment-details", "C").status_code == 200
             and call("PUT", f"/deals/{posted}/payment-details/creator", "C", creator_body(2, "closed", None)).status_code == 409

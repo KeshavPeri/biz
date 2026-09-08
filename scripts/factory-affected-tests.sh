@@ -49,6 +49,13 @@ frontend_changed=false
 
 while IFS= read -r changed_path; do
   case "$changed_path" in
+    backend/services/close_service.py|backend/migrations/*deal*close*.sql|backend/tests/test_deal_close.py)
+      add_command 'backend/.venv/bin/python backend/tests/test_deal_close.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_payment_tracking.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_disputes.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_stage_engine.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_rls.py'
+      ;;
     backend/services/dispute_service.py|backend/migrations/*payment*dispute*.sql|backend/tests/test_disputes.py)
       add_command 'backend/.venv/bin/python backend/tests/test_disputes.py'
       add_command 'backend/.venv/bin/python backend/tests/test_payment_tracking.py'

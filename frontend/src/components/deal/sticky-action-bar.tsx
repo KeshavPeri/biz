@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import * as Crypto from 'expo-crypto';
 import { ContractSignSheet } from '@/components/deal/contract-sign-sheet';
 import { ContractAlignmentCard } from '@/components/deal/contract-alignment-card';
 import { TermsReviewCard } from '@/components/deal/terms-review-card';
@@ -12,6 +13,7 @@ import { PaymentDetailsCard } from '@/components/deal/payment-details-card';
 import { PaymentTrackingCard } from '@/components/deal/payment-tracking-card';
 import { DisputeCard, DisputeDetailSheet } from '@/components/deal/dispute-card';
 import { DisputeSheet, type DisputeEvidenceChoice } from '@/components/deal/dispute-sheet';
+import { CloseStatusCard } from '@/components/deal/close-status-card';
 
 import {
   acceptDeal,
@@ -26,9 +28,11 @@ import {
   decideTermsSummary,
   confirmLivePosts,
   confirmPaymentReceipt,
+  confirmDealClose,
   fetchPaymentDetails,
   fetchPaymentTracking,
   fetchDisputes,
+  fetchCloseStatus,
   flagLivePost,
   fetchContract,
   fetchCreativeBriefs,
@@ -65,6 +69,7 @@ import {
   type PaymentTrackingActionResult,
   type PaymentTrackingState,
   type DisputeProjection,
+  type CloseStatus,
   type ChatMessage,
   type ReportablePaymentState,
   type SummaryChecklist,
@@ -134,6 +139,10 @@ export function StickyActionBar({
   const [disputeFeedback, setDisputeFeedback] = useState<string | null>(null);
   const [disputeSheetOpen, setDisputeSheetOpen] = useState(false);
   const [disputeDetailOpen, setDisputeDetailOpen] = useState(false);
+  const [closeStatus, setCloseStatus] = useState<CloseStatus | null>(null);
+  const [closeLoading, setCloseLoading] = useState(false);
+  const [closeError, setCloseError] = useState<string | null>(null);
+  const [closeActing, setCloseActing] = useState(false);
   const [contentDeliverable, setContentDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [revisionDeliverable, setRevisionDeliverable] = useState<CanonicalDeliverable | null>(null);
   const [rejectedApprovalDeliverable, setRejectedApprovalDeliverable] = useState<CanonicalDeliverable | null>(null);
@@ -144,10 +153,17 @@ export function StickyActionBar({
   const paymentTrackingContextRef = useRef('');
   const disputeRequestRef = useRef(0);
   const disputeContextRef = useRef('');
+  const closeRequestFenceRef = useRef(0);
+  const closeContextRef = useRef('');
+  const closeMutationRequestRef = useRef<string | null>(null);
+  const closeStatusRef = useRef<CloseStatus | null>(null);
   const paymentTrackingContext = `${thread.dealId}:${thread.stage}`;
   paymentTrackingContextRef.current = paymentTrackingContext;
   const disputeContext = `${thread.dealId}:${thread.stage}`;
   disputeContextRef.current = disputeContext;
+  const closeContext = `${thread.dealId}:${thread.stage}:${userId}`;
+  closeContextRef.current = closeContext;
+  closeStatusRef.current = closeStatus;
 
   const loadSummary = useCallback(async () => {
     if (thread.stage !== 'chatting') return;
@@ -317,6 +333,27 @@ export function StickyActionBar({
     return result;
   }, [thread.dealId, thread.stage]);
 
+  const loadCloseStatus = useCallback(async (showLoading = false) => {
+    if (!['payment', 'closed'].includes(thread.stage)) return null;
+    const requestFence = ++closeRequestFenceRef.current;
+    const requestContext = `${thread.dealId}:${thread.stage}:${userId}`;
+    if (showLoading) {
+      setCloseLoading(true);
+      setCloseError(null);
+    }
+    const result = await fetchCloseStatus(thread.dealId);
+    if (requestFence !== closeRequestFenceRef.current || requestContext !== closeContextRef.current) return null;
+    if (result.ok) {
+      setCloseStatus(result.data);
+      closeStatusRef.current = result.data;
+      setCloseError(null);
+    } else {
+      setCloseError(result.message);
+    }
+    setCloseLoading(false);
+    return result;
+  }, [thread.dealId, thread.stage, userId]);
+
   useEffect(() => {
     if (['payment', 'closed'].includes(thread.stage)) void loadDispute(true);
     else {
@@ -348,6 +385,19 @@ export function StickyActionBar({
     }
   }, [loadPaymentTracking, thread.stage]);
 
+  useEffect(() => {
+    closeMutationRequestRef.current = null;
+    setCloseActing(false);
+    if (['payment', 'closed'].includes(thread.stage)) void loadCloseStatus(true);
+    else {
+      closeRequestFenceRef.current += 1;
+      setCloseStatus(null);
+      closeStatusRef.current = null;
+      setCloseError(null);
+      setCloseLoading(false);
+    }
+  }, [loadCloseStatus, thread.dealId, thread.stage, userId]);
+
   // Generation is followed by one authoritative alignment start. The backend
   // reservation makes concurrent participants/idempotent refreshes safe.
   useEffect(() => {
@@ -373,8 +423,9 @@ export function StickyActionBar({
       if (['posted', 'payment', 'closed'].includes(thread.stage)) void loadPaymentDetails();
       if (['payment', 'closed'].includes(thread.stage)) void loadPaymentTracking();
       if (['payment', 'closed'].includes(thread.stage)) void loadDispute();
+      if (['payment', 'closed'].includes(thread.stage)) void loadCloseStatus();
       onTransitioned();
-    }, [loadBriefs, loadContract, loadDeliverables, loadDispute, loadPaymentDetails, loadPaymentTracking, loadSummary, loadTerms, onTransitioned, thread.stage]),
+    }, [loadBriefs, loadCloseStatus, loadContract, loadDeliverables, loadDispute, loadPaymentDetails, loadPaymentTracking, loadSummary, loadTerms, onTransitioned, thread.stage]),
   );
 
   useEffect(() => {
@@ -739,6 +790,41 @@ export function StickyActionBar({
     finishPaymentTrackingAction(() => confirmPaymentReceipt(thread.dealId, expectedVersion, milestoneId))
   ), [finishPaymentTrackingAction, thread.dealId]);
 
+  const submitCloseConfirmation = useCallback(async () => {
+    const current = closeStatusRef.current;
+    if (closeActing || !current?.available || current.stage !== 'payment' || !current.allowed_actions.can_confirm) return;
+    const requestId = closeMutationRequestRef.current ?? Crypto.randomUUID();
+    closeMutationRequestRef.current = requestId;
+    setCloseActing(true);
+    setCloseError(null);
+    const result = await confirmDealClose(thread.dealId, requestId);
+    const [refreshed] = await Promise.all([
+      loadCloseStatus(),
+      loadPaymentTracking(),
+      Promise.resolve(onTransitioned()),
+    ]);
+    const side = thread.myRole === 'creator' ? 'creator' : 'brand';
+    const confirmed = refreshed?.ok === true
+      && refreshed.data.available
+      && refreshed.data.confirmations[side].confirmed;
+    if (result.ok || confirmed) closeMutationRequestRef.current = null;
+    if (!result.ok && !confirmed) setCloseError(result.message);
+    setCloseActing(false);
+  }, [closeActing, loadCloseStatus, loadPaymentTracking, onTransitioned, thread.dealId, thread.myRole]);
+
+  const confirmClose = useCallback(() => {
+    const current = closeStatusRef.current;
+    if (!current?.available || !current.allowed_actions.can_confirm) return;
+    Alert.alert(
+      'Confirm close?',
+      'This confirmation is final. Once both sides confirm, the deal thread becomes read-only.',
+      [
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Confirm close', onPress: () => { void submitCloseConfirmation(); } },
+      ],
+    );
+  }, [submitCloseConfirmation]);
+
   const confirmPosts = useCallback(async () => {
     if (acting || !deliverables || !paymentDetails) return;
     const postsAllowed = deliverables.post_confirmation.future_actions.can_confirm_all;
@@ -864,6 +950,17 @@ export function StickyActionBar({
       onRetry={() => void loadDispute(true)}
       onRaise={() => setDisputeSheetOpen(true)}
       onView={() => setDisputeDetailOpen(true)}
+    />
+  );
+
+  const closeView = () => (
+    <CloseStatusCard
+      state={closeStatus}
+      loading={closeLoading}
+      error={closeError}
+      acting={closeActing}
+      onRetry={() => void loadCloseStatus(true)}
+      onConfirm={confirmClose}
     />
   );
 
@@ -1005,11 +1102,12 @@ export function StickyActionBar({
             {paymentDetailsView()}
             {paymentTrackingView()}
             {disputeView()}
+            {closeView()}
           </View>
         );
 
       case 'closed':
-        return <View className="gap-2.5">{deliverablesView()}{paymentDetailsView()}{paymentTrackingView()}{disputeView()}<Waiting text="This deal is closed." /></View>;
+        return <View className="gap-2.5">{deliverablesView()}{paymentDetailsView()}{paymentTrackingView()}{disputeView()}{closeView()}</View>;
       case 'declined':
         return <Waiting text="This connection was declined." />;
       case 'cancelled':

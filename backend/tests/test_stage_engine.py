@@ -26,6 +26,7 @@ import re
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from uuid import uuid4
 
 import httpx
 from dotenv import load_dotenv
@@ -266,10 +267,14 @@ def main() -> None:
         r_dec = api.post(f"/deals/{d_http_decline}/decline", headers={"Authorization": f"Bearer {token_c}"})
         check("regression: POST /decline → 200 declined via engine", r_dec.status_code == 200 and admin.table("deals").select("stage").eq("id", d_http_decline).execute().data[0]["stage"] == "declined")
 
-        # ── Stub endpoint reports cleanly (proves engine wiring for a later stage) ─
+        # ── Close endpoint reaches the live guard through the engine ─────────────
         d_close = make_deal("payment", both)
-        r_close = api.post(f"/deals/{d_close}/close", headers={"Authorization": f"Bearer {token_c}"})
-        check("stub endpoint: POST /close on a payment deal → 409 'not available yet'", r_close.status_code == 409)
+        r_close = api.post(
+            f"/deals/{d_close}/close",
+            json={"request_id": str(uuid4())},
+            headers={"Authorization": f"Bearer {token_c}"},
+        )
+        check("POST /close reaches the live payment-completeness guard", r_close.status_code == 409)
 
     finally:
         print()

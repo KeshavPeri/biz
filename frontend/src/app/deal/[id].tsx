@@ -83,6 +83,11 @@ export default function DealRoomScreen() {
     };
   }, [dealId, userId]);
 
+  useEffect(() => {
+    setDraft('');
+    setSendError(null);
+  }, [dealId, userId]);
+
   // Live delivery (task 9.4): append a new message the moment its row is inserted.
   const handleIncoming = useCallback(
     (row: IncomingMessageRow) => {
@@ -144,16 +149,29 @@ export default function DealRoomScreen() {
     if (res.ok) {
       setMessages((prev) => prev.map((m) => (m.id === tempId ? res.message : m)));
     } else {
-      // Roll back the optimistic bubble and let the user retry.
+      // Roll back stale optimistic sends. A terminal database rejection is
+      // authoritative: clear the draft and refresh instead of inviting replay.
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      setDraft(text);
+      if (res.readOnly) {
+        setDraft('');
+        await loadThread();
+      } else {
+        setDraft(text);
+      }
       setSendError(res.message);
     }
     setSending(false);
-  }, [draft, userId, sending, dealId]);
+  }, [draft, userId, sending, dealId, loadThread]);
 
   // Terminal stages make the thread read-only (deal-engine.md).
   const isTerminal = thread?.stage === 'closed' || thread?.stage === 'declined' || thread?.stage === 'cancelled';
+
+  useEffect(() => {
+    if (isTerminal) {
+      setDraft('');
+      setSending(false);
+    }
+  }, [isTerminal]);
 
   return (
     <SafeAreaView className="flex-1 bg-chatCanvas" edges={['top']}>

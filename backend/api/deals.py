@@ -88,6 +88,7 @@ from services.payment_tracking_service import (
     update_milestone_state,
     update_payment_state,
 )
+from services.close_service import get_close_status
 from services.dispute_service import (
     DisputeConflict,
     get_disputes,
@@ -741,9 +742,27 @@ def confirm_posts(
 def close(
     deal_id: str,
     request: Request,
+    body: Any = Body(...),
     user_id: str = Depends(get_current_user_id),
 ) -> dict[str, Any]:
-    return _transition(deal_id, user_id, "closed", request)
+    return _transition(
+        deal_id,
+        user_id,
+        "closed",
+        request,
+        {"close_body": body},
+    )
+
+
+@router.get("/{deal_id}/close-status")
+def read_close_status(
+    deal_id: str,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return get_close_status(deal_id, user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
 @router.get("/{deal_id}/payment-tracking")
