@@ -1,8 +1,10 @@
 import { Pressable, Text, View } from 'react-native';
 
+import TagIcon from '@/assets/icons/tag.svg';
 import { StorageImage } from '@/components/media-kit/storage-image';
 import { stagePill, type DealPreview } from '@/lib/deals';
 import { formatRelativeTime } from '@/lib/format';
+import type { PrivateDealLabel } from '@/lib/private-deal-labels';
 
 /**
  * DealPreviewCard — one row in the chat list (task 9.2), rebuilt in RN from the
@@ -10,7 +12,9 @@ import { formatRelativeTime } from '@/lib/format';
  * name, a stage pill, the last message, an unread badge, and the next-action
  * prompt. Tap opens the deal room (/deal/[id]).
  */
-export function DealPreviewCard({ deal, onPress }: { deal: DealPreview; onPress: () => void }) {
+export function DealPreviewCard({ deal, labels, onPress, onEditLabels }: {
+  deal: DealPreview; labels: PrivateDealLabel[]; onPress: () => void; onEditLabels: () => void;
+}) {
   const pill = stagePill(deal.stage, deal.isDisputed);
   const directionLabel =
     deal.direction === 'inbound' ? 'Inbound' : deal.direction === 'outbound' ? 'Outbound' : null;
@@ -56,6 +60,22 @@ export function DealPreviewCard({ deal, onPress }: { deal: DealPreview; onPress:
           {deal.lastMessage.body}
         </Text>
       ) : null}
+
+      <View className="mt-2 flex-row items-center gap-1.5">
+        {labels.slice(0, 2).map((label) => (
+          <View key={label.id} className="rounded-pill bg-surface-recess px-2 py-0.5">
+            <Text className="font-geist-medium text-[10.5px] text-ink-2" numberOfLines={1}>{label.label}</Text>
+          </View>
+        ))}
+        {labels.length > 2 ? <Text className="font-geist-semibold text-[10.5px] text-ink-3">+{labels.length - 2}</Text> : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Edit private labels"
+          hitSlop={8}
+          onPress={(event) => { event.stopPropagation(); onEditLabels(); }}
+          className="ml-auto h-7 w-7 items-center justify-center rounded-full border border-hairline"
+        ><TagIcon width={14} height={14} color="#847F78" /></Pressable>
+      </View>
 
       {/* Row 3 — next-action prompt · relative time */}
       <View className="mt-2 flex-row items-center justify-between gap-2">
