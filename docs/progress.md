@@ -16,6 +16,20 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
+- **Issue #43 / B3-006 private-deal-label candidate:** the chat list now reads only the signed-in
+  owner's `private_annotations` for already-authorized deal IDs, validates and bounds untrusted
+  label rows locally, and joins them only into that user's preview presentation. The Expo editor
+  creates/removes exact owner rows, offers own-label suggestions, and fences account/deal async
+  work; cards render two quiet labels plus overflow and a non-navigating edit action. A stable
+  single-select local filter preserves existing activity order and resets safely when its label
+  disappears. No shared projection, backend endpoint, migration, RLS policy, deliverable-label
+  behavior, audit, notification, or URL changed. The focused/affected union passed: private-label
+  privacy **6/6**, existing deliverable labels **21/21**, label-state Node tests **4/4**,
+  TypeScript, lint (0 errors / 3 pre-existing warnings), Expo web export and diff hygiene.
+  Combined acceptance/privacy review passed at non-documentation source fingerprint
+  `9f6002ebad6872970e4e34066acb7e0aa51f1dda`; the optional two-persona native walkthrough remains
+  founder-owned and `LIMITED`. B3-007 attachments still blocks 9.18/9.19.
+
 - **Issue #41 / B3-005 implementation candidate:** additive migration 045 gives every existing
   deal a non-null version without changing its name, stage or timestamps, and exposes one
   service-role-only, fixed-search-path rename RPC. The transaction locks the deal, proves current
@@ -726,12 +740,11 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **Issue #29 founder review:** review the secure backend Payment-dispute draft PR, especially
-   participant eligibility, safe dispute history and the deliberate absence of resolution controls.
-2. **9.16 successor UI:** build the participant-facing raise/view experience and red Payment overlay
-   against the settled FastAPI projection; no client-derived authorization or raw evidence rendering.
-3. **9.16 ops completion:** define authenticated platform-ops resolution authority and Critical
-   email/ops delivery in a separately reviewed slice before B3-039 can be marked Built.
+1. **Issue #43 founder review:** review the private-label draft PR; the optional fictional
+   two-persona native privacy/filter walkthrough remains `LIMITED` and non-blocking.
+2. **B3-007:** founder-release the separate attachment ticket; it is the remaining implementation
+   blocker before the Phase 9 lifecycle gate.
+3. **9.18/9.19:** run lifecycle acceptance and reconcile Phase 9 only after B3-007 is merged.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
 
@@ -1086,6 +1099,19 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-09-11 — Issue #43: private deal labels and chat filtering candidate
+
+- **Private boundary/UI:** added owner-RLS Supabase-direct deal-label reads/inserts/exact-ID deletes
+  over already-authorized preview IDs, bounded normalization and untrusted-row handling, an
+  account/deal-fenced private editor with own-label suggestions, quiet card chips/overflow and a
+  stable local single-label chat filter. Labels never enter shared deal/message/API projections.
+- **Evidence:** development-Supabase privacy **6/6** proves both participants cannot read, update
+  or delete each other's rows; fixed deliverable labels **21/21** remain unchanged; pure label-state
+  tests **4/4**, strict TypeScript, Expo web export and diff hygiene passed; lint has 0 errors and
+  3 pre-existing warnings. Combined acceptance/privacy review passed at fingerprint
+  `9f6002ebad6872970e4e34066acb7e0aa51f1dda`. The founder's optional fictional two-persona native
+  privacy/filter walkthrough remains `LIMITED`; B3-007 still blocks 9.18/9.19.
 
 ### 2026-09-08 — Issue #39: unanimous participant admission candidate
 
