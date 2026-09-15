@@ -49,6 +49,14 @@ frontend_changed=false
 
 while IFS= read -r changed_path; do
   case "$changed_path" in
+    backend/migrations/*chat*attachment*.sql|backend/services/chat_attachment_service.py|backend/api/chat_attachments.py|backend/tests/test_chat_attachments.py|frontend/src/lib/chat-attachment*.ts|frontend/src/components/deal/chat-attachment.tsx|frontend/tests/chat-attachments.test.mjs|frontend/src/app/deal/\[id\].tsx)
+      add_command 'backend/.venv/bin/python backend/tests/test_chat_attachments.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_storage_rls.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_deal_close.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_chat_archive.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_rls.py'
+      add_command 'cd frontend && NODE_NO_WARNINGS=1 node --test --experimental-strip-types tests/chat-attachments.test.mjs'
+      ;;
     backend/services/deal_name_service.py|backend/migrations/*deal*name*.sql|backend/tests/test_deal_name.py|frontend/src/components/deal/deal-name-sheet.tsx|frontend/src/lib/deal-name-context-fence.ts|frontend/tests/deal-name-context-fence.test.mjs)
       add_command 'backend/.venv/bin/python backend/tests/test_deal_name.py'
       add_command 'backend/.venv/bin/python backend/tests/test_chat_archive.py'
@@ -89,6 +97,9 @@ while IFS= read -r changed_path; do
       add_command 'backend/.venv/bin/python backend/tests/test_term_extraction_unit.py'
       add_command 'backend/.venv/bin/python backend/tests/test_rls.py'
       ;;
+  esac
+
+  case "$changed_path" in
     backend/*) backend_changed=true ;;
     frontend/*) frontend_changed=true ;;
   esac

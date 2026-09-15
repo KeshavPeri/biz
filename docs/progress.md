@@ -16,6 +16,25 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
+- **Issue #45 / B3-007 secure chat-attachment candidate:** additive migration 047 creates the
+  private 50 MiB `deal-files` bucket and auth-derived upload reservations. Participant-scoped
+  opaque paths, exact Storage owner/MIME/byte verification, lock-ordered idempotent finalization,
+  direct-write revocation and terminal guards keep message and attachment binding database-owned.
+  Authenticated Storage SELECT/signing is revoked; a bearer-authenticated backend endpoint
+  revalidates the exact live participant/message/attachment chain and alone issues five-minute
+  service-role links. Expo supports one PDF/JPEG/PNG/WebP/MP4/MOV with an optional caption,
+  authoritative attachment hydration after Realtime hints, bounded image/file presentation, and
+  account/deal/terminal/message fences around every private async result. The de-duplicated
+  focused/affected candidate union passed **14/14 commands**: chat attachments **21/21** with zero
+  fixture residue, Storage RLS **3/3**, close gate **27/27**, archive **9/9**, baseline RLS **4/4**,
+  stage engine **23/23**, term approvals **32/32**, maker/checker **10/10**, contract flow **28/28**,
+  frontend attachment tests **9/9**, strict TypeScript, lint (0 errors / 3 pre-existing warnings),
+  Expo web export and diff hygiene. Complete non-documentation candidate fingerprint (including
+  recovered additions) `22fe6c685a6a7a8b15779683de7515b8e74a9a7d`; independent QA and security
+  re-review passed, and the required reviewed-source full regression passed **15/15 commands** with
+  **157/157** backend assertions. The optional native picker/open walkthrough is `LIMITED`, and
+  9.18/9.19 remain waiting.
+
 - **Issue #43 / B3-006 private-deal-label candidate:** the chat list now reads only the signed-in
   owner's `private_annotations` for already-authorized deal IDs, validates and bounds untrusted
   label rows locally, and joins them only into that user's preview presentation. The Expo editor
@@ -28,7 +47,7 @@ up exactly where the last one left off, with zero context lost.
   TypeScript, lint (0 errors / 3 pre-existing warnings), Expo web export and diff hygiene.
   Combined acceptance/privacy review passed at non-documentation source fingerprint
   `9f6002ebad6872970e4e34066acb7e0aa51f1dda`; the optional two-persona native walkthrough remains
-  founder-owned and `LIMITED`. B3-007 attachments still blocks 9.18/9.19.
+  founder-owned and `LIMITED`. B3-007 is now a verified candidate awaiting review before 9.18/9.19.
 
 - **Issue #41 / B3-005 implementation candidate:** additive migration 045 gives every existing
   deal a non-null version without changing its name, stage or timestamps, and exposes one
@@ -742,8 +761,8 @@ up exactly where the last one left off, with zero context lost.
 
 1. **Issue #43 founder review:** review the private-label draft PR; the optional fictional
    two-persona native privacy/filter walkthrough remains `LIMITED` and non-blocking.
-2. **B3-007:** founder-release the separate attachment ticket; it is the remaining implementation
-   blocker before the Phase 9 lifecycle gate.
+2. **B3-007:** review the secure attachment draft PR; optionally perform the fictional two-persona
+   native picker/open walkthrough, then decide whether to merge.
 3. **9.18/9.19:** run lifecycle acceptance and reconcile Phase 9 only after B3-007 is merged.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
@@ -1099,6 +1118,74 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-09-15 — Issue #45 final verification
+
+- Independent QA and security re-review passed the revised attachment candidate. The required final
+  regression passed **15/15 commands** and **157/157** backend assertions at
+  `22fe6c685a6a7a8b15779683de7515b8e74a9a7d`; lint reported 0 errors and 3 pre-existing warnings.
+  Development fixtures left zero database/Storage residue. The native picker/preview/open walkthrough
+  remains founder-owned and `LIMITED`; 9.18/9.19 remain separate gates.
+
+### 2026-09-15 — Issue #45 review revision 1
+
+- Removed authenticated `deal-files` Storage SELECT/signing authority. A dedicated authenticated
+  FastAPI endpoint now uses the backend service-role client only after revalidating the exact
+  non-deleted deal, current participant, live message and bound attachment, and hardcodes the
+  returned link to 300 seconds. Integration evidence denies direct 24-hour signing and denies
+  outsiders, anonymous callers and removed participants while preserving terminal-history access.
+- SQL and TypeScript now apply NFKC before rejecting separators/control/bidi, including compatibility
+  slash and backslash forms. Text-only sends capture the account/deal/generation fence and reject
+  every delayed post-await mutation after context changes. The RTM displayed total now reconciles
+  Bucket 3's 16 built rows to **46 / 93** overall.
+- Migration 047 reapplied idempotently to development. The changed-path impact set passed **9/9** at
+  `22fe6c685a6a7a8b15779683de7515b8e74a9a7d`: attachments **21/21** with zero residue, Storage RLS
+  **3/3**, close **27/27**, archive **9/9**, baseline RLS **4/4**, frontend attachment tests **9/9**,
+  backend compile, strict TypeScript and diff hygiene. QA/security re-review and the post-review full
+  regression remain; native picker/open stays `LIMITED`.
+
+### 2026-09-15 — Issue #45 recovered state reconciliation repaired
+
+- Recovered the complete attachment candidate and repaired two context/reconciliation gaps:
+  account/deal changes now clear temporary messages before a new thread can publish, and a delayed
+  text-send response de-duplicates against an authoritative focus refresh instead of leaving two
+  copies of one server message. A deterministic frontend regression covers the latter race.
+- Preflight passed. The de-duplicated focused/affected union passed **14/14** at source fingerprint
+  `a7c7ca58c4e0e7ecb43c4a3deda1459b00c42801`: **157/157** backend assertions, frontend attachment
+  tests **8/8**, strict TypeScript, lint (0 errors / 3 pre-existing warnings), Expo web export and
+  diff hygiene. Attachment fixtures again proved zero database/Storage residue. Independent
+  QA/security review and the post-review full regression remain; native picker/open is `LIMITED`.
+
+### 2026-09-13 — Issue #45 recovery candidate verified
+
+- Recovered and reviewed the complete migration, Storage/RPC/RLS boundary, integration tests,
+  typed attachment helpers, deal-room UI, Realtime hydration and context fences against the
+  unchanged approved issue. No source repair was required.
+- The required preflight passed, and the de-duplicated focused/affected union passed **14/14** at
+  source fingerprint `6a4ca0b5e3c9b79130118b37ff96f53d8b1ca0cf`: **157/157** backend assertions,
+  frontend attachment tests **7/7**, strict TypeScript, lint (0 errors / 3 pre-existing warnings),
+  Expo web export and diff hygiene. Chat-attachment fixtures left zero database/Storage residue.
+  Independent QA/security review and one unchanged-fingerprint full regression remain required;
+  the optional native picker/open walkthrough remains `LIMITED`.
+
+### 2026-09-11 — Issue #45: secure chat attachments candidate
+
+- **Private integrity boundary:** additive migration 047 creates the private 50 MiB `deal-files`
+  bucket and auth-derived, unenumerable upload reservations. Opaque paths bind one participant,
+  deal, MIME and exact byte count; idempotent lock-ordered finalize verifies the actual Storage
+  owner/metadata before atomically creating one message and attachment. Direct attachment writes,
+  path substitution, outsider reads and bound deletion are denied; terminal deals preserve history
+  but reject prepare/finalize/cleanup mutation.
+- **Expo behavior:** the live-thread composer accepts one PDF/JPEG/PNG/WebP/MP4/MOV with an optional
+  caption, safe selected-file removal/busy/retry behavior, bounded image previews and accessible
+  PDF/video chips. Realtime INSERTs are hints hydrated by exact authoritative reads; attachment-only
+  messages never render empty, and picker/read/upload/finalize/hydrate/sign/open results are fenced
+  across account, deal, terminal and message context.
+- **Evidence:** development-Supabase privacy/integrity/cleanup **21/21** and pure frontend validation,
+  result parsing/hydration/deduplication/context tests **7/7** pass. Full candidate evidence is
+  recorded in the 2026-09-13 recovery entry; independent QA/security review and reviewed-source
+  regression remain the factory gates. The optional two-persona native picker/open walkthrough is
+  `LIMITED`; 9.18/9.19 remain waiting and Phase 11 is not unlocked.
 
 ### 2026-09-11 — Issue #43: private deal labels and chat filtering candidate
 

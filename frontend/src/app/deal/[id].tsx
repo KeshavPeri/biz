@@ -9,11 +9,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import {
   fetchDealThread,
+  fetchDealMessage,
   markDealRead,
   sendMessage,
   subscribeToDealMessages,
@@ -21,6 +23,15 @@ import {
   type DealThread,
   type IncomingMessageRow,
 } from '@/lib/deals';
+import { ChatAttachment, SelectedChatAttachment } from '@/components/deal/chat-attachment';
+import { ChatAttachmentContextFence } from '@/lib/chat-attachment-context-fence';
+import {
+  mergeChatMessageById,
+  parsePickedChatAttachment,
+  reconcileOptimisticChatMessage,
+  type PickedChatAttachment,
+} from '@/lib/chat-attachment-core';
+import { sendChatAttachment } from '@/lib/chat-attachments';
 import { StageProgressBar } from '@/components/deal/stage-progress-bar';
 import { StickyActionBar } from '@/components/deal/sticky-action-bar';
 import { ParticipantSheet } from '@/components/deal/participant-sheet';
@@ -31,6 +42,7 @@ import { useAuthStore } from '@/store/auth-store';
 import ChevronLeftIcon from '@/assets/icons/chevron-left.svg';
 import SendIcon from '@/assets/icons/send.svg';
 import EditIcon from '@/assets/icons/edit.svg';
+import AttachmentIcon from '@/assets/icons/attach.svg';
 
 /**
  * Deal room (task 9.3) — the chat thread for one deal. A root-stack sibling above
@@ -52,6 +64,7 @@ export default function DealRoomScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState('');
+  const [selectedAttachment, setSelectedAttachment] = useState<PickedChatAttachment | null>(null);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [participantsOpen, setParticipantsOpen] = useState(false);
@@ -64,11 +77,14 @@ export default function DealRoomScreen() {
   const screenContext = `${userId ?? 'signed-out'}:${dealId}`;
   const contextRef = useRef(screenContext);
   const loadGeneration = useRef(0);
+  const attachmentFence = useRef(new ChatAttachmentContextFence());
   if (contextRef.current !== screenContext) {
     contextRef.current = screenContext;
     loadGeneration.current += 1;
   }
   const currentThread = threadContext === screenContext ? thread : null;
+  const isTerminal = currentThread?.stage === 'closed' || currentThread?.stage === 'declined' || currentThread?.stage === 'cancelled';
+  attachmentFence.current.switchContext(`${screenContext}:${isTerminal ? 'terminal' : 'live'}`);
 
   // Load (or reload) the thread. Called on open AND after a stage transition, so
   // the stage bar + action bar update immediately on the acting client (9.7).
@@ -79,7 +95,10 @@ export default function DealRoomScreen() {
     if (contextRef.current !== ticket.context || loadGeneration.current !== ticket.generation) return null;
     setThreadContext(ticket.context);
     setThread(data);
-    setMessages((prev) => (prev.length ? prev : data?.messages ?? []));
+    setMessages((prev) => [
+      ...(data?.messages ?? []),
+      ...prev.filter((message) => message.id.startsWith('temp-')),
+    ]);
     namesRef.current = data?.namesById ?? {};
     return data;
   }, [dealId, screenContext, userId]);
@@ -104,11 +123,19 @@ export default function DealRoomScreen() {
   }, [dealId, screenContext, userId]);
 
   useEffect(() => {
+    // Temporary rows belong only to the account/deal that created them. Clear
+    // them before either load for a new context can publish its thread.
+    setMessages([]);
+    namesRef.current = {};
     setDraft('');
+    setSelectedAttachment(null);
+    setSending(false);
     setSendError(null);
     setParticipantsOpen(false);
     setNameEditorOpen(false);
   }, [dealId, userId]);
+
+  useEffect(() => () => attachmentFence.current.invalidate(), []);
 
   useFocusEffect(useCallback(() => {
     if (!userId) return undefined;
@@ -119,30 +146,25 @@ export default function DealRoomScreen() {
 
   // Live delivery (task 9.4): append a new message the moment its row is inserted.
   const handleIncoming = useCallback(
-    (row: IncomingMessageRow) => {
+    async (row: IncomingMessageRow) => {
       // My OWN sends are handled by the optimistic + reconcile path; drop the
       // Realtime echo so it can't double-post (closes the reconcile-vs-echo race
       // the id check alone could lose).
-      if (row.sender_id === userId) return;
-      setMessages((prev) => {
-        // Primary dedupe: never append an id that's already in state.
-        if (prev.some((m) => m.id === row.id)) return prev;
-        return [
-          ...prev,
-          {
-            id: row.id,
-            senderId: row.sender_id,
-            senderName: namesRef.current[row.sender_id] ?? 'Someone',
-            body: row.body,
-            createdAt: row.created_at,
-            mine: false,
-          },
-        ];
-      });
+      if (row.sender_id === userId || row.deal_id !== dealId) return;
+      const context = `${screenContext}:${isTerminal ? 'terminal' : 'live'}`;
+      const ticket = attachmentFence.current.begin(context, row.id);
+      const hydrated = await fetchDealMessage(
+        dealId,
+        row.id,
+        userId ?? '',
+        namesRef.current[row.sender_id] ?? 'Someone',
+      );
+      if (!hydrated || !attachmentFence.current.isCurrent(ticket, row.id)) return;
+      setMessages((prev) => mergeChatMessageById(prev, hydrated));
       // A message arriving while I'm viewing shouldn't reappear as unread later.
       if (userId) void markDealRead(dealId, userId);
     },
-    [userId, dealId],
+    [userId, dealId, isTerminal, screenContext],
   );
 
   useEffect(() => {
@@ -155,11 +177,61 @@ export default function DealRoomScreen() {
     listRef.current?.scrollToEnd({ animated: false });
   }, []);
 
+  const chooseAttachment = useCallback(async () => {
+    if (sending || isTerminal) return;
+    const context = `${screenContext}:live`;
+    const ticket = attachmentFence.current.begin(context);
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime'],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (!attachmentFence.current.isCurrent(ticket) || result.canceled) return;
+    const picked = parsePickedChatAttachment(result.assets[0] ?? {});
+    if (!picked) {
+      setSendError('Choose a PDF, JPEG, PNG, WebP, MP4, or MOV file with a matching extension.');
+      return;
+    }
+    setSelectedAttachment(picked);
+    setSendError(null);
+  }, [isTerminal, screenContext, sending]);
+
   const onSend = useCallback(async () => {
     const text = draft.trim();
-    if (!text || !userId || sending) return;
+    if ((!text && !selectedAttachment) || !userId || sending || isTerminal) return;
     setSending(true);
     setSendError(null);
+
+    if (selectedAttachment) {
+      const context = `${screenContext}:live`;
+      const ticket = attachmentFence.current.begin(context);
+      const result = await sendChatAttachment(
+        dealId,
+        userId,
+        selectedAttachment,
+        text,
+        () => attachmentFence.current.isCurrent(ticket),
+      );
+      if (!attachmentFence.current.isCurrent(ticket)) return;
+      if (result.ok) {
+        setMessages((prev) => mergeChatMessageById(prev, {
+          ...result.message,
+          senderName: 'You',
+          mine: true,
+          attachments: [result.message.attachment],
+          attachmentUnavailable: false,
+        }));
+        setDraft('');
+        setSelectedAttachment(null);
+      } else if (!result.stale) {
+        setSendError(result.message);
+        if (result.readOnly) await loadThread();
+      }
+      if (attachmentFence.current.isCurrent(ticket)) setSending(false);
+      return;
+    }
+
+    const textSendTicket = attachmentFence.current.begin(`${screenContext}:live`);
     setDraft('');
 
     // Optimistic append with a temporary id, reconciled on the server response.
@@ -171,12 +243,15 @@ export default function DealRoomScreen() {
       body: text,
       createdAt: new Date().toISOString(),
       mine: true,
+      attachments: [],
+      attachmentUnavailable: false,
     };
     setMessages((prev) => [...prev, optimistic]);
 
     const res = await sendMessage(dealId, userId, text);
+    if (!attachmentFence.current.isCurrent(textSendTicket)) return;
     if (res.ok) {
-      setMessages((prev) => prev.map((m) => (m.id === tempId ? res.message : m)));
+      setMessages((prev) => reconcileOptimisticChatMessage(prev, tempId, res.message));
     } else {
       // Roll back stale optimistic sends. A terminal database rejection is
       // authoritative: clear the draft and refresh instead of inviting replay.
@@ -184,20 +259,20 @@ export default function DealRoomScreen() {
       if (res.readOnly) {
         setDraft('');
         await loadThread();
+        if (!attachmentFence.current.isCurrent(textSendTicket)) return;
       } else {
         setDraft(text);
       }
       setSendError(res.message);
     }
-    setSending(false);
-  }, [draft, userId, sending, dealId, loadThread]);
-
-  // Terminal stages make the thread read-only (deal-engine.md).
-  const isTerminal = currentThread?.stage === 'closed' || currentThread?.stage === 'declined' || currentThread?.stage === 'cancelled';
+    if (attachmentFence.current.isCurrent(textSendTicket)) setSending(false);
+  }, [draft, userId, sending, dealId, loadThread, selectedAttachment, isTerminal, screenContext]);
 
   useEffect(() => {
     if (isTerminal) {
+      attachmentFence.current.invalidate();
       setDraft('');
+      setSelectedAttachment(null);
       setSending(false);
       setNameEditorOpen(false);
     }
@@ -266,7 +341,7 @@ export default function DealRoomScreen() {
             showsVerticalScrollIndicator={false}
             onContentSizeChange={scrollToEnd}
             onLayout={scrollToEnd}
-            renderItem={({ item }) => <MessageBubble message={item} />}
+            renderItem={({ item }) => <MessageBubble message={item} dealId={dealId} contextKey={screenContext} />}
             ListEmptyComponent={
               <Text className="mt-8 text-center font-geist text-[13px] text-ink-3">
                 No messages yet — say hello.
@@ -289,26 +364,43 @@ export default function DealRoomScreen() {
 
           {/* ── Message composer (read-only once the deal reaches a terminal stage) ── */}
           {isTerminal ? null : (
-            <View className="flex-row items-end gap-2 border-t border-hairline bg-app px-3 pb-6 pt-2">
-              <TextInput
-                value={draft}
-                onChangeText={setDraft}
-                placeholder="Message"
-                placeholderTextColor="#847F78"
-                multiline
-                className="max-h-28 min-h-[40px] flex-1 rounded-2xl border border-hairline bg-surface-card px-3.5 py-2.5 font-geist text-[15px] text-ink"
-              />
-              <Pressable
-                onPress={onSend}
-                disabled={!draft.trim() || sending}
-                accessibilityRole="button"
-                accessibilityLabel="Send message"
-                className={`h-10 w-10 items-center justify-center rounded-full ${
-                  draft.trim() && !sending ? 'bg-ink' : 'bg-avatar'
-                }`}
-              >
-                <SendIcon width={18} height={18} color={draft.trim() && !sending ? '#FFFFFF' : '#847F78'} />
-              </Pressable>
+            <View className="border-t border-hairline bg-app px-3 pb-6 pt-2">
+              {selectedAttachment ? (
+                <SelectedChatAttachment attachment={selectedAttachment} onRemove={() => setSelectedAttachment(null)} />
+              ) : null}
+              <View className="flex-row items-end gap-2">
+                <Pressable
+                  onPress={chooseAttachment}
+                  disabled={sending}
+                  accessibilityRole="button"
+                  accessibilityLabel="Attach image, video, or PDF"
+                  className="h-10 w-10 items-center justify-center rounded-full border border-hairline bg-surface-card"
+                >
+                  <AttachmentIcon width={18} height={18} color={sending ? '#847F78' : '#1C1B18'} />
+                </Pressable>
+                <TextInput
+                  value={draft}
+                  onChangeText={setDraft}
+                  placeholder={selectedAttachment ? 'Add a caption (optional)' : 'Message'}
+                  placeholderTextColor="#847F78"
+                  multiline
+                  editable={!sending}
+                  className="max-h-28 min-h-[40px] flex-1 rounded-2xl border border-hairline bg-surface-card px-3.5 py-2.5 font-geist text-[15px] text-ink"
+                />
+                <Pressable
+                  onPress={onSend}
+                  disabled={(!draft.trim() && !selectedAttachment) || sending}
+                  accessibilityRole="button"
+                  accessibilityLabel={selectedAttachment ? 'Send attachment' : 'Send message'}
+                  className={`h-10 w-10 items-center justify-center rounded-full ${
+                    (draft.trim() || selectedAttachment) && !sending ? 'bg-ink' : 'bg-avatar'
+                  }`}
+                >
+                  {sending ? <ActivityIndicator size="small" color="#847F78" /> : (
+                    <SendIcon width={18} height={18} color={(draft.trim() || selectedAttachment) ? '#FFFFFF' : '#847F78'} />
+                  )}
+                </Pressable>
+              </View>
             </View>
           )}
         </KeyboardAvoidingView>
@@ -345,11 +437,15 @@ export default function DealRoomScreen() {
 }
 
 /** One message bubble — mine (right, warm tint) vs theirs (left, white + name). */
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({ message, dealId, contextKey }: { message: ChatMessage; dealId: string; contextKey: string }) {
   if (message.mine) {
     return (
       <View className="max-w-[86%] self-end rounded-2xl rounded-br-md border border-hairline bg-[#F3EFE7] px-3.5 py-2">
-        <Text className="font-geist text-[15px] leading-[21px] text-ink">{message.body}</Text>
+        {message.attachments.map((attachment) => (
+          <ChatAttachment key={`${contextKey}:${message.id}:${attachment.id}`} attachment={attachment} unavailable={false} dealId={dealId} contextKey={contextKey} messageId={message.id} />
+        ))}
+        {message.attachmentUnavailable ? <ChatAttachment attachment={null} unavailable dealId={dealId} contextKey={contextKey} messageId={message.id} /> : null}
+        {message.body ? <Text className="font-geist text-[15px] leading-[21px] text-ink">{message.body}</Text> : null}
         <Text className="mt-1 self-end font-geist text-[11px] text-ink-3">
           {formatClockTime(message.createdAt)}
         </Text>
@@ -361,7 +457,11 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       <Text className="mb-0.5 font-geist-bold text-[12px] text-ink">
         {message.senderName.split(' ')[0]}
       </Text>
-      <Text className="font-geist text-[15px] leading-[21px] text-ink">{message.body}</Text>
+      {message.attachments.map((attachment) => (
+        <ChatAttachment key={`${contextKey}:${message.id}:${attachment.id}`} attachment={attachment} unavailable={false} dealId={dealId} contextKey={contextKey} messageId={message.id} />
+      ))}
+      {message.attachmentUnavailable ? <ChatAttachment attachment={null} unavailable dealId={dealId} contextKey={contextKey} messageId={message.id} /> : null}
+      {message.body ? <Text className="font-geist text-[15px] leading-[21px] text-ink">{message.body}</Text> : null}
       <Text className="mt-1 self-end font-geist text-[11px] text-ink-3">
         {formatClockTime(message.createdAt)}
       </Text>

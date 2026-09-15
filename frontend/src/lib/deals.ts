@@ -5,6 +5,7 @@ import type { DocumentPickerAsset } from 'expo-document-picker';
 
 import { supabase } from '@/lib/supabase';
 import { getJson, postJson, putJson } from '@/lib/api';
+import { parseChatAttachment, type ChatAttachment } from '@/lib/chat-attachment-core';
 
 /**
  * Deal actions that change deal state → routed through FastAPI (service_role),
@@ -1638,6 +1639,8 @@ export type ChatMessage = {
   body: string | null;
   createdAt: string;
   mine: boolean;
+  attachments: ChatAttachment[];
+  attachmentUnavailable: boolean;
 };
 
 export type DealThread = {
@@ -1811,20 +1814,17 @@ export async function fetchDealThread(dealId: string, userId: string): Promise<D
 
   const { data: msgs, error: eMsgs } = await supabase
     .from('messages')
-    .select('id, sender_id, body, created_at')
+    .select('id, sender_id, body, created_at, message_attachments(id, storage_path, file_name, file_type, file_size)')
     .eq('deal_id', dealId)
     .is('deleted_at', null)
     .order('created_at', { ascending: true });
   if (eMsgs) return null;
 
-  const messages: ChatMessage[] = (msgs ?? []).map((m) => ({
-    id: m.id as string,
-    senderId: m.sender_id as string,
-    senderName: nameById.get(m.sender_id as string) ?? 'Someone',
-    body: (m.body as string | null) ?? null,
-    createdAt: m.created_at as string,
-    mine: m.sender_id === userId,
-  }));
+  const messages: ChatMessage[] = (msgs ?? []).map((m) => chatMessageFromRow(
+    m as unknown as MessageWithAttachmentsRow,
+    userId,
+    nameById.get(m.sender_id as string) ?? 'Someone',
+  ));
 
   return {
     dealId: deal.id as string,
@@ -1916,8 +1916,54 @@ export async function sendMessage(
       body: (data.body as string | null) ?? null,
       createdAt: data.created_at as string,
       mine: true,
+      attachments: [],
+      attachmentUnavailable: false,
     },
   };
+}
+
+type MessageWithAttachmentsRow = {
+  id: string;
+  sender_id: string;
+  body: string | null;
+  created_at: string;
+  message_attachments?: unknown;
+};
+
+function chatMessageFromRow(row: MessageWithAttachmentsRow, userId: string, senderName: string): ChatMessage {
+  const rawAttachments = Array.isArray(row.message_attachments) ? row.message_attachments : [];
+  const attachments = rawAttachments
+    .map((row) => parseChatAttachment(row as Record<string, unknown>))
+    .filter((row): row is ChatAttachment => row !== null);
+  return {
+    id: row.id,
+    senderId: row.sender_id,
+    senderName,
+    body: row.body ?? null,
+    createdAt: row.created_at,
+    mine: row.sender_id === userId,
+    attachments,
+    attachmentUnavailable: rawAttachments.length !== attachments.length || (!row.body && attachments.length === 0),
+  };
+}
+
+/** Authoritative post-Realtime hydration. The INSERT event is only a hint. */
+export async function fetchDealMessage(
+  dealId: string,
+  messageId: string,
+  userId: string,
+  senderName: string,
+): Promise<ChatMessage | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('messages')
+    .select('id, sender_id, body, created_at, message_attachments(id, storage_path, file_name, file_type, file_size)')
+    .eq('deal_id', dealId)
+    .eq('id', messageId)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (error || !data) return null;
+  return chatMessageFromRow(data as unknown as MessageWithAttachmentsRow, userId, senderName);
 }
 
 /**
