@@ -37,6 +37,7 @@ Only rows marked **Ready** may enter the `factory:ready` GitHub queue. GitHub is
 - Workbook row **10.1 originally depends on 9.19**. That dependency is now technically invalid: 9.9/9.10 intentionally left an honest parser-pending seam, so the real Phase 10 parser, Gate B approvals, and contract alignment must land before the remaining Phase 9 lifecycle can be exercised end to end.
 - Effective order from the current baseline is therefore: **9.12 → 10.1–10.9 → 9.13–9.19 → Phase 11**.
 - Phase 7 workplan rows are complete, but Bucket 1 is only **12/18 RTM features built**. The unrepresented or partial gaps are recorded separately below; completing a broad workplan row does not silently mark those RTM features complete.
+- On 2026-09-16 the founder accepted Phase 9's manual lifecycle walkthrough as deferred, not passed. Workplan 9.18 and 9.19 are complete **for sequencing** with this explicit limitation. The Bucket 3 RTM remains evidence-based at **29/32 Built**: B3-037, B3-041 and B3-042 are deferred, not silently completed.
 - The protected untracked file `Checklist_new_rows.xlsx` is unrelated user material and must never be staged by factory runs.
 
 ## Current verified position
@@ -46,9 +47,10 @@ Only rows marked **Ready** may enter the `factory:ready` GitHub queue. GitHub is
 | Phases 0–6 | Workplan complete | Repository scaffold, locked specifications, `docs/rtm.md`, migrations, FastAPI and Expo foundation. |
 | Phase 7 | Workplan 7.1–7.14 complete; Bucket 1 is 12/18 | `docs/progress.md`; RTM Bucket 1. |
 | Phase 8 | Workplan 8.1–8.6 complete; Bucket 2 is 13/13 | `docs/progress.md`; RTM Bucket 2. |
-| Phase 9 | 9.1–9.17 remediation complete in candidates; 9.18–9.19 pending | Merged PRs #5–#8 satisfy the Phase 10 dependency; PR #10 builds B3-029, PR #16 builds B3-032, PR #17 builds submission/revision, PR #18 completes B3-028/B3-030 approval, PR #19 builds B3-031, PR #20 builds backend-only B3-033, PRs #23/#24 complete B3-034, issue #25 builds the B3-035 backend and issue #27 adds the strict participant payment-tracking Expo journey. Issues #29/#31/#33 build B3-039 participant raise/read/freeze, UI, and platform-ops resolution. Issue #35 builds B3-040's atomic mutual-close and terminal-thread slice; issue #37 adds ratings/trust, separate shared/private outcomes and the private chat PDF candidate. Issue #45 adds B3-007's private participant chat attachments. Critical email remains CC-N003 / Phase 12. |
+| Phase 9 | Workplan 9.1–9.19 complete for sequencing; Bucket 3 is 29/32 Built | All Phase 9 implementation PRs through #47 merged. Founder deferred the unrun 9.18 hands-on/two-persona lifecycle walkthrough on 2026-09-16; no manual pass is claimed. RTM records B3-037, B3-041 and B3-042 as deferred to later phases, plus smaller limitations inside built rows. 9.19 is the evidence-based reconciliation gate, not a 32/32 feature claim. |
 | Phase 10 | 10.1–10.9 complete; Bucket 4 is 5/5 | Merged PRs #5–#8; `docs/progress.md`; B4-001–B4-005 are Built in RTM. Founder accepted the manual test as non-blocking and can run `docs/LOCAL-APP-TESTING.md` later. |
-| Phases 11–14 | Not started | Workbook, progress, and RTM. |
+| Phase 11 | Ready to start | 10.9 and qualified 9.19 sequencing gates complete; no Phase 11 build ticket has been prepared. |
+| Phases 12–14 | Not started | Workbook, progress, and RTM. |
 
 ## Phases 0–6 — completed foundation
 
@@ -124,14 +126,14 @@ These require future factory tickets rather than reopening the historical workpl
 | 9.13 | Creating: brief, content and revisions | 9.12 | **10.9** | **Complete** | 9.13-A built B3-029 in PR #10; 9.13-B built B3-032 in PR #16; 9.13-C built secure submission/revision in PR #17; 9.13-D built exact direct/checker-gated approval through migrations 032–033 in PR #18; 9.13-E built creator-private deliverable labels through migrations 034–035 in PR #19, completing B3-028–B3-032. B3-021 is already Built. |
 | 9.14 | Posted: live URL hard gate | 9.13 | Same | **Complete** | B3-033; merged PR #20 provides the pinned public-HTTPS verifier and exact backend gate. Issue #22 adds the server-action-driven Expo submit/correction, bounded proof/history, flag and exact confirmation journey. External provider/device evidence remains `LIMITED`. |
 | 9.15 | Payment tracking and states | 9.14 | Same | **Complete** | PRs #23/#24 complete B3-034 capture. Issue #25 / 9.15-C adds B3-035's canonical payment/milestone schema, atomic Payment-entry materialization, exact-version reports, creator receipt evidence and participant-safe API. Issue #27 / 9.15-D adds the strict FastAPI-only single/milestone/combination Expo ledger and exact-version server-authorized controls. Interactive walkthrough is `LIMITED`; automated reminders B3-037 still depend on Phase 12/deployment scheduling. |
-| 9.16 | Payment dispute overlay | 9.15 | Same | **Complete in candidate** | Issue #29 / 9.16-A adds one race-safe Payment dispute, atomic aggregate freeze, safe participant history and Critical in-app participant notices. Issue #31 / 9.16-B adds strict participant raise/view UI with bounded existing evidence and authoritative refetches. Issue #33 / 9.16-C adds explicit active platform-ops authority, bounded sanitized queue/detail, generic Critical in-app ops notices and atomic resume-only resolution with Important participant notices. Critical email remains CC-N003 / Phase 12. |
-| 9.17 | Close and ratings | 9.16 | Same | **Complete in candidate** | Issue #35 supplies the exact-payment mutual close gate and terminal chat boundary. Issue #37 adds one backend-derived immutable rating per side with proven trust aggregation, separate idempotent shared comments/author-private notes, and one retryable private source-bound chat PDF with five-minute participant download. QA/security re-review and final regression passed; the 9.18 manual lifecycle gate remains. |
-| 9.17-R | Participant approval remediation | 9.17 | Same | **Built in candidate** | Issue #39 closes B3-004 with a same-brand candidate boundary, frozen unanimous electorate, atomic admission, Gate-A serialization, bounded FastAPI projection and participant-count Expo sheet. Security passed; QA is LIMITED only for the founder native/two-device refresh walkthrough; final regression passed before 9.18. |
-| 9.17-R2 | Deal-name remediation | 9.17-R | Same | **Built in candidate** | Issue #41 closes B3-005 with one service-role-only atomic rename transaction, participant and terminal/deleted guards, NFKC/plain-text validation, exact-version concurrency, metadata-only audit evidence and an authoritative context-fenced Expo edit sheet. Direct authenticated deal updates remain revoked. Security passed; QA is LIMITED only for the optional founder two-device/native refresh walkthrough; final regression passed 15/15 commands at fingerprint `769b0b2a7f4c0266c2c20e1922745405c14ea648`. |
-| 9.17-R3 | Private deal-label remediation | 9.17-R2 | Same | **Built in candidate** | Issue #43 closes B3-006 with owner-RLS Supabase-direct, account/deal-fenced private labels joined only into local chat previews. Development privacy evidence proves both directions of cross-participant read/update/delete isolation (6/6); combined acceptance/privacy passed at fingerprint `9f6002ebad6872970e4e34066acb7e0aa51f1dda`. Optional founder two-persona/native filter walkthrough is LIMITED. |
-| 9.17-R4 | Secure chat-attachment remediation | 9.17-R3 | Same | **Built in candidate** | Issue #45 closes B3-007 with auth-derived private upload reservations, exact object verification, atomic idempotent message binding, participant-only five-minute reads, terminal serialization, authoritative Realtime hydration and account/deal/message-fenced Expo presentation. Native picker/open walkthrough is LIMITED; 9.18 and 9.19 remain separate waiting gates. |
-| 9.18 | Full deal-lifecycle test | 9.17 | Same | Manual | Phase 9 acceptance gate covering every B3 path. |
-| 9.19 | RTM, commit and Phase 9 gate | 9.18 | Same | Gate waiting | Reconcile all 32 B3 rows only after lifecycle evidence. |
+| 9.16 | Payment dispute overlay | 9.15 | Same | **Complete** | Issue #29 / 9.16-A adds one race-safe Payment dispute, atomic aggregate freeze, safe participant history and Critical in-app participant notices. Issue #31 / 9.16-B adds strict participant raise/view UI with bounded existing evidence and authoritative refetches. Issue #33 / 9.16-C adds explicit active platform-ops authority, bounded sanitized queue/detail, generic Critical in-app ops notices and atomic resume-only resolution with Important participant notices. Critical email remains CC-N003 / Phase 12. |
+| 9.17 | Close and ratings | 9.16 | Same | **Complete** | Issue #35 supplies the exact-payment mutual close gate and terminal chat boundary. Issue #37 adds one backend-derived immutable rating per side with proven trust aggregation, separate idempotent shared comments/author-private notes, and one retryable private source-bound chat PDF with five-minute participant download. QA/security re-review and final regression passed; the 9.18 manual lifecycle gate remains. |
+| 9.17-R | Participant approval remediation | 9.17 | Same | **Complete** | Issue #39 closes B3-004 with a same-brand candidate boundary, frozen unanimous electorate, atomic admission, Gate-A serialization, bounded FastAPI projection and participant-count Expo sheet. Security passed; QA is LIMITED only for the founder native/two-device refresh walkthrough; final regression passed before 9.18. |
+| 9.17-R2 | Deal-name remediation | 9.17-R | Same | **Complete** | Issue #41 closes B3-005 with one service-role-only atomic rename transaction, participant and terminal/deleted guards, NFKC/plain-text validation, exact-version concurrency, metadata-only audit evidence and an authoritative context-fenced Expo edit sheet. Direct authenticated deal updates remain revoked. Security passed; QA is LIMITED only for the optional founder two-device/native refresh walkthrough; final regression passed 15/15 commands at fingerprint `769b0b2a7f4c0266c2c20e1922745405c14ea648`. |
+| 9.17-R3 | Private deal-label remediation | 9.17-R2 | Same | **Complete** | Issue #43 closes B3-006 with owner-RLS Supabase-direct, account/deal-fenced private labels joined only into local chat previews. Development privacy evidence proves both directions of cross-participant read/update/delete isolation (6/6); combined acceptance/privacy passed at fingerprint `9f6002ebad6872970e4e34066acb7e0aa51f1dda`. Optional founder two-persona/native filter walkthrough is LIMITED. |
+| 9.17-R4 | Secure chat-attachment remediation | 9.17-R3 | Same | **Complete** | Issue #45 closes B3-007 with auth-derived private upload reservations, exact object verification, atomic idempotent message binding, participant-only five-minute reads, terminal serialization, authoritative Realtime hydration and account/deal/message-fenced Expo presentation. Native picker/open walkthrough is LIMITED; 9.18 manual testing is founder-deferred; 9.19 is complete for sequencing. |
+| 9.18 | Full deal-lifecycle test | 9.17 | Same | **Complete for sequencing; manual test deferred** | Founder chose on 2026-09-16 to revisit the two-persona/device lifecycle walkthrough later. It has not been run or passed; automated feature evidence is recorded per RTM row. |
+| 9.19 | RTM, commit and Phase 9 gate | 9.18 | Same | **Gate complete with limitations** | Reconciled all 32 B3 rows: 29 Built, 3 Deferred (B3-037/041/042). Manual 9.18 evidence remains outstanding; Phase 11 may proceed on the founder's explicit sequencing decision. |
 
 ### Outstanding manual check from 9.11/9.12
 
@@ -155,7 +157,7 @@ The normal G4 device check remains for the Approval contract card, drawn-signatu
 
 | ID | Task | Effective dependency | Status | RTM feature(s) |
 |---|---|---|---|---|
-| 11.1 | Deal tracker and RAG dashboard | 10.9, 9.19 | Waiting | B5-001, B5-002 and B5-005. |
+| 11.1 | Deal tracker and RAG dashboard | 10.9, 9.19 | Ready | B5-001, B5-002 and B5-005. |
 | 11.2 | Payment tracker | 11.1, 9.15 | Waiting | B5-006 and B5-008. |
 | 11.3 | Calendar | 11.1 | Waiting | B5-010, B5-011 and B5-012. |
 | 11.4 | Rights and exclusivity trackers | 11.1, 10.5 | Waiting | B5-003, B5-004 and B5-013–B5-017. |
@@ -211,15 +213,9 @@ The normal G4 device check remains for the Approval contract card, drawn-signatu
 
 No Phase 10 queue item remains open.
 
-## Current Phase 9 queue
+## Completed Phase 9 queue
 
-| Issue | Workplan block | RTM scope | Queue state | Dependency |
-|---|---|---|---|---|
-| [#9](https://github.com/KeshavPeri/biz/issues/9) | 9.13-A · versioned creative brief | B3-029 only | Closed / merged | PR #10 merged |
-| [#11](https://github.com/KeshavPeri/biz/issues/11) | 9.13-B · canonical deliverable foundation | B3-032 | Closed / merged | PR #16 merged |
-| [#12](https://github.com/KeshavPeri/biz/issues/12) | 9.13-C · submissions and revision requests | B3-030 slice | Closed / merged | PR #17 merged |
-| [#13](https://github.com/KeshavPeri/biz/issues/13) | 9.13-D · checker-gated content approval | B3-030 + B3-028 content slice | Closed / merged | PR #18 merged |
-| [#14](https://github.com/KeshavPeri/biz/issues/14) | 9.13-E · creator-private deliverable labels | B3-031 | Closed / merged | PR #19 merged |
-| [#15](https://github.com/KeshavPeri/biz/issues/15) | 9.14-A · verified live-post backend gate | B3-033 backend slice | `factory:building` | Pinned to `7d40b57`; Expo successor remains deferred |
-
-The queue is partitioned for approximately 80% session allowances. Issue #15 is the sole planned successor and waits for founder release. The scheduled factory does nothing until the founder marks exactly one ticket `factory:ready`.
+All Phase 9 implementation issues through [#45](https://github.com/KeshavPeri/biz/issues/45)
+have merged, ending with PR #47 for secure chat attachments. No Phase 9 implementation issue
+remains queued. Workplan 9.18/9.19 are complete for sequencing under the founder's explicit
+manual-test deferral; the unrun walkthrough and three deferred RTM rows remain visible above.

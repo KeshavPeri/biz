@@ -16,7 +16,14 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
-- **Issue #45 / B3-007 secure chat-attachment candidate:** additive migration 047 creates the
+- **Phase 9 reconciliation (2026-09-16):** PR #47 for B3-007 is merged. Workplan
+  9.1–9.19 is complete **for sequencing** by founder decision. The Bucket 3 RTM is
+  29/32 Built; B3-037, B3-041 and B3-042 remain explicitly deferred to later phases.
+  The hands-on two-persona/device lifecycle test in 9.18 has **not been run or passed**;
+  the founder will revisit it. The 9.19 gate records this limitation rather than
+  claiming a clean manual pass or 32/32 feature completion. Phase 11 is ready to start.
+
+- **Issue #45 / B3-007 secure chat attachments (merged PR #47):** additive migration 047 creates the
   private 50 MiB `deal-files` bucket and auth-derived upload reservations. Participant-scoped
   opaque paths, exact Storage owner/MIME/byte verification, lock-ordered idempotent finalization,
   direct-write revocation and terminal guards keep message and attachment binding database-owned.
@@ -32,10 +39,10 @@ up exactly where the last one left off, with zero context lost.
   Expo web export and diff hygiene. Complete non-documentation candidate fingerprint (including
   recovered additions) `22fe6c685a6a7a8b15779683de7515b8e74a9a7d`; independent QA and security
   re-review passed, and the required reviewed-source full regression passed **15/15 commands** with
-  **157/157** backend assertions. The optional native picker/open walkthrough is `LIMITED`, and
-  9.18/9.19 remain waiting.
+  **157/157** backend assertions. The native picker/open walkthrough remains
+  founder-deferred, not passed.
 
-- **Issue #43 / B3-006 private-deal-label candidate:** the chat list now reads only the signed-in
+- **Issue #43 / B3-006 private deal labels (merged PR #44):** the chat list now reads only the signed-in
   owner's `private_annotations` for already-authorized deal IDs, validates and bounds untrusted
   label rows locally, and joins them only into that user's preview presentation. The Expo editor
   creates/removes exact owner rows, offers own-label suggestions, and fences account/deal async
@@ -47,9 +54,9 @@ up exactly where the last one left off, with zero context lost.
   TypeScript, lint (0 errors / 3 pre-existing warnings), Expo web export and diff hygiene.
   Combined acceptance/privacy review passed at non-documentation source fingerprint
   `9f6002ebad6872970e4e34066acb7e0aa51f1dda`; the optional two-persona native walkthrough remains
-  founder-owned and `LIMITED`. B3-007 is now a verified candidate awaiting review before 9.18/9.19.
+  founder-owned and `LIMITED`. B3-007 subsequently merged in PR #47.
 
-- **Issue #41 / B3-005 implementation candidate:** additive migration 045 gives every existing
+- **Issue #41 / B3-005 implementation (merged):** additive migration 045 gives every existing
   deal a non-null version without changing its name, stage or timestamps, and exposes one
   service-role-only, fixed-search-path rename RPC. The transaction locks the deal, proves current
   participation, rejects terminal/deleted rows, compares the exact displayed version, updates the
@@ -67,9 +74,9 @@ up exactly where the last one left off, with zero context lost.
   `769b0b2a7f4c0266c2c20e1922745405c14ea648`. Independent security review passed and QA found no defects;
   QA is `LIMITED` only for the optional two-persona/native refresh walkthrough. The required
   unchanged-source final regression also passed 15/15 commands at this fingerprint. B3-006 private
-  labels and B3-007 attachments remain separate and still block 9.18/9.19.
+  labels and B3-007 attachments subsequently merged; neither blocks sequencing now.
 
-- **Issue #39 / B3-004 reviewed candidate:** additive migration 044 normalizes a frozen
+- **Issue #39 / B3-004 implementation (merged):** additive migration 044 normalizes a frozen
   per-request electorate, revokes direct authenticated request/decision mutation, enforces one
   pending request per deal and serializes participant admission with Gate A on the deal row.
   FastAPI alone derives active same-brand candidates, role eligibility, unanimous actions and a
@@ -90,27 +97,11 @@ up exactly where the last one left off, with zero context lost.
   post-review full regression passed 13/13 commands and 193/193 backend assertions at canonical
   fingerprint `e2f5c8cfaace4678a8717c278206d207c7fe0b6e`.
 
-- **Current phase:** Phase 9 — core workplan 9.15 and B3-035 are **Complete/Built**. Workplan
-  9.16 / B3-039 is implemented through the current 9.16-C candidate: secure participant raise/read,
-  the Expo participant journey, generic in-app operations notification, and authenticated
-  platform-operations resume resolution are built. Critical dispute email remains explicitly
-  deferred to CC-N003 / Phase 12.
-  Workplan 9.17-B / issue #37 now completes B3-040's ratings, post-deal entries, trust aggregation
-  and private chat-record archive as a reviewed candidate on the merged 9.17-A mutual-close
-  boundary. QA/security re-review and the final full regression passed; only the founder's native
-  reminders B3-037 remain pending for Phase 12 scheduling; 9.18
-  lifecycle testing and the 9.19 phase gate remain incomplete.
-  Workplan 9.13-E creator-private deliverable labels are merged through
-  PR #19, completing the 9.13 Creating scope after 9.13-D merged through PR #18.
-  Workplan 9.13-C draft submission/revision is merged through PR #17, 9.13-A creative briefs through
-  PR #10, and 9.13-B canonical deliverables through PR #16. The optional short fictional 9.13-E
-  creator/brand/checker role-switch walkthrough remains. Phase 10
-  remains complete; PRs #5–#8 are merged;
-  B4-001–B4-005 and the linked B3-020/B3-021/B3-026 slices are Built and reconciled. The founder
-  accepted the manual 10.8 device/live-Gemini gate as non-blocking on 2026-08-29; this records a
-  scheduling decision, not invented test evidence. Crisp later-testing steps live in
+- **Current phase:** Phase 11 is ready to start. Phase 9 is closed for sequencing with the
+  manual-test and deferred-feature limitations above; Phase 10 was previously completed for
+  sequencing with its own deferred device/live-Gemini gate. Later-testing steps live in
   `docs/LOCAL-APP-TESTING.md`.
-- **Current build:** issue #29 / PR #30 / workplan 9.16-A is merged and adds the backend-owned Payment dispute foundation.
+- **Earlier implementation evidence:** issue #29 / PR #30 / workplan 9.16-A is merged and adds the backend-owned Payment dispute foundation.
   Any current creator or active brand admin/maker/checker participant can submit one bounded
   plain-text narrative with up to ten exact same-deal message/live-post references. Migration 039
   takes the established deal-then-canonical-payment lock order and atomically stores immutable
@@ -759,11 +750,11 @@ up exactly where the last one left off, with zero context lost.
 
 ## NEXT UP  *(ordered)*
 
-1. **Issue #43 founder review:** review the private-label draft PR; the optional fictional
-   two-persona native privacy/filter walkthrough remains `LIMITED` and non-blocking.
-2. **B3-007:** review the secure attachment draft PR; optionally perform the fictional two-persona
-   native picker/open walkthrough, then decide whether to merge.
-3. **9.18/9.19:** run lifecycle acceptance and reconcile Phase 9 only after B3-007 is merged.
+1. **Phase 11:** prepare the first bounded workplan 11.1 ticket when the founder requests it.
+2. **Founder manual follow-up:** revisit the deferred 9.18 two-persona/device lifecycle
+   walkthrough, plus the previously deferred Phase 10 manual gate; record actual outcomes.
+3. **Later phases:** implement deferred B3-037/041/042 in their mapped Phase 11/12 work;
+   retain the documented B3-016 and B3-017 limitations until their later work lands.
 
 ## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
 
@@ -789,6 +780,11 @@ do not proceed. I'll resolve these at the start of my next session.*
 
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
+
+- 2026-09-16 — **Phase 9 sequencing gate.** Founder explicitly approved closing workplan
+  9.18 and 9.19 for sequencing while deferring the unrun manual lifecycle walkthrough.
+  RTM remains evidence-based: 29/32 Bucket 3 rows Built, B3-037/041/042 Deferred.
+  No manual pass or complete implementation of deferred rows is claimed.
 
 - 2026-09-04 — **Participant-safe dispute text boundary.** Current and historical descriptions,
   resolution notes, display names and message snippets are capped before parsing, stripped of HTML
@@ -1118,6 +1114,13 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-09-16 — Phase 9 RTM and sequencing gate
+
+- PR #47 merged B3-007. Reconciled Bucket 3 to 29/32 Built and three explicit
+  deferrals (B3-037/041/042), with B3-016/B3-017 limitations retained. Marked
+  9.18 and 9.19 complete for sequencing by founder decision; 9.18 manual testing
+  is outstanding and was not represented as passed. Phase 11 is ready to start.
 
 ### 2026-09-15 — Issue #45 final verification
 
