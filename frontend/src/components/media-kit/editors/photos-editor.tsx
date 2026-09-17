@@ -1,9 +1,15 @@
-import { useEffect, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { LayoutAnimationConfig } from 'react-native-reanimated';
 
 import { Button, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
+import { IconButton } from '@/components/ui/icon-button';
+import { PressableScale } from '@/components/motion/pressable-scale';
+import { ListItemFade } from '@/components/motion/list-item-fade';
+import { Skeleton } from '@/components/motion/skeleton';
 import { StorageImage } from '@/components/media-kit/storage-image';
 import {
   MAX_PHOTOS,
@@ -39,21 +45,31 @@ export function PhotosEditor({
 }) {
   const [paths, setPaths] = useState<string[]>(photoCarousel);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const savedPaths = useRef(photoCarousel);
 
   // Re-sync from the (refetched) prop whenever the sheet opens or data changes.
   useEffect(() => {
-    if (visible) setPaths(photoCarousel);
+    if (visible) {
+      savedPaths.current = photoCarousel;
+      setPaths(photoCarousel);
+      setError(null);
+    }
   }, [visible, photoCarousel]);
 
   const persist = async (next: string[]) => {
+    if (busy) return false;
+    setBusy(true);
     setPaths(next); // optimistic
     const res = await savePhotoCarousel(userId, next);
+    setBusy(false);
     if (!res.ok) {
       setError(res.message);
-      setPaths(photoCarousel); // revert to last known-good
+      setPaths(savedPaths.current); // revert to last known-good
       return false;
     }
+    savedPaths.current = next;
     onChanged();
     return true;
   };
@@ -74,18 +90,22 @@ export function PhotosEditor({
     });
     if (result.canceled || !result.assets[0]) return;
 
+    setUploading(true);
     setBusy(true);
     const up = await uploadProfilePhoto(userId, result.assets[0]);
     if (!up.ok) {
       setBusy(false);
+      setUploading(false);
       setError(up.message);
       return;
     }
-    await persist([...paths, up.path]);
     setBusy(false);
+    setUploading(false);
+    await persist([...paths, up.path]);
   };
 
   const removeAt = async (i: number) => {
+    if (busy) return;
     setError(null);
     const path = paths[i];
     const next = paths.filter((_, idx) => idx !== i);
@@ -101,18 +121,22 @@ export function PhotosEditor({
   };
 
   const move = async (i: number, dir: -1 | 1) => {
+    if (busy) return;
     const j = i + dir;
     if (j < 0 || j >= paths.length) return;
     const next = [...paths];
     [next[i], next[j]] = [next[j], next[i]];
+    void Haptics.selectionAsync();
     await persist(next);
   };
 
   const setPrimary = async (i: number) => {
+    if (busy) return;
     if (i === 0) return;
     const next = [...paths];
     const [chosen] = next.splice(i, 1);
     next.unshift(chosen);
+    void Haptics.selectionAsync();
     await persist(next);
   };
 
@@ -128,75 +152,85 @@ export function PhotosEditor({
         </Button>
       }
     >
-      {paths.length === 0 ? (
+      {paths.length === 0 && !uploading ? (
         <Text className="mb-4 font-geist text-secondary text-ink-3">No photos yet.</Text>
       ) : (
-        <View className="mb-4">
-          {paths.map((path, i) => (
-            <View
-              key={path}
-              className="mb-2.5 flex-row items-center gap-3 rounded-card border border-hairline-card bg-surface-card p-2.5 shadow-l1"
-            >
-              <StorageImage path={path} className="h-16 w-14 rounded-panel" />
-              <View className="flex-1">
-                {i === 0 ? (
-                  <View className="flex-row items-center gap-1.5">
-                    <StarIcon width={13} height={13} color="#4F7A1E" />
-                    <Text className="font-geist-semibold text-[12px] text-status-good-label">
-                      Primary · avatar
-                    </Text>
+        <LayoutAnimationConfig skipEntering>
+          <View className="mb-4">
+            {paths.map((path, i) => (
+              <ListItemFade key={path}>
+                <View className="mb-2.5 flex-row items-center gap-3 rounded-card border border-hairline-card bg-surface-card p-2.5 shadow-l1">
+                  <StorageImage path={path} className="h-16 w-14 rounded-panel" />
+                  <View className="flex-1">
+                    {i === 0 ? (
+                      <View className="flex-row items-center gap-1.5">
+                        <StarIcon width={13} height={13} color="#4F7A1E" />
+                        <Text className="font-geist-semibold text-[12px] text-status-good-label">
+                          Primary · avatar
+                        </Text>
+                      </View>
+                    ) : (
+                      <PressableScale
+                        onPress={() => setPrimary(i)}
+                        disabled={busy}
+                        haptic="selection"
+                        hitSlop={12}
+                      >
+                        <Text className="font-geist-semibold text-[12px] text-ink">
+                          Set as primary
+                        </Text>
+                      </PressableScale>
+                    )}
                   </View>
-                ) : (
-                  <Pressable onPress={() => setPrimary(i)} accessibilityRole="button">
-                    <Text className="font-geist-semibold text-[12px] text-ink">
-                      Set as primary
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
 
-              <View className="flex-row items-center">
-                <Pressable
-                  onPress={() => move(i, -1)}
-                  disabled={i === 0}
-                  accessibilityRole="button"
-                  accessibilityLabel="Move up"
-                  className={`h-11 w-11 items-center justify-center ${i === 0 ? 'opacity-30' : ''}`}
-                >
-                  <ChevronUpIcon width={20} height={20} color="#5E574E" />
-                </Pressable>
-                <Pressable
-                  onPress={() => move(i, 1)}
-                  disabled={i === paths.length - 1}
-                  accessibilityRole="button"
-                  accessibilityLabel="Move down"
-                  className={`h-11 w-11 items-center justify-center ${i === paths.length - 1 ? 'opacity-30' : ''}`}
-                >
-                  <ChevronDownIcon width={20} height={20} color="#5E574E" />
-                </Pressable>
-                <Pressable
-                  onPress={() => confirmRemoveAt(i)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Remove photo"
-                  className="ml-3 h-11 w-11 items-center justify-center"
-                >
-                  <TrashIcon width={18} height={18} color="#847F78" />
-                </Pressable>
+                  <View className="flex-row items-center">
+                    <IconButton
+                      icon={ChevronUpIcon}
+                      label="Move up"
+                      onPress={() => void move(i, -1)}
+                      disabled={busy || i === 0}
+                    />
+                    <IconButton
+                      icon={ChevronDownIcon}
+                      label="Move down"
+                      onPress={() => void move(i, 1)}
+                      disabled={busy || i === paths.length - 1}
+                    />
+                    <View className="ml-3">
+                      <IconButton
+                        icon={TrashIcon}
+                        label="Remove photo"
+                        onPress={() => confirmRemoveAt(i)}
+                        disabled={busy}
+                        color="#847F78"
+                      />
+                    </View>
+                  </View>
+                </View>
+              </ListItemFade>
+            ))}
+            {uploading ? (
+              <View className="mb-2.5 flex-row items-center gap-3 rounded-card border border-hairline-card bg-surface-card p-2.5">
+                <Skeleton.Block width={56} height={64} radius="panel" />
+                <View className="flex-1 gap-2">
+                  <Skeleton.Block width="55%" height={14} radius="pill" />
+                  <Skeleton.Block width="35%" height={12} radius="pill" />
+                </View>
               </View>
-            </View>
-          ))}
-        </View>
+            ) : null}
+          </View>
+        </LayoutAnimationConfig>
       )}
 
       <Button
         action="secondary"
         size="md"
         className="w-full"
-        isDisabled={busy || paths.length >= MAX_PHOTOS}
+        isDisabled={busy || uploading || paths.length >= MAX_PHOTOS}
         onPress={addPhoto}
       >
         <ButtonText>
-          {busy ? 'Uploading…' : paths.length >= MAX_PHOTOS ? 'Maximum 5 photos' : 'Add photo'}
+          {uploading ? 'Uploading…' : paths.length >= MAX_PHOTOS ? 'Maximum 5 photos' : 'Add photo'}
         </ButtonText>
       </Button>
 

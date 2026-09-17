@@ -1,6 +1,9 @@
 import { type ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown, type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   type Affiliation,
@@ -13,6 +16,8 @@ import { affiliationTypeLabel, platformLabel } from '@/lib/media-kit-enums';
 import { formatCount, formatINR } from '@/lib/format';
 import { PlatformStatCard } from '@/components/media-kit/platform-stat-card';
 import { PhotoCarousel } from '@/components/media-kit/photo-carousel';
+import { PressableScale } from '@/components/motion/pressable-scale';
+import { EASE_OUT, useMotion } from '@/components/motion/use-motion';
 
 import CheckIcon from '@/assets/icons/check.svg';
 import LockIcon from '@/assets/icons/lock.svg';
@@ -53,6 +58,7 @@ export function MediaKitView({
   viewerMode,
   edit,
   onConnect,
+  scrollY,
 }: {
   data: CreatorMediaKit;
   viewerMode: ViewerMode;
@@ -60,9 +66,20 @@ export function MediaKitView({
   edit?: MediaKitEditHandlers;
   /** When set (real brand detail), the "Start a deal" CTA is enabled (B2-004). */
   onConnect?: () => void;
+  scrollY?: SharedValue<number>;
 }) {
   const isOwn = viewerMode === 'own';
   const hasPhotos = data.photoCarousel.length > 0;
+  const insets = useSafeAreaInsets();
+  const { reduce, t } = useMotion();
+  const identityStyle = useAnimatedStyle(() => {
+    if (!scrollY || reduce) return { opacity: 1, transform: [{ scale: 1 }] };
+    const progress = Math.min(scrollY.value / 120, 1);
+    return {
+      opacity: 1 - progress * 0.35,
+      transform: [{ scale: 1 - progress * 0.04 }],
+    };
+  }, [reduce, scrollY]);
   const meta = [data.niches.slice(0, 2).map(cap).join(' · '), data.city, data.contentLanguages.join(' / ')]
     .filter((s) => s && s.length > 0)
     .join('  ·  ');
@@ -92,32 +109,18 @@ export function MediaKitView({
 
         {/* Own-view: edit-photos + edit-profile affordances. */}
         {isOwn && edit ? (
-          <View className="absolute right-3 top-6 flex-row items-center gap-2">
-            <Pressable
-              className="flex-row items-center gap-1.5 rounded-pill bg-[rgba(28,27,24,0.4)] px-3 py-2"
-              onPress={edit.onEditProfile}
-              accessibilityRole="button"
-              accessibilityLabel="Edit profile"
-            >
-              <EditIcon width={14} height={14} color="#FBFAF6" />
-              <Text className="font-geist-semibold text-secondary text-white">Edit profile</Text>
-            </Pressable>
-            <Pressable
-              className="flex-row items-center gap-1.5 rounded-pill bg-[rgba(28,27,24,0.4)] px-3 py-2"
-              onPress={edit.onEditPhotos}
-              accessibilityRole="button"
-              accessibilityLabel="Edit photos"
-            >
-              <EditIcon width={14} height={14} color="#FBFAF6" />
-              <Text className="font-geist-semibold text-secondary text-white">
-                {hasPhotos ? 'Edit photos' : 'Add photos'}
-              </Text>
-            </Pressable>
+          <View className="absolute right-3 flex-row items-center gap-2" style={{ top: Math.max(insets.top, 16) }}>
+            <MediaActionButton label="Edit profile" onPress={edit.onEditProfile} />
+            <MediaActionButton label={hasPhotos ? 'Edit photos' : 'Add photos'} onPress={edit.onEditPhotos} />
           </View>
         ) : null}
 
         {/* Identity overlay. */}
-        <View className="absolute inset-x-0 bottom-0 px-5 pb-5">
+        <Animated.View
+          className="absolute inset-x-0 bottom-0 px-5 pb-5"
+          style={identityStyle}
+          entering={reduce ? undefined : FadeInDown.duration(t(240)).easing(EASE_OUT)}
+        >
           {!hasPhotos ? (
             <View className="mb-3 h-14 w-14 items-center justify-center rounded-pill bg-[rgba(251,250,246,0.22)]">
               <Text className="font-geist-bold text-subtitle text-white">
@@ -126,7 +129,7 @@ export function MediaKitView({
             </View>
           ) : null}
           <View className="flex-row items-center gap-2">
-            <Text className="font-geist-bold text-display tracking-tight text-white">
+            <Text className="flex-1 font-geist-bold text-display tracking-tight text-white" numberOfLines={2}>
               {data.displayName}
             </Text>
             {data.handles.some((h) => h.verification_status === 'verified') ? (
@@ -144,7 +147,7 @@ export function MediaKitView({
             </Text>
           ) : null}
           {data.bio ? (
-            <Text className="mt-1.5 max-w-[300px] font-geist text-secondary text-[rgba(251,250,246,0.82)]">
+            <Text className="mt-1.5 max-w-[300px] font-geist text-secondary text-[rgba(251,250,246,0.82)]" numberOfLines={3}>
               {data.bio}
             </Text>
           ) : null}
@@ -156,7 +159,7 @@ export function MediaKitView({
               </Text>
             </View>
           )}
-        </View>
+        </Animated.View>
       </View>
 
       {/* TRUST STRIP — only the seeded, real columns (no review count: ratings is
@@ -172,7 +175,7 @@ export function MediaKitView({
           divider
         />
         <TrustCell
-          value={data.responseTimeHours !== null ? `< ${Math.round(data.responseTimeHours)}h` : '—'}
+          value={data.responseTimeHours !== null ? `< ${Math.max(1, Math.round(data.responseTimeHours))}h` : '—'}
           label="Responds in"
           divider
         />
@@ -308,9 +311,9 @@ function Section({
       <View className="mb-3 flex-row items-baseline justify-between">
         <Text className="font-geist-semibold text-subtitle text-ink">{title}</Text>
         {onEdit ? (
-          <Pressable onPress={onEdit} accessibilityRole="button">
+          <PressableScale onPress={onEdit} hitSlop={12} accessibilityRole="button">
             <Text className="font-geist-semibold text-secondary text-ink">Edit ›</Text>
-          </Pressable>
+          </PressableScale>
         ) : rightAccessory ? (
           rightAccessory
         ) : sub ? (
@@ -344,7 +347,7 @@ function RateRow({ item, first }: { item: RateCardItem; first: boolean }) {
           {platformLabel(item.platform)} · {item.description ?? ''}
         </Text>
       </View>
-      <Text className="font-geist-bold text-body text-ink">{formatINR(item.base_price)}</Text>
+      <Text className="font-geist-bold text-body tabular-nums text-ink">{formatINR(item.base_price)}</Text>
     </View>
   );
 }
@@ -400,6 +403,29 @@ function LockChip() {
 
 function EmptyLine({ text }: { text: string }) {
   return <Text className="py-3 font-geist text-secondary text-ink-3">{text}</Text>;
+}
+
+function MediaActionButton({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <PressableScale
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={4}
+      style={{ minHeight: 44 }}
+      className="relative overflow-hidden rounded-pill"
+    >
+      {Platform.OS === 'web' ? (
+        <View style={StyleSheet.absoluteFillObject} className="bg-[rgba(28,27,24,0.55)]" />
+      ) : (
+        <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFillObject} />
+      )}
+      <View className="min-h-11 flex-row items-center gap-1.5 bg-[rgba(28,27,24,0.4)] px-3">
+        <EditIcon width={14} height={14} color="#FBFAF6" />
+        <Text className="font-geist-semibold text-secondary text-white">{label}</Text>
+      </View>
+    </PressableScale>
+  );
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────

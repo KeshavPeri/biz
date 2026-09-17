@@ -14,6 +14,7 @@ import { PhotosEditor } from '@/components/media-kit/editors/photos-editor';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
 import { fetchOwnMediaKit, type MediaKitData, type SocialHandle } from '@/lib/media-kit';
 import { useAuthStore } from '@/store/auth-store';
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 
 type Editor = 'profile' | 'handle' | 'rate' | 'privacy' | 'affiliations' | 'photos' | null;
 
@@ -31,6 +32,10 @@ export function MediaKitScreen() {
   const [preview, setPreview] = useState(false);
   const [editor, setEditor] = useState<Editor>(null);
   const [activeHandle, setActiveHandle] = useState<SocialHandle | null>(null);
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
 
   const load = useCallback(async () => {
     if (!session) {
@@ -52,11 +57,21 @@ export function MediaKitScreen() {
   }, [load]);
 
   // Refetch after an edit, then close the sheet.
+  const clearActiveHandleAfterDismiss = useCallback(() => {
+    setTimeout(() => setActiveHandle(null), 240);
+  }, []);
+
+  const closeHandle = useCallback(() => {
+    setEditor(null);
+    clearActiveHandleAfterDismiss();
+  }, [clearActiveHandleAfterDismiss]);
+
   const afterSave = useCallback(async () => {
     await load();
     setEditor(null);
-    setActiveHandle(null);
-  }, [load]);
+    if (editor === 'handle') clearActiveHandleAfterDismiss();
+    else setActiveHandle(null);
+  }, [clearActiveHandleAfterDismiss, editor, load]);
 
   // Rate-card / affiliation editors stay open across mutations (list editing).
   const afterChange = useCallback(async () => {
@@ -139,14 +154,17 @@ export function MediaKitScreen() {
         </View>
       ) : null}
 
-      <ScrollView
+      <Animated.ScrollView
         showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
         scrollIndicatorInsets={{ bottom: tabBarInset }}
       >
         <MediaKitView
           data={data}
           viewerMode={isPreview ? 'brand' : 'own'}
+          scrollY={scrollY}
           edit={
             isPreview
               ? undefined
@@ -163,16 +181,13 @@ export function MediaKitScreen() {
                 }
           }
         />
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Editors. */}
       <EditProfileSheet visible={editor === 'profile'} onClose={() => setEditor(null)} onSaved={afterSave} data={data} />
       <EditHandleSheet
         visible={editor === 'handle'}
-        onClose={() => {
-          setEditor(null);
-          setActiveHandle(null);
-        }}
+        onClose={closeHandle}
         onSaved={afterSave}
         handle={activeHandle}
       />

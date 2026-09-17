@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { AuthShell } from '@/components/ui/auth-shell';
-import { Button, ButtonText } from '@/components/ui/button';
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { OnboardingProgress } from '@/components/ui/onboarding-progress';
 import {
   useOnboardingStore,
@@ -21,13 +21,12 @@ const VERIFY_THRESHOLD = 7000; // mockup's 7K minimum — displayed, not a hard 
 const PLATFORMS: {
   key: PlatformKey;
   name: string;
-  color: string;
   demo: ConnectedPlatform;
 }[] = [
-  { key: 'instagram', name: 'Instagram', color: '#B96A83', demo: { handle: '@devasri.creates', followerCount: 48200, engagementRate: 4.6, weeklyReach: 96000 } },
-  { key: 'youtube', name: 'YouTube', color: '#C0574B', demo: { handle: 'Devasri Nair', followerCount: 12400, engagementRate: 3.1, weeklyReach: 21000 } },
-  { key: 'tiktok', name: 'TikTok', color: '#1C1B18', demo: { handle: '@devasri', followerCount: 5100, engagementRate: 6.2, weeklyReach: 14500 } },
-  { key: 'x', name: 'X / Twitter', color: '#2C2A25', demo: { handle: '@devasri_says', followerCount: 2300, engagementRate: 1.8, weeklyReach: 3800 } },
+  { key: 'instagram', name: 'Instagram', demo: { handle: '@devasri.creates', followerCount: 48200, engagementRate: 4.6, weeklyReach: 96000 } },
+  { key: 'youtube', name: 'YouTube', demo: { handle: 'Devasri Nair', followerCount: 12400, engagementRate: 3.1, weeklyReach: 21000 } },
+  { key: 'tiktok', name: 'TikTok', demo: { handle: '@devasri', followerCount: 5100, engagementRate: 6.2, weeklyReach: 14500 } },
+  { key: 'x', name: 'X / Twitter', demo: { handle: '@devasri_says', followerCount: 2300, engagementRate: 1.8, weeklyReach: 3800 } },
 ];
 
 const GREEN = '#4F7A1E';
@@ -78,7 +77,7 @@ export default function PlatformsScreen() {
         </Button>
       }
     >
-      {PLATFORMS.map(({ key, name, color, demo }) => {
+      {PLATFORMS.map(({ key, name, demo }) => {
         const connected = platforms[key];
         const isBusy = busy === key;
         return (
@@ -87,10 +86,9 @@ export default function PlatformsScreen() {
             className="mb-[11px] flex-row items-center gap-3 rounded-card border border-hairline-card bg-surface-card p-3.5 shadow-l1"
           >
             <View
-              className="h-10 w-10 items-center justify-center rounded-panel"
-              style={{ backgroundColor: color }}
+              className="h-10 w-10 items-center justify-center rounded-panel border border-hairline bg-avatar"
             >
-              <Text className="font-geist-bold text-secondary text-white">
+              <Text className="font-geist-bold text-secondary text-ink">
                 {name[0]}
               </Text>
             </View>
@@ -98,29 +96,28 @@ export default function PlatformsScreen() {
               <Text className="font-geist-semibold text-body text-ink">{name}</Text>
               <Text className="mt-0.5 font-geist text-secondary text-ink-3" numberOfLines={1}>
                 {connected
-                  ? `${connected.handle} · ${(connected.followerCount / 1000).toFixed(1)}K · ${connected.engagementRate}% ER`
+                  ? `${connected.handle} · ${(connected.followerCount / 1000).toFixed(1)}K · ${connected.engagementRate}% engagement`
                   : 'Not connected'}
               </Text>
             </View>
-            <Pressable
+            <Button
+              action="secondary"
+              size="md"
               onPress={() => connect(key, demo)}
-              disabled={Boolean(connected) || isBusy}
-              className={`min-h-9 items-center justify-center rounded-pill px-4 ${
-                connected ? 'border border-hairline bg-surface-recess' : 'bg-ink'
-              }`}
+              isDisabled={Boolean(connected) || isBusy}
+              className="min-w-[96px] px-3"
             >
               {isBusy ? (
-                <ActivityIndicator size="small" color={TERTIARY} />
+                <ButtonSpinner />
+              ) : connected ? (
+                <>
+                  <CheckIcon width={14} height={14} color={TERTIARY} />
+                  <ButtonText>Linked</ButtonText>
+                </>
               ) : (
-                <Text
-                  className={`font-geist-semibold text-secondary ${
-                    connected ? 'text-ink-2' : 'text-white'
-                  }`}
-                >
-                  {connected ? 'Linked ✓' : 'Connect'}
-                </Text>
+                <ButtonText>Connect</ButtonText>
               )}
-            </Pressable>
+            </Button>
           </View>
         );
       })}
