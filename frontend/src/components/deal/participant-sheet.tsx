@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
+import { Skeleton } from '@/components/motion/skeleton';
 import {
   createParticipantRequest,
   decideParticipantRequest,
@@ -146,7 +147,14 @@ export function ParticipantSheet({
   return (
     <EditSheet visible={visible} onClose={() => { if (!busy) onClose(); }} title="People in this deal" subtitle="Adding a teammate requires approval from everyone already here.">
       <ScrollView className="max-h-[68vh]" contentContainerClassName="gap-4 pb-4">
-        {loading && !state ? <ActivityIndicator accessibilityLabel="Loading participants" color="#847F78" /> : null}
+        {loading && !state ? (
+          <View accessibilityLabel="Loading participants" className="gap-3">
+            <Skeleton.Block width="60%" height={14} radius="pill" />
+            <Skeleton.Block width="45%" height={12} radius="pill" />
+            <Skeleton.Block width="55%" height={14} radius="pill" />
+            <Skeleton.Block width="40%" height={12} radius="pill" />
+          </View>
+        ) : null}
         {notice ? <Text accessibilityLiveRegion="polite" className="font-geist-medium text-[12px] text-status-success">{notice}</Text> : null}
         {error ? (
           <View className="gap-2">

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 
 import { DealPreviewCard } from '@/components/chat/deal-preview-card';
+import { Skeleton } from '@/components/motion/skeleton';
 import { PrivateDealLabelSheet } from '@/components/chat/private-deal-label-sheet';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
 import { fetchMyDealPreviews, type DealPreview } from '@/lib/deals';
@@ -125,10 +126,8 @@ export default function ChatScreen() {
         <Text className="font-geist-bold text-display text-ink">Chat</Text>
       </View>
 
-      {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#847F78" />
-        </View>
+      {loading && visibleDeals.length === 0 ? (
+        <Skeleton.InboxRows rows={3} />
       ) : deals.length === 0 ? (
         <EmptyState />
       ) : (

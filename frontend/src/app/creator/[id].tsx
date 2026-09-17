@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { MediaKitView } from '@/components/media-kit/media-kit-view';
 import { ConnectSheet } from '@/components/discovery/connect-sheet';
+import { Skeleton } from '@/components/motion/skeleton';
 import { fetchCreatorMediaKitById, type CreatorMediaKit } from '@/lib/media-kit';
 
 import ChevronLeftIcon from '@/assets/icons/chevron-left.svg';
@@ -50,9 +51,7 @@ export default function CreatorDetailScreen() {
       </View>
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#847F78" />
-        </View>
+        <Skeleton.Profile />
       ) : !data ? (
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-center font-geist text-body text-ink-2">

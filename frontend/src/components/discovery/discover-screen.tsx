@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, type Href } from 'expo-router';
 
 import { CreatorCard } from '@/components/discovery/creator-card';
 import { BrandCard } from '@/components/discovery/brand-card';
 import { FilterChips } from '@/components/discovery/filter-chips';
+import { Skeleton } from '@/components/motion/skeleton';
 import {
   fetchBrandsForBrowse,
   fetchCreatorsForBrowse,
@@ -92,14 +93,6 @@ export function DiscoverScreen() {
     });
   }, [brands, search, industry, city]);
 
-  if (loading) {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-app" edges={['top']}>
-        <ActivityIndicator color="#847F78" />
-      </SafeAreaView>
-    );
-  }
-
   const isBrand = accountType === 'brand';
   const count = isBrand ? filteredCreators.length : filteredBrands.length;
 
@@ -111,53 +104,60 @@ export function DiscoverScreen() {
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder={isBrand ? 'Creators by name' : 'Brands by name'}
+            placeholder={loading ? 'Search' : isBrand ? 'Creators by name' : 'Brands by name'}
             placeholderTextColor="#847F78"
             className="font-geist text-body text-ink"
             autoCapitalize="none"
+            editable={!loading}
           />
         </View>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerClassName="px-4 pt-3"
-        contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
-        scrollIndicatorInsets={{ bottom: tabBarInset }}
-      >
-        {isBrand ? (
-          <>
-            <FilterChips label="Niche" options={creatorNiches} selected={niche} onSelect={setNiche} />
-            <FilterChips label="Platform" options={creatorPlatforms} selected={platform} onSelect={setPlatform} />
-            <FilterChips label="City" options={creatorCities} selected={city} onSelect={setCity} />
-          </>
-        ) : (
-          <>
-            <FilterChips label="Industry" options={brandIndustries} selected={industry} onSelect={setIndustry} />
-            <FilterChips label="City" options={brandCities} selected={city} onSelect={setCity} />
-          </>
-        )}
+      {loading ? (
+        <View className="px-4 pt-3">
+          <Skeleton.CardGrid columns={2} rows={3} />
+        </View>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerClassName="px-4 pt-3"
+          contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
+          scrollIndicatorInsets={{ bottom: tabBarInset }}
+        >
+          {isBrand ? (
+            <>
+              <FilterChips label="Niche" options={creatorNiches} selected={niche} onSelect={setNiche} />
+              <FilterChips label="Platform" options={creatorPlatforms} selected={platform} onSelect={setPlatform} />
+              <FilterChips label="City" options={creatorCities} selected={city} onSelect={setCity} />
+            </>
+          ) : (
+            <>
+              <FilterChips label="Industry" options={brandIndustries} selected={industry} onSelect={setIndustry} />
+              <FilterChips label="City" options={brandCities} selected={city} onSelect={setCity} />
+            </>
+          )}
 
-        <Text className="mb-3 mt-2 font-geist-semibold text-subtitle text-ink">
-          {count} {isBrand ? (count === 1 ? 'creator' : 'creators') : count === 1 ? 'brand' : 'brands'}
-        </Text>
+          <Text className="mb-3 mt-2 font-geist-semibold text-subtitle text-ink">
+            {count} {isBrand ? (count === 1 ? 'creator' : 'creators') : count === 1 ? 'brand' : 'brands'}
+          </Text>
 
-        {count === 0 ? (
-          <Text className="font-geist text-body text-ink-3">Nothing matches those filters yet.</Text>
-        ) : isBrand ? (
-          <View className="flex-row flex-wrap justify-between gap-y-3">
-            {filteredCreators.map((c) => (
-              <View key={c.creatorId} className="w-[48.5%]">
-                <CreatorCard creator={c} onPress={() => router.push(`/creator/${c.creatorId}` as Href)} />
-              </View>
-            ))}
-          </View>
-        ) : (
-          filteredBrands.map((b) => (
-            <BrandCard key={b.brandId} brand={b} onPress={() => router.push(`/brand/${b.brandId}` as Href)} />
-          ))
-        )}
-      </ScrollView>
+          {count === 0 ? (
+            <Text className="font-geist text-body text-ink-3">Nothing matches those filters yet.</Text>
+          ) : isBrand ? (
+            <View className="flex-row flex-wrap justify-between gap-y-3">
+              {filteredCreators.map((c) => (
+                <View key={c.creatorId} className="w-[48.5%]">
+                  <CreatorCard creator={c} onPress={() => router.push(`/creator/${c.creatorId}` as Href)} />
+                </View>
+              ))}
+            </View>
+          ) : (
+            filteredBrands.map((b) => (
+              <BrandCard key={b.brandId} brand={b} onPress={() => router.push(`/brand/${b.brandId}` as Href)} />
+            ))
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
