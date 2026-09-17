@@ -798,6 +798,18 @@ up exactly where the last one left off, with zero context lost.
   44pt back targets, scroll-revealed titles/glass, profile skeleton/error actions, and safe-area
   padding. tsc/lint/web-export (35 routes)/node-tests (15/15) green; visual detector found no issues.
   Next: batch 7 (AuthShell/onboarding moments, grouped settings lists).
+- **2026-09-17 — Batch 7 (`ui/batch-7`):** PR-19 dropped the onboarding/auth eyebrow (decision 9),
+  added a title/subtitle/body entrance stagger and a 44pt back target to `AuthShell`; the
+  onboarding progress bar's current segment now scales in on advance; OTP boxes pop on fill and
+  shake on a wrong code; the Draw/Type signature toggle got a sliding pillow-glass thumb and both
+  modes now stay mounted so switching never discards a drawn signature; SignaturePad strokes are
+  smoothed and Clear fades instead of cutting; the completeness ring on Done now draws once on
+  load. PR-21 moved preferences, the privacy sheet, and maker-checker config off stacked
+  shadow-l1 cards onto one grouped hairline list, made preference rows whole-row tappable,
+  switched privacy toggles to write-on-flip instead of a Save button, and renamed "Maker-checker"
+  to "Approval rules" with a loading skeleton and a Retry path for load failures. Deferred:
+  B5-71's invite-teammate button (no invite flow exists to send it to). tsc/lint (3 pre-existing
+  warnings)/web-export (35 routes)/node-tests (15/15) green.
 
 ## NEXT UP  *(ordered)*
 
