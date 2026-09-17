@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import Animated from 'react-native-reanimated';
 
 import { BrandProfileView } from '@/components/discovery/brand-profile-view';
 import { ConnectSheet } from '@/components/discovery/connect-sheet';
 import { Skeleton } from '@/components/motion/skeleton';
+import { DetailHeader, useDetailHeaderScroll } from '@/components/ui/detail-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { fetchBrandProfileById, type BrandProfile } from '@/lib/media-kit';
-
-import ChevronLeftIcon from '@/assets/icons/chevron-left.svg';
 
 /**
  * Brand detail (B2-006 / B2-038) — a creator-facing read of a brand's public
@@ -19,6 +19,10 @@ export default function BrandDetailScreen() {
   const [data, setData] = useState<BrandProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
+  const insets = useSafeAreaInsets();
+  const { onScroll, scrolled } = useDetailHeaderScroll();
+
+  const goBack = () => router.back();
 
   useEffect(() => {
     let active = true;
@@ -36,30 +40,21 @@ export default function BrandDetailScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-app" edges={['top']}>
-      <View className="flex-row items-center px-2 py-2">
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          className="h-10 w-10 items-center justify-center"
-        >
-          <ChevronLeftIcon width={24} height={24} color="#1C1B18" />
-        </Pressable>
-      </View>
+      <DetailHeader title={data?.companyName ?? 'Brand profile'} scrolled={scrolled} onBack={goBack} />
 
       {loading ? (
         <Skeleton.Profile />
       ) : !data ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center font-geist text-body text-ink-2">
-            This brand couldn’t be loaded.
-          </Text>
-        </View>
+        <EmptyState title="This brand couldn’t be loaded" description="Go back and try another profile." actionLabel="Go back" onAction={goBack} />
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-16">
+        <Animated.ScrollView
+          showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        >
           <BrandProfileView data={data} onConnect={() => setConnecting(true)} />
-        </ScrollView>
+        </Animated.ScrollView>
       )}
 
       {data ? (

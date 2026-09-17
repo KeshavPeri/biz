@@ -36,12 +36,13 @@ import { sendChatAttachment } from '@/lib/chat-attachments';
 import { StageProgressBar } from '@/components/deal/stage-progress-bar';
 import { StickyActionBar } from '@/components/deal/sticky-action-bar';
 import { GlassFlush } from '@/components/ui/glass-flush';
+import { DetailHeader, useDetailHeaderScroll } from '@/components/ui/detail-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ParticipantSheet } from '@/components/deal/participant-sheet';
 import { DealNameSheet } from '@/components/deal/deal-name-sheet';
 import { formatClockTime } from '@/lib/format';
 import { useAuthStore } from '@/store/auth-store';
 
-import ChevronLeftIcon from '@/assets/icons/chevron-left.svg';
 import SendIcon from '@/assets/icons/send.svg';
 import EditIcon from '@/assets/icons/edit.svg';
 import AttachmentIcon from '@/assets/icons/attach.svg';
@@ -73,6 +74,7 @@ export default function DealRoomScreen() {
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [nameEditorOpen, setNameEditorOpen] = useState(false);
   const [participantRefresh, setParticipantRefresh] = useState(0);
+  const { reveal: revealDetailHeader, scrolled } = useDetailHeaderScroll();
 
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const isNearBottomRef = useRef(true);
@@ -303,51 +305,31 @@ export default function DealRoomScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-chatCanvas" edges={['top']}>
-      {/* ── Header ── */}
-      <View className="border-b border-hairline bg-app">
-        <View className="flex-row items-center gap-2 px-2 py-2">
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-            className="h-9 w-9 items-center justify-center"
-          >
-            <ChevronLeftIcon width={24} height={24} color="#1C1B18" />
+      <DetailHeader
+        title={currentThread?.dealName ?? 'Deal'}
+        scrolled={scrolled}
+        onBack={() => router.back()}
+        rightAction={currentThread && !isTerminal && currentThread.dealNameVersion !== null ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Edit deal name" hitSlop={8} onPress={() => setNameEditorOpen(true)} className="h-11 w-11 items-center justify-center">
+            <EditIcon width={15} height={15} color="#5D5953" />
           </Pressable>
-          <View className="min-w-0 flex-1">
-            <View className="flex-row items-center gap-1.5">
-              <Text className="min-w-0 flex-shrink font-geist-semibold text-subtitle text-ink" numberOfLines={1}>
-                {currentThread?.dealName ?? 'Deal'}
-              </Text>
-              {currentThread && !isTerminal && currentThread.dealNameVersion !== null ? (
-                <Pressable accessibilityRole="button" accessibilityLabel="Edit deal name" hitSlop={8} onPress={() => setNameEditorOpen(true)} className="h-8 w-8 items-center justify-center">
-                  <EditIcon width={15} height={15} color="#5D5953" />
-                </Pressable>
-              ) : null}
-            </View>
-            {currentThread ? (
-              <Pressable accessibilityRole="button" accessibilityLabel={`View ${Object.keys(currentThread.namesById).length} deal participants`} onPress={() => setParticipantsOpen(true)} className="self-start py-0.5">
-                <Text className="font-geist text-secondary tabular-nums text-ink-2" numberOfLines={1}>
-                  {Object.keys(currentThread.namesById).length} in this deal ›
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
+        ) : null}
+      />
+      {currentThread ? (
+        <View className="border-b border-hairline bg-app">
+          <Pressable accessibilityRole="button" accessibilityLabel={`View ${Object.keys(currentThread.namesById).length} deal participants`} onPress={() => setParticipantsOpen(true)} className="self-start px-4 py-1.5">
+            <Text className="font-geist text-secondary tabular-nums text-ink-2" numberOfLines={1}>
+              {Object.keys(currentThread.namesById).length} in this deal ›
+            </Text>
+          </Pressable>
+          <StageProgressBar stage={currentThread.stage} isDisputed={currentThread.isDisputed} />
         </View>
-
-        {/* Stage progress bar (task 9.6). */}
-        {currentThread ? <StageProgressBar stage={currentThread.stage} isDisputed={currentThread.isDisputed} /> : null}
-      </View>
+      ) : null}
 
       {loading ? (
         <Skeleton.Thread />
       ) : !currentThread ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center font-geist text-body text-ink-2">
-            This deal couldn’t be loaded.
-          </Text>
-        </View>
+        <EmptyState title="This deal couldn’t be loaded" description="Go back and try another deal." actionLabel="Go back" onAction={() => router.back()} />
       ) : (
         <KeyboardAvoidingView
           className="flex-1"
@@ -362,6 +344,7 @@ export default function DealRoomScreen() {
             onContentSizeChange={handleContentSizeChange}
             onLayout={handleListLayout}
             onScroll={(event) => {
+              revealDetailHeader(event.nativeEvent.contentOffset.y);
               const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
               const nearBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 80;
               isNearBottomRef.current = nearBottom;
