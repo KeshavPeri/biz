@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
+import { LayoutAnimationConfig } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, type Href } from 'expo-router';
 
 import { CreatorCard } from '@/components/discovery/creator-card';
 import { BrandCard } from '@/components/discovery/brand-card';
 import { FilterChips } from '@/components/discovery/filter-chips';
+import { ListItemFade } from '@/components/motion/list-item-fade';
 import { Skeleton } from '@/components/motion/skeleton';
 import {
   fetchBrandsForBrowse,
@@ -144,17 +146,23 @@ export function DiscoverScreen() {
           {count === 0 ? (
             <Text className="font-geist text-body text-ink-3">Nothing matches those filters yet.</Text>
           ) : isBrand ? (
-            <View className="flex-row flex-wrap justify-between gap-y-3">
-              {filteredCreators.map((c) => (
-                <View key={c.creatorId} className="w-[48.5%]">
-                  <CreatorCard creator={c} onPress={() => router.push(`/creator/${c.creatorId}` as Href)} />
-                </View>
-              ))}
-            </View>
+            <LayoutAnimationConfig skipEntering>
+              <View className="flex-row flex-wrap justify-between gap-y-3">
+                {filteredCreators.map((c) => (
+                  <ListItemFade key={c.creatorId} className="w-[48.5%]">
+                    <CreatorCard creator={c} onPress={() => router.push(`/creator/${c.creatorId}` as Href)} />
+                  </ListItemFade>
+                ))}
+              </View>
+            </LayoutAnimationConfig>
           ) : (
-            filteredBrands.map((b) => (
-              <BrandCard key={b.brandId} brand={b} onPress={() => router.push(`/brand/${b.brandId}` as Href)} />
-            ))
+            <LayoutAnimationConfig skipEntering>
+              {filteredBrands.map((b) => (
+                <ListItemFade key={b.brandId}>
+                  <BrandCard brand={b} onPress={() => router.push(`/brand/${b.brandId}` as Href)} />
+                </ListItemFade>
+              ))}
+            </LayoutAnimationConfig>
           )}
         </ScrollView>
       )}
