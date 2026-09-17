@@ -41,7 +41,7 @@ Status values: todo · in progress · done · blocked (reason).
 | 5 | done | yes |
 | 6 | done | yes |
 | 7 | done | yes |
-| 8 | done | pending merge |
+| 8 | done | yes |
 | 9 | todo | |
 | 10 | todo | |
 
