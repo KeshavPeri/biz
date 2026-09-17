@@ -1,93 +1,103 @@
+import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import React from 'react';
-import { View, type ViewProps } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, type ViewProps, type ViewStyle } from 'react-native';
+
+import { GlassFlush } from '@/components/ui/glass-flush';
 
 /**
- * GlassSurface — Inflo's "pillow-glass" material (task 6.7, docs/design-tokens.md
- * §Material signatures). The gradient is the SHARED language; the outer lift is the
- * RESERVED signature.
+ * GlassSurface — Inflo's glass material (docs/design-tokens.md §Material signatures).
+ * The gradient is the SHARED language; the outer lift is the RESERVED signature.
  *
- *  - variant="flush"  → glassFlush: gradient + hairline + inset top highlight, NO outer
- *    lift. Shared material for secondary buttons, chat bubbles, chart bars.
- *  - variant="pillow" → pillowGlass: the same, PLUS the outer lift. Reserved for
- *    nav-active only (used later in 6.5).
+ *  - variant="flush"  → glassFlush: gradient + `.07` hairline + inset top highlight,
+ *    NO outer lift.
+ *  - variant="pillow" → pillowGlass: `.05` hairline, plus the two-layer outer lift
+ *    (contact `0 1 2 /.05` + far `0 5 12 /.09`). Reserved for nav-active only.
  *
- * The gradient (#FFFFFF → #EAE7DF, ~165°) is drawn with expo-linear-gradient so it
- * renders on BOTH web and native (a CSS gradient className would be web-only). The 1px
- * top highlight is drawn as an explicit overlay so the convex read survives on native,
- * where inset box-shadows aren't supported.
+ * `liquid` swaps in the native iOS 26 `GlassView` when the OS offers it (decision 4);
+ * everywhere else the gradient recipe renders. Shadows sit on separate nested Views
+ * with the clip on the innermost one, so neither iOS shadows nor Android elevation
+ * get cut off by `overflow: hidden`.
  */
-
-const GLASS_COLORS = ['#FFFFFF', '#EAE7DF'] as const;
 
 export type GlassVariant = 'flush' | 'pillow';
 
 type GlassSurfaceProps = ViewProps & {
   variant?: GlassVariant;
-  /** Tailwind classes for the outer surface — radius, padding, sizing, etc. */
+  /** Corner radius of the glass layers (absolute layers can't read it from className). */
+  radius?: number;
+  /** Use native Liquid Glass when available (nav + active pill only). */
+  liquid?: boolean;
+  /** Tailwind classes for the outer surface — sizing, padding, layout. */
   className?: string;
   children?: React.ReactNode;
 };
 
+const LIQUID = isLiquidGlassAvailable();
+
 export function GlassSurface({
   variant = 'flush',
+  radius = 12,
+  liquid = false,
   className,
   children,
   style,
   ...props
 }: GlassSurfaceProps) {
-  // Shadow via inline style, not a shadow-* className. GlassSurface with
-  // variant="pillow" mounts/unmounts on every bottom-nav tab switch (see
-  // BottomNav), and a conditionally-present shadow-* class is a documented
-  // NativeWind native-only bug (nativewind/nativewind#1536/#1557/#1711):
-  // it can race React Navigation's context init and throw "Couldn't find a
-  // navigation context." glassInset (flush) is inset-only — no native RN
-  // equivalent — so it contributes nothing on native anyway; the TopHighlight
-  // overlay below already carries that read on native.
-  const shadowStyle =
-    variant === 'pillow'
-      ? {
-          shadowColor: '#1C1B18',
-          shadowOffset: { width: 0, height: 5 },
-          shadowOpacity: 0.09,
-          shadowRadius: 6,
-          elevation: 3,
-        }
-      : undefined;
+  const isPillow = variant === 'pillow';
+
+  if (liquid && LIQUID) {
+    return (
+      <View className={className} style={style} {...props}>
+        <GlassView
+          glassEffectStyle="regular"
+          colorScheme="light"
+          pointerEvents="none"
+          style={[Fill, { borderRadius: radius }]}
+        />
+        {children}
+      </View>
+    );
+  }
 
   return (
-    <View
-      className={`overflow-hidden border border-[rgba(28,27,24,0.07)] ${className ?? ''}`}
-      style={[shadowStyle, style]}
-      {...props}
-    >
-      <LinearGradient
-        colors={GLASS_COLORS}
-        // ~165°: mostly top→bottom with a slight lean, matching the style tile.
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.35, y: 1 }}
-        style={StyleFill}
-      />
-      {/* 1px top highlight — makes the glass read convex on native too. */}
-      <View style={TopHighlight} pointerEvents="none" />
+    <View className={className} style={[isPillow ? FarShadow : null, style]} {...props}>
+      {isPillow ? (
+        // Opaque so the contact shadow (and Android elevation) takes the pill's shape.
+        <View pointerEvents="none" style={[Fill, ContactShadow, { borderRadius: radius }]} />
+      ) : null}
+      <View
+        pointerEvents="none"
+        style={[
+          Fill,
+          {
+            borderRadius: radius,
+            borderWidth: 1,
+            borderColor: isPillow ? 'rgba(28,27,24,0.05)' : 'rgba(28,27,24,0.07)',
+            overflow: 'hidden',
+          },
+        ]}
+      >
+        <GlassFlush />
+      </View>
       {children}
     </View>
   );
 }
 
-const StyleFill = {
-  position: 'absolute' as const,
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
+const Fill: ViewStyle = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 };
+
+const FarShadow: ViewStyle = {
+  shadowColor: '#1C1B18',
+  shadowOffset: { width: 0, height: 5 },
+  shadowOpacity: 0.09,
+  shadowRadius: 6,
 };
 
-const TopHighlight = {
-  position: 'absolute' as const,
-  top: 0,
-  left: 0,
-  right: 0,
-  height: 1,
-  backgroundColor: 'rgba(255,255,255,0.9)',
+const ContactShadow: ViewStyle = {
+  backgroundColor: '#FFFFFF',
+  shadowColor: '#1C1B18',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.05,
+  shadowRadius: 1,
+  elevation: 3,
 };

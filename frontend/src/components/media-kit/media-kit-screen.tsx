@@ -11,6 +11,7 @@ import { RateCardEditor } from '@/components/media-kit/editors/rate-card-editor'
 import { PrivacySheet } from '@/components/media-kit/editors/privacy-sheet';
 import { AffiliationsEditor } from '@/components/media-kit/editors/affiliations-editor';
 import { PhotosEditor } from '@/components/media-kit/editors/photos-editor';
+import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
 import { fetchOwnMediaKit, type MediaKitData, type SocialHandle } from '@/lib/media-kit';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -24,6 +25,7 @@ type Editor = 'profile' | 'handle' | 'rate' | 'privacy' | 'affiliations' | 'phot
  */
 export function MediaKitScreen() {
   const session = useAuthStore((s) => s.session);
+  const tabBarInset = useTabBarInset();
   const [data, setData] = useState<MediaKitData | null>(null);
   const [loadState, setLoadState] = useState<'loading' | 'ok' | 'not_onboarded' | 'error'>('loading');
   const [preview, setPreview] = useState(false);
@@ -137,7 +139,11 @@ export function MediaKitScreen() {
         </View>
       ) : null}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-32">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
+        scrollIndicatorInsets={{ bottom: tabBarInset }}
+      >
         <MediaKitView
           data={data}
           viewerMode={isPreview ? 'brand' : 'own'}
@@ -210,6 +216,7 @@ function BrandScreen({
   editing: boolean;
   setEditing: (v: boolean) => void;
 }) {
+  const tabBarInset = useTabBarInset();
   const attrs = data.profileAttributes ?? {};
   const rows: { label: string; value: string }[] = [
     { label: 'Industry', value: data.industry ?? '—' },
@@ -220,7 +227,12 @@ function BrandScreen({
 
   return (
     <SafeAreaView className="flex-1 bg-app" edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="px-4 pb-32 pt-2">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerClassName="px-4 pt-2"
+        contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
+        scrollIndicatorInsets={{ bottom: tabBarInset }}
+      >
         <Text className="font-geist-bold text-display text-ink">{data.companyName}</Text>
         <Text className="mt-1 font-geist text-body text-ink-2">Your brand profile in Discovery.</Text>
 
