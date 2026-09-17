@@ -8,12 +8,15 @@ import {
   type VariantProps,
 } from '@gluestack-ui/utils/nativewind-utils';
 import { cssInterop } from 'nativewind';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { PrimitiveIcon, UIIcon } from '@gluestack-ui/core/icon/creator';
+
+import { PressableScale } from '@/components/motion/pressable-scale';
 
 const SCOPE = 'BUTTON';
 
-const Root = withStyleContext(Pressable, SCOPE);
+// PressableScale gives every button the shared scale/opacity press + haptic (roadmap §2.1).
+const Root = withStyleContext(PressableScale, SCOPE);
 
 const UIButton = createButton({
   Root: Root,

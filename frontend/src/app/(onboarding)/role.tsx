@@ -1,9 +1,10 @@
 import React from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { SvgProps } from 'react-native-svg';
 
+import { PressableScale } from '@/components/motion/pressable-scale';
 import { useOnboardingStore, type OnboardingRole } from '@/store/onboarding-store';
 
 import CreatorIcon from '@/assets/icons/profile.svg';
@@ -23,8 +24,9 @@ type RoleCardProps = {
 // Mockup `.rolecard` — white card, recessed icon square, title/subtitle, chevron.
 function RoleCard({ Icon, title, subtitle, onPress }: RoleCardProps) {
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
+      haptic="light"
       accessibilityRole="button"
       className="mb-3 flex-row items-center gap-3.5 rounded-card border border-hairline-card bg-surface-card p-4 shadow-l1"
     >
@@ -36,7 +38,7 @@ function RoleCard({ Icon, title, subtitle, onPress }: RoleCardProps) {
         <Text className="mt-0.5 font-geist text-secondary text-ink-2">{subtitle}</Text>
       </View>
       <ChevronIcon width={18} height={18} color={TERTIARY} />
-    </Pressable>
+    </PressableScale>
   );
 }
 
