@@ -18,7 +18,7 @@ Status values: todo · in progress · done · blocked (reason).
 | 4 | PR-13 StageAdvance | done | d323a73 | success haptic added only to Accept/Generate contract/approved terms decision/Confirm posts — Sign and Confirm close excluded (WinSpring owns their haptic in PR-14); Decline and dispute submit excluded (not wins) |
 | 4 | PR-14 WinSpring | done | c9b41d8 | decision 6 (all 5 sites); rating-sheet/contract-sign-sheet now hold the sheet open ~380ms after success so the spring is visible before dismissing; no check-circle icon exists, used check.svg |
 | 4 | PR-16 ListItemFade | done | 8df1d9f | chat inbox, label-sheet rows, discover results, submission history |
-| 5 | PR-08 Type sweep deal/* | todo | | |
+| 5 | PR-08 Type sweep deal/* | done | ddb3b3f | also swept all remaining deal/ sheets/cards (B2-64/69), not just the 4 named largest files |
 | 5 | PR-09 Type sweep chat/discovery/tabs | todo | | |
 | 6 | PR-23 Type sweep auth/onboarding/media-kit | todo | | |
 | 6 | PR-17 Polish batch | todo | | decisions 1, 11 |
@@ -37,7 +37,7 @@ Status values: todo · in progress · done · blocked (reason).
 | 1 | done | yes (PR #48) |
 | 2 | done | yes (PR #49) |
 | 3 | done | yes (PR #50) |
-| 4 | done | pending merge |
+| 4 | done | yes (PR #51) |
 | 5 | todo | |
 | 6 | todo | |
 | 7 | todo | |
