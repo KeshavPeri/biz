@@ -22,7 +22,7 @@ Status values: todo · in progress · done · blocked (reason).
 | 5 | PR-09 Type sweep chat/discovery/tabs | done | 96230b6 | text-status-bad fixed per decision 11 (ink-2, not red — routine label validation error); left brand-profile-view's 18/22px hero stat numbers and the trust-strip layout (B3-43) untouched, outside the 10-12.5px sweep scope |
 | 6 | PR-23 Type sweep auth/onboarding/media-kit | done | 552f003 | |
 | 6 | PR-17 Polish batch | done | 1d8a774 | decisions 1, 11 |
-| 6 | PR-18 Detail-route header | todo | | |
+| 6 | PR-18 Detail-route header | done | 95c2cea | |
 | 7 | PR-19 AuthShell + onboarding moments | todo | | decision 9 |
 | 7 | PR-21 Grouped settings lists | todo | | decision 10 |
 | 8 | PR-22 Media-kit editors + hero | todo | | |
