@@ -3,6 +3,8 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Platform, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 // Geist — Inflo's primary typeface (task 6.7). The useFonts hook loads at runtime
@@ -64,36 +66,45 @@ export default function RootLayout() {
   }, [ready]);
 
   if (!ready) {
-    return null;
+    // The warm ground instead of a blank white frame between splash hide and
+    // first paint on web (splash is native-only) — B1-02.
+    return <View className="flex-1 bg-app" />;
   }
 
   return (
-    <GluestackUIProvider mode="light">
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        {/* Three-way gated routing (expo-router redirects when a guard flips):
-              • no session            → (auth)      sign up / log in
-              • session, not onboarded → (onboarding) the wizard
-              • session + onboarded    → (tabs)      the app shell            */}
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Protected guard={!!session && onboarded === true}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            {/* Discovery detail routes — siblings above the tabs, so Discover stays
-                mounted underneath and its filters survive the round trip. */}
-            <Stack.Screen name="creator/[id]" options={{ headerShown: false }} />
-            <Stack.Screen name="brand/[id]" options={{ headerShown: false }} />
-            {/* Deal room (Phase 9) — root-stack sibling above the tabs; opened from
-                the chat list, so the tab shell stays mounted underneath. */}
-            <Stack.Screen name="deal/[id]" options={{ headerShown: false }} />
-          </Stack.Protected>
-          <Stack.Protected guard={!!session && onboarded === false}>
-            <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-          </Stack.Protected>
-          <Stack.Protected guard={!session}>
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          </Stack.Protected>
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </GluestackUIProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <GluestackUIProvider mode="system">
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          {/* Three-way gated routing (expo-router redirects when a guard flips):
+                • no session            → (auth)      sign up / log in
+                • session, not onboarded → (onboarding) the wizard
+                • session + onboarded    → (tabs)      the app shell            */}
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              animation: Platform.select({ web: 'fade', default: 'default' }),
+            }}
+          >
+            <Stack.Protected guard={!!session && onboarded === true}>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              {/* Discovery detail routes — siblings above the tabs, so Discover stays
+                  mounted underneath and its filters survive the round trip. */}
+              <Stack.Screen name="creator/[id]" options={{ headerShown: false }} />
+              <Stack.Screen name="brand/[id]" options={{ headerShown: false }} />
+              {/* Deal room (Phase 9) — root-stack sibling above the tabs; opened from
+                  the chat list, so the tab shell stays mounted underneath. */}
+              <Stack.Screen name="deal/[id]" options={{ headerShown: false }} />
+            </Stack.Protected>
+            <Stack.Protected guard={!!session && onboarded === false}>
+              <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+            </Stack.Protected>
+            <Stack.Protected guard={!session}>
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            </Stack.Protected>
+          </Stack>
+          <StatusBar style="dark" />
+        </ThemeProvider>
+      </GluestackUIProvider>
+    </GestureHandlerRootView>
   );
 }
