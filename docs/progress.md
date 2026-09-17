@@ -810,6 +810,12 @@ up exactly where the last one left off, with zero context lost.
   to "Approval rules" with a loading skeleton and a Retry path for load failures. Deferred:
   B5-71's invite-teammate button (no invite flow exists to send it to). tsc/lint (3 pre-existing
   warnings)/web-export (35 routes)/node-tests (15/15) green.
+- **2026-09-17 — Batch 8 (`ui/batch-8`):** PR-22 added shared chip groups and 44pt icon buttons;
+  removed onboarding emoji chips and off-palette platform tiles; added credential/photo list motion,
+  busy guards, upload skeletons, and single-primary editor actions; and polished the media-kit hero
+  with bounded identity motion, glass edit controls, tabular values, name/bio truncation, and an
+  accessible pager. tsc/lint (3 pre-existing warnings)/web-export (35 routes)/node-tests (15/15)
+  green. Next: batch 9 (critical-tint/stage pills, off-palette/chat bubble, PlatformTile/hero).
 
 ## NEXT UP  *(ordered)*
 
