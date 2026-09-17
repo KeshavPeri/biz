@@ -792,6 +792,12 @@ up exactly where the last one left off, with zero context lost.
   red-tint-fill sweep and stage-pill colours (decision-gated) are batch 9's PR-10.
   tsc/lint/web-export (35 routes)/node-tests (15/15) green. Next: batch 6 (type sweep
   auth/onboarding/media-kit, polish batch, detail-route header).
+- **2026-09-17 — Batch 6 (`ui/batch-6`):** PR-23 completed the auth/onboarding/media-kit type-role
+  sweep; PR-17 added the shared empty state, field/toggle polish, native confirmation sheets, icon
+  glyph swaps, guarded chat auto-scroll, and truncation; PR-18 added shared detail headers with
+  44pt back targets, scroll-revealed titles/glass, profile skeleton/error actions, and safe-area
+  padding. tsc/lint/web-export (35 routes)/node-tests (15/15) green; visual detector found no issues.
+  Next: batch 7 (AuthShell/onboarding moments, grouped settings lists).
 
 ## NEXT UP  *(ordered)*
 
