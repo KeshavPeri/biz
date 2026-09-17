@@ -34,7 +34,7 @@ Status values: todo · in progress · done · blocked (reason).
 ## Batch status
 | Batch | Status | Merged to main |
 |---|---|---|
-| 1 | in progress | |
+| 1 | done | pending merge |
 | 2 | todo | |
 | 3 | todo | |
 | 4 | todo | |
@@ -47,3 +47,4 @@ Status values: todo · in progress · done · blocked (reason).
 
 ## Session log
 (append: date · model · batch · PRs · checks · merged? · deferred)
+- 2026-09-17 · Claude Sonnet 5 · batch 1 · Setup, PR-00, PR-01, PR-02 · tsc/lint/web-export/node-tests all pass · merging to main · nothing deferred. Assumption: PR-00's "Continue onboarding" routes to `/(onboarding)/role` since onboarding has no server-side resume point (profile writes only happen at `done.tsx`); B5-17's `fetchOwnMediaKit` was widened to a status-tagged result (`ok`/`not_onboarded`/`error`) even though `lib/media-kit.ts` isn't in PR-00's file list, because it's the shared primitive the finding is about and the screen fix is meaningless without it.
