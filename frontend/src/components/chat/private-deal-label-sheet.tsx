@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { LayoutAnimationConfig } from 'react-native-reanimated';
 
 import TagIcon from '@/assets/icons/tag.svg';
+import { ListItemFade } from '@/components/motion/list-item-fade';
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import {
@@ -55,7 +57,7 @@ export function PrivateDealLabelSheet({
     <View className="gap-3">
       <View className="flex-row items-center gap-2"><TagIcon width={18} height={18} color="#847F78" /><TextInput value={draft} onChangeText={(value) => { setDraft(value); setError(null); }} editable={canAdd} maxLength={64} accessibilityLabel="New private label" placeholder="Add a label" placeholderTextColor="#847F78" className="min-h-11 flex-1 rounded-xl border border-hairline bg-surface-card px-3 font-geist text-[13px] text-ink" /></View>
       {error || initialError ? <Text accessibilityRole="alert" className="font-geist text-[12px] text-status-bad">{error ?? initialError}</Text> : null}
-      {loading ? <ActivityIndicator color="#847F78" /> : labels.length === 0 ? <Text className="font-geist text-[13px] text-ink-3">No private labels yet.</Text> : <View className="gap-2">{labels.map((row) => <View key={row.id} className="flex-row items-center justify-between rounded-xl border border-hairline bg-surface-card px-3 py-2"><Text className="font-geist-medium text-[13px] text-ink">{row.label}</Text><Pressable accessibilityRole="button" accessibilityLabel="Remove private label" disabled={busy} onPress={() => { void remove(row.id); }}><Text className="font-geist-semibold text-[12px] text-ink-2">Remove</Text></Pressable></View>)}</View>}
+      {loading ? <ActivityIndicator color="#847F78" /> : labels.length === 0 ? <Text className="font-geist text-[13px] text-ink-3">No private labels yet.</Text> : <LayoutAnimationConfig skipEntering><View className="gap-2">{labels.map((row) => <ListItemFade key={row.id}><View className="flex-row items-center justify-between rounded-xl border border-hairline bg-surface-card px-3 py-2"><Text className="font-geist-medium text-[13px] text-ink">{row.label}</Text><Pressable accessibilityRole="button" accessibilityLabel="Remove private label" disabled={busy} onPress={() => { void remove(row.id); }}><Text className="font-geist-semibold text-[12px] text-ink-2">Remove</Text></Pressable></View></ListItemFade>)}</View></LayoutAnimationConfig>}
       {availableSuggestions.length > 0 && labels.length < MAX_PRIVATE_DEAL_LABELS ? <View className="gap-2"><Text className="font-geist-medium text-[11px] uppercase tracking-wide text-ink-3">Your other labels</Text><View className="flex-row flex-wrap gap-2">{availableSuggestions.map((label) => <Pressable key={label} disabled={busy} onPress={() => { void add(label); }} className="rounded-pill border border-hairline bg-surface-card px-3 py-1.5"><Text className="font-geist-semibold text-[11px] text-ink-2">{label}</Text></Pressable>)}</View></View> : null}
     </View>
   </EditSheet>;

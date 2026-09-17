@@ -771,6 +771,17 @@ up exactly where the last one left off, with zero context lost.
   exit animation, drag-to-dismiss, keyboard avoidance, safe-area bottom, `rounded-t-sheet` 24 token).
   tsc/lint/web-export/node-tests green. `docs/design-tokens.md` is read-only on disk, so the `sheet: 24`
   line is still to add there (see NEEDS MY INPUT). Next: batch 4 (skeletons, stage advance, win spring).
+- **2026-09-17 — Batch 4 (`ui/batch-4`):** PR-12 new `Skeleton` primitive (inbox/card-grid/thread/
+  profile presets) replaces centred spinners in chat, discover, the deal room, brand/creator detail,
+  and the participant/post-close sheets; a background refresh now dips the card to 60% opacity for
+  150ms instead of showing "Refreshing…" text. PR-13 the stage-progress bar sweeps its segment fill
+  and pops the new current node on a real stage advance (light haptic), plus a success haptic on
+  Accept / Generate contract / approved terms decisions / Confirm posts. PR-14 new `WinSpring`
+  primitive (haptic + a tiny scale bounce, the one spring in the app) on all 5 win moments per
+  decision 6: deal closed, payment received, a connection request sent, a final rating submitted,
+  and a contract signed. PR-16 new `ListItemFade` fades rows in/out on add/remove (inbox, private
+  labels, discover results, submission history) without animating the first render of any list.
+  tsc/lint/web-export/node-tests (15/15) green. Next: batch 5 (type-role sweep, deal/chat/discover/tabs).
 
 ## NEXT UP  *(ordered)*
 

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { Alert, Linking, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as Crypto from 'expo-crypto';
+import * as Haptics from 'expo-haptics';
 import { Button, ButtonText } from '@/components/ui/button';
 import { ContractSignSheet } from '@/components/deal/contract-sign-sheet';
 import { ContractAlignmentCard } from '@/components/deal/contract-alignment-card';
@@ -123,6 +124,15 @@ export function StickyActionBar({
   messages: ChatMessage[];
   onTransitioned: () => void;
 }) {
+  // Success haptic on an ordinary successful transition (B2-15/roadmap §2, PR-13).
+  // Deal-close and contract-sign are excluded here — those already get
+  // `Haptics.notificationAsync(Success)` as part of their WinSpring (PR-14),
+  // and firing it twice for the same transition would double the buzz.
+  const notifyTransitionSuccess = useCallback(() => {
+    if (Platform.OS === 'web') return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, []);
+
   const [acting, setActing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Set when accept returns a warn-only exclusivity notice (needs re-confirm).
@@ -534,13 +544,14 @@ export function StickyActionBar({
       if (!res.ok) setError(res.message);
       else if (res.transitioned) {
         setExclusivityWarning(null);
+        notifyTransitionSuccess();
         onTransitioned();
       } else {
         setExclusivityWarning(res.exclusivityWarning); // warn-only → re-confirm
       }
       setActing(false);
     },
-    [acting, thread.dealId, onTransitioned],
+    [acting, thread.dealId, onTransitioned, notifyTransitionSuccess],
   );
 
   const runSummary = useCallback(
@@ -566,10 +577,13 @@ export function StickyActionBar({
       if (!result.ok) setError(result.message);
       await loadTerms();
       if (!result.ok || !result.transitioned) await loadSummary();
-      if (result.ok && result.transitioned) onTransitioned();
+      if (result.ok && result.transitioned) {
+        notifyTransitionSuccess();
+        onTransitioned();
+      }
       setActing(false);
     },
-    [acting, loadSummary, loadTerms, onTransitioned, terms?.summary?.id, thread.dealId],
+    [acting, loadSummary, loadTerms, onTransitioned, terms?.summary?.id, thread.dealId, notifyTransitionSuccess],
   );
 
   const runContract = useCallback(
@@ -1020,10 +1034,14 @@ export function StickyActionBar({
       paymentDetails.brand_version,
     );
     await Promise.all([loadDeliverables(), loadPaymentDetails()]);
-    if (result.ok) onTransitioned();
-    else setError(result.message);
+    if (result.ok) {
+      notifyTransitionSuccess();
+      onTransitioned();
+    } else {
+      setError(result.message);
+    }
     setActing(false);
-  }, [acting, deliverables, loadDeliverables, loadPaymentDetails, onTransitioned, paymentDetails, thread.dealId]);
+  }, [acting, deliverables, loadDeliverables, loadPaymentDetails, onTransitioned, paymentDetails, thread.dealId, notifyTransitionSuccess]);
 
   const openVerifiedPost = useCallback(async (url: string) => {
     if (!/^https:\/\/[^\s]+$/i.test(url)) {
@@ -1236,7 +1254,11 @@ export function StickyActionBar({
             <View className="gap-2.5">
               {termsReview(true)}
               <Actions label="Approval — contract" error={error}>
-                <PrimaryButton label={acting ? 'Generating…' : 'Generate contract'} onPress={() => runContract(() => generateContract(thread.dealId))} disabled={acting} />
+                <PrimaryButton label={acting ? 'Generating…' : 'Generate contract'} onPress={() => runContract(async () => {
+                  const result = await generateContract(thread.dealId);
+                  if (result.ok) notifyTransitionSuccess();
+                  return result;
+                })} disabled={acting} />
               </Actions>
             </View>
           );

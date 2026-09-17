@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { Button, ButtonText } from '@/components/ui/button';
+import { RefreshDip, Skeleton } from '@/components/motion/skeleton';
+import { WinSpring } from '@/components/motion/win-spring';
 import { PAYMENT_STATE_LABELS, PaymentStateSheet } from '@/components/deal/payment-state-sheet';
 import type {
   PaymentState,
@@ -175,7 +177,7 @@ export function PaymentTrackingCard({
   };
 
   if (loading && !state) {
-    return <TrackerNotice title="Payment tracking" message="Loading the current off-platform payment record…" />;
+    return <PaymentTrackingSkeleton />;
   }
 
   if (!state) {
@@ -204,6 +206,7 @@ export function PaymentTrackingCard({
 
   return (
     <>
+      <RefreshDip refreshing={loading}>
       <View className="gap-3 rounded-2xl border border-hairline bg-surface-card p-3">
         <View>
           <View className="flex-row items-start justify-between gap-3">
@@ -213,7 +216,6 @@ export function PaymentTrackingCard({
                 Records off-platform activity. Inflo does not transfer or verify funds.
               </Text>
             </View>
-            {loading ? <Text className="font-geist-medium text-[10.5px] text-ink-3">Refreshing…</Text> : null}
           </View>
         </View>
 
@@ -273,6 +275,7 @@ export function PaymentTrackingCard({
           </View>
         ) : null}
       </View>
+      </RefreshDip>
 
       {resolvedAction ? (
         <PaymentStateSheet
@@ -310,7 +313,9 @@ function AggregateSummary({ state }: { state: PaymentTrackingAvailable }) {
         </View>
       </View>
       <View className="border-t border-hairline pt-2">
-        <StatusLine state={state.state} />
+        <WinSpring trigger={state.state === 'paid_full'}>
+          <StatusLine state={state.state} />
+        </WinSpring>
         <Text className="mt-1 font-geist text-[10.5px] text-ink-3">
           Reported {formatDateTime(state.reported_at)} · payment version {state.version}
         </Text>
@@ -378,7 +383,9 @@ function MilestoneRow({
           </Text>
         </View>
       </View>
-      <StatusLine state={milestone.state} />
+      <WinSpring trigger={milestone.state === 'paid_full'}>
+        <StatusLine state={milestone.state} />
+      </WinSpring>
       <View className="gap-1 border-t border-hairline pt-2">
         <LedgerFact label="Due" value={formatDateOnly(milestone.due_date)} compact />
         <LedgerFact label="Reported" value={`${formatDateTime(milestone.reported_at)} · version ${milestone.version}`} compact />
@@ -460,6 +467,18 @@ function RetryButton({ label, onPress }: { label: string; onPress: () => void })
     <Button action="secondary" accessibilityLabel={label} onPress={onPress} className="self-start">
       <ButtonText>Retry</ButtonText>
     </Button>
+  );
+}
+
+function PaymentTrackingSkeleton() {
+  return (
+    <View className="gap-3 rounded-2xl border border-hairline bg-surface-card p-3">
+      <Skeleton.Block width="55%" height={14} radius="pill" />
+      <Skeleton.Block height={28} radius="panel" />
+      <Skeleton.Block height={16} radius="pill" />
+      <Skeleton.Block height={16} radius="pill" />
+      <Skeleton.Block height={16} radius="pill" />
+    </View>
   );
 }
 

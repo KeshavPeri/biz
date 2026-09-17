@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { BrandProfileView } from '@/components/discovery/brand-profile-view';
 import { ConnectSheet } from '@/components/discovery/connect-sheet';
+import { Skeleton } from '@/components/motion/skeleton';
 import { fetchBrandProfileById, type BrandProfile } from '@/lib/media-kit';
 
 import ChevronLeftIcon from '@/assets/icons/chevron-left.svg';
@@ -48,9 +49,7 @@ export default function BrandDetailScreen() {
       </View>
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#847F78" />
-        </View>
+        <Skeleton.Profile />
       ) : !data ? (
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-center font-geist text-body text-ink-2">

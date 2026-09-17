@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { LayoutAnimationConfig } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 
 import { DealPreviewCard } from '@/components/chat/deal-preview-card';
+import { ListItemFade } from '@/components/motion/list-item-fade';
+import { Skeleton } from '@/components/motion/skeleton';
 import { PrivateDealLabelSheet } from '@/components/chat/private-deal-label-sheet';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
 import { fetchMyDealPreviews, type DealPreview } from '@/lib/deals';
@@ -125,25 +128,29 @@ export default function ChatScreen() {
         <Text className="font-geist-bold text-display text-ink">Chat</Text>
       </View>
 
-      {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#847F78" />
-        </View>
+      {loading && visibleDeals.length === 0 ? (
+        <Skeleton.InboxRows rows={3} />
       ) : deals.length === 0 ? (
         <EmptyState />
       ) : (
-        <FlatList
-          data={filteredDeals}
-          keyExtractor={(d) => d.dealId}
-          contentContainerClassName="gap-3 px-4 pt-1"
-          contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
-          scrollIndicatorInsets={{ bottom: tabBarInset }}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={<LabelFilters values={labelValues} selected={selectedLabel} onSelect={setSelectedLabel} />}
-          ListEmptyComponent={selectedLabel ? <LabelEmptyState onClear={() => setSelectedLabel(null)} /> : null}
-          renderItem={({ item }) => <DealPreviewCard deal={item} labels={visibleLabels[item.dealId] ?? []} onPress={() => router.push(`/deal/${item.dealId}`)} onEditLabels={() => setEditorDealId(item.dealId)} />}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#847F78" />}
-        />
+        <LayoutAnimationConfig skipEntering>
+          <FlatList
+            data={filteredDeals}
+            keyExtractor={(d) => d.dealId}
+            contentContainerClassName="gap-3 px-4 pt-1"
+            contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
+            scrollIndicatorInsets={{ bottom: tabBarInset }}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={<LabelFilters values={labelValues} selected={selectedLabel} onSelect={setSelectedLabel} />}
+            ListEmptyComponent={selectedLabel ? <LabelEmptyState onClear={() => setSelectedLabel(null)} /> : null}
+            renderItem={({ item }) => (
+              <ListItemFade>
+                <DealPreviewCard deal={item} labels={visibleLabels[item.dealId] ?? []} onPress={() => router.push(`/deal/${item.dealId}`)} onEditLabels={() => setEditorDealId(item.dealId)} />
+              </ListItemFade>
+            )}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#847F78" />}
+          />
+        </LayoutAnimationConfig>
       )}
       {userId && editorDeal ? <PrivateDealLabelSheet visible accountId={userId} dealId={editorDeal.dealId} dealName={editorDeal.dealName} labels={visibleLabels[editorDeal.dealId] ?? []} suggestions={labelValues} loading={labelLoading} initialError={labelFetchError} onClose={() => setEditorDealId(null)} onAdd={addLabel} onRemove={removeLabel} /> : null}
     </SafeAreaView>

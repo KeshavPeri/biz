@@ -1,5 +1,8 @@
 import { Text, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
+import CheckIcon from '@/assets/icons/check.svg';
+import { WinSpring } from '@/components/motion/win-spring';
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import type { CloseConfirmation, CloseStatus } from '@/lib/deals';
 
@@ -27,12 +30,16 @@ export function CloseStatusCard({
   const complete = state.stage === 'closed';
   const disputeBlocked = state.dispute_blocked;
   return (
-    <View className="gap-3 rounded-2xl border border-hairline bg-surface-card p-3">
+    <WinSpring trigger={complete} style={{ borderRadius: 16 }}>
+      <View className="gap-3 rounded-2xl border border-hairline bg-surface-card p-3">
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
-          <Text className="font-geist-semibold text-[14px] text-ink">
-            {complete ? 'Deal closed' : disputeBlocked ? 'Close paused' : 'Ready to close'}
-          </Text>
+          <View className="flex-row items-center gap-1.5">
+            {complete ? <CheckIcon width={14} height={14} color="#4F7A1E" /> : null}
+            <Text className="font-geist-semibold text-[14px] text-ink">
+              {complete ? 'Deal closed' : disputeBlocked ? 'Close paused' : 'Ready to close'}
+            </Text>
+          </View>
           <Text className="mt-0.5 font-geist text-[11px] leading-[16px] text-ink-2">
             {complete
               ? 'Both sides confirmed. Payment history and messages remain visible, but this thread is read-only.'
@@ -70,7 +77,8 @@ export function CloseStatusCard({
           </Button>
         </View>
       ) : null}
-    </View>
+      </View>
+    </WinSpring>
   );
 }
 
@@ -92,9 +100,13 @@ function ConfirmationRow({
           {confirmation.confirmed ? confirmation.display_label : pendingLabel}
         </Text>
       </View>
-      <Text className={`font-geist-semibold text-[10.5px] ${confirmation.confirmed ? 'text-status-good-label' : 'text-ink-3'}`}>
+      <Animated.Text
+        key={confirmation.confirmed ? 'confirmed' : 'pending'}
+        entering={confirmation.confirmed ? FadeIn.duration(200) : undefined}
+        className={`font-geist-semibold text-[10.5px] ${confirmation.confirmed ? 'text-status-good-label' : 'text-ink-3'}`}
+      >
         {confirmation.confirmed ? 'Confirmed' : paused ? 'Paused' : 'Waiting'}
-      </Text>
+      </Animated.Text>
     </View>
   );
 }

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
+import { LayoutAnimationConfig } from 'react-native-reanimated';
 
+import { ListItemFade } from '@/components/motion/list-item-fade';
 import { Button, ButtonText } from '@/components/ui/button';
 import { PrivateDeliverableLabelPicker } from '@/components/deal/private-deliverable-label-picker';
 import type {
@@ -220,28 +222,32 @@ function DeliverableRow({
       {deliverable.submission_history.length ? (
         <View className="gap-2 border-t border-hairline pt-2">
           <Text className="font-geist-medium text-[10.5px] uppercase tracking-wide text-ink-3">Submission history</Text>
-          {deliverable.submission_history.map((submission) => (
-            <View key={submission.id} className="rounded-lg bg-surface-card px-2.5 py-2">
-              <View className="flex-row items-start justify-between gap-2">
-                <View className="min-w-0 flex-1">
-                  <Text selectable className="font-geist-semibold text-[11.5px] text-ink">
-                    Round {submission.round_number} · {submission.original_filename}
-                  </Text>
-                  <Text className="mt-0.5 font-geist text-[10.5px] text-ink-3">
-                    {submissionLabel(submission.lifecycle)} · {formatBytes(submission.size_bytes)}
-                  </Text>
+          <LayoutAnimationConfig skipEntering>
+            {deliverable.submission_history.map((submission) => (
+              <ListItemFade key={submission.id}>
+                <View className="rounded-lg bg-surface-card px-2.5 py-2">
+                  <View className="flex-row items-start justify-between gap-2">
+                    <View className="min-w-0 flex-1">
+                      <Text selectable className="font-geist-semibold text-[11.5px] text-ink">
+                        Round {submission.round_number} · {submission.original_filename}
+                      </Text>
+                      <Text className="mt-0.5 font-geist text-[10.5px] text-ink-3">
+                        {submissionLabel(submission.lifecycle)} · {formatBytes(submission.size_bytes)}
+                      </Text>
+                    </View>
+                    <Button action="secondary" onPress={() => onDownload(submission.id)} isDisabled={acting} className="px-4">
+                      <ButtonText>Open</ButtonText>
+                    </Button>
+                  </View>
+                  {submission.comment ? (
+                    <Text className="mt-2 border-t border-hairline pt-2 font-geist text-[11px] text-ink-2">
+                      Revision note: {submission.comment}
+                    </Text>
+                  ) : null}
                 </View>
-                <Button action="secondary" onPress={() => onDownload(submission.id)} isDisabled={acting} className="px-4">
-                  <ButtonText>Open</ButtonText>
-                </Button>
-              </View>
-              {submission.comment ? (
-                <Text className="mt-2 border-t border-hairline pt-2 font-geist text-[11px] text-ink-2">
-                  Revision note: {submission.comment}
-                </Text>
-              ) : null}
-            </View>
-          ))}
+              </ListItemFade>
+            ))}
+          </LayoutAnimationConfig>
         </View>
       ) : (
         <Text className="border-t border-hairline pt-2 font-geist text-[10.5px] text-ink-3">No draft submitted yet.</Text>

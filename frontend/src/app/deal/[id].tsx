@@ -13,6 +13,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
+import { Skeleton } from '@/components/motion/skeleton';
 import {
   fetchDealThread,
   fetchDealMessage,
@@ -319,9 +320,7 @@ export default function DealRoomScreen() {
       </View>
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#847F78" />
-        </View>
+        <Skeleton.Thread />
       ) : !currentThread ? (
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-center font-geist text-body text-ink-2">
