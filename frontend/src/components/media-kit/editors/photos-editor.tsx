@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 import { Button, ButtonText } from '@/components/ui/button';
@@ -93,6 +93,13 @@ export function PhotosEditor({
     if (ok) void removeProfilePhoto(path); // best-effort object cleanup after the DB is updated
   };
 
+  const confirmRemoveAt = (i: number) => {
+    Alert.alert('Remove this photo?', 'It will be deleted from your media kit.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => { void removeAt(i); } },
+    ]);
+  };
+
   const move = async (i: number, dir: -1 | 1) => {
     const j = i + dir;
     if (j < 0 || j >= paths.length) return;
@@ -148,34 +155,32 @@ export function PhotosEditor({
                 )}
               </View>
 
-              <View className="flex-row items-center gap-1">
+              <View className="flex-row items-center">
                 <Pressable
                   onPress={() => move(i, -1)}
-                  hitSlop={6}
                   disabled={i === 0}
                   accessibilityRole="button"
                   accessibilityLabel="Move up"
-                  className={i === 0 ? 'opacity-30' : ''}
+                  className={`h-11 w-11 items-center justify-center ${i === 0 ? 'opacity-30' : ''}`}
                 >
                   <ChevronUpIcon width={20} height={20} color="#5E574E" />
                 </Pressable>
                 <Pressable
                   onPress={() => move(i, 1)}
-                  hitSlop={6}
                   disabled={i === paths.length - 1}
                   accessibilityRole="button"
                   accessibilityLabel="Move down"
-                  className={i === paths.length - 1 ? 'opacity-30' : ''}
+                  className={`h-11 w-11 items-center justify-center ${i === paths.length - 1 ? 'opacity-30' : ''}`}
                 >
                   <ChevronDownIcon width={20} height={20} color="#5E574E" />
                 </Pressable>
                 <Pressable
-                  onPress={() => removeAt(i)}
-                  hitSlop={6}
+                  onPress={() => confirmRemoveAt(i)}
                   accessibilityRole="button"
                   accessibilityLabel="Remove photo"
+                  className="ml-3 h-11 w-11 items-center justify-center"
                 >
-                  <TrashIcon width={18} height={18} color="#C0392B" />
+                  <TrashIcon width={18} height={18} color="#847F78" />
                 </Pressable>
               </View>
             </View>

@@ -748,6 +748,17 @@ up exactly where the last one left off, with zero context lost.
   remove in 6.5). `npx tsc --noEmit` = 0 errors; web bundle clean (1525 modules). **No theming
   yet** — that's task 6.7 (co-founder owns the tokens). Still not committed (6.8).
 
+## UI polish
+
+- **2026-09-17 — Batch 1 merged (`ui/batch-1`):** UI audit docs + `.claude/skills`
+  committed; PR-00 trust fixes (media-kit verified badge, edit-profile button, rate-card
+  privacy switch, error-vs-not-onboarded states, delete confirms, fake toggle removed,
+  dev copy stripped); PR-01 dead Expo-template code deleted (+ dropped `expo-symbols`,
+  `@expo/vector-icons`, `@expo-google-fonts/geist-mono`); PR-02 tab crossfade, root Stack
+  fade-on-web, `GestureHandlerRootView`, warm loading frame, light/system theme sync.
+  tsc/lint/web-export/node-tests all green. Next: batch 2 (`useMotion` + `PressableScale`,
+  `ui/button` rebuild). See `docs/ui-audit/REMEDIATION-PROGRESS.md`.
+
 ## NEXT UP  *(ordered)*
 
 1. **Phase 11:** prepare the first bounded workplan 11.1 ticket when the founder requests it.

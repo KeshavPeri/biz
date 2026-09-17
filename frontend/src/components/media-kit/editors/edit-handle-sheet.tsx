@@ -70,7 +70,7 @@ export function EditHandleSheet({
       visible={visible}
       onClose={onClose}
       title={`Edit ${platformLabel(handle.platform)}`}
-      subtitle="Mock stats for now — no live platform pull in this version."
+      subtitle="Enter your latest numbers. Brands see these as indicative."
       footer={
         <Button
           action="primary"

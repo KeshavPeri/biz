@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
@@ -71,6 +71,13 @@ export function AffiliationsEditor({
     onChanged();
   };
 
+  const confirmRemove = (a: Affiliation) => {
+    Alert.alert('Remove this credential?', `"${a.name}" will be removed from your media kit.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => { void remove(a.id); } },
+    ]);
+  };
+
   return (
     <EditSheet
       visible={visible}
@@ -111,12 +118,13 @@ export function AffiliationsEditor({
                 </Text>
               </Pressable>
               <Pressable
-                onPress={() => remove(a.id)}
-                hitSlop={8}
+                onPress={() => confirmRemove(a)}
+                hitSlop={13}
+                className="h-11 w-11 items-center justify-center"
                 accessibilityRole="button"
                 accessibilityLabel={`Remove ${a.name}`}
               >
-                <TrashIcon width={18} height={18} color="#C0392B" />
+                <TrashIcon width={18} height={18} color="#847F78" />
               </Pressable>
             </View>
           ))}

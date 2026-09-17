@@ -129,18 +129,26 @@ const DEFAULT_PRIVACY: PrivacySettings = {
 // ── Fetch ────────────────────────────────────────────────────────────────────
 
 /**
- * Assemble the signed-in user's own media kit / brand profile. Returns null when
- * there's no client or the profile can't be resolved (caller shows an empty state).
+ * Assemble the signed-in user's own media kit / brand profile. Distinguishes a
+ * real fetch failure (network/DB — retryable) from "not onboarded yet" (no
+ * profiles row, or the account never finished the wizard) so the screen can
+ * show the right recovery action instead of one blank empty state (B5-17).
  */
-export async function fetchOwnMediaKit(userId: string): Promise<MediaKitData | null> {
-  if (!supabase) return null;
+export type MediaKitFetchResult =
+  | { status: 'ok'; data: MediaKitData }
+  | { status: 'not_onboarded' }
+  | { status: 'error' };
+
+export async function fetchOwnMediaKit(userId: string): Promise<MediaKitFetchResult> {
+  if (!supabase) return { status: 'error' };
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('account_type, display_name, city, avatar_url')
     .eq('id', userId)
     .maybeSingle();
-  if (profileError || !profile) return null;
+  if (profileError) return { status: 'error' };
+  if (!profile) return { status: 'not_onboarded' };
 
   if (profile.account_type === 'brand') {
     return fetchBrandProfile(userId, profile.display_name);
@@ -151,50 +159,56 @@ export async function fetchOwnMediaKit(userId: string): Promise<MediaKitData | n
 async function fetchBrandProfile(
   userId: string,
   _displayName: string,
-): Promise<BrandProfile | null> {
+): Promise<MediaKitFetchResult> {
   const client = supabase!;
   // A brand user's own brand via their membership.
-  const { data: membership } = await client
+  const { data: membership, error: membershipError } = await client
     .from('brand_members')
     .select('brand_id')
     .eq('profile_id', userId)
     .maybeSingle();
-  if (!membership) return null;
+  if (membershipError) return { status: 'error' };
+  if (!membership) return { status: 'not_onboarded' };
 
-  const { data: brand } = await client
+  const { data: brand, error: brandError } = await client
     .from('brands')
     .select('id, company_name, industry, domain, verified, trust_rating, deal_completion_rate, profile_attributes')
     .eq('id', membership.brand_id)
     .maybeSingle();
-  if (!brand) return null;
+  if (brandError) return { status: 'error' };
+  if (!brand) return { status: 'not_onboarded' };
 
   return {
-    kind: 'brand',
-    brandId: brand.id,
-    companyName: brand.company_name,
-    industry: brand.industry,
-    domain: brand.domain,
-    verified: brand.verified,
-    trustRating: brand.trust_rating,
-    dealCompletionRate: brand.deal_completion_rate,
-    profileAttributes: (brand.profile_attributes as Record<string, unknown> | null) ?? null,
+    status: 'ok',
+    data: {
+      kind: 'brand',
+      brandId: brand.id,
+      companyName: brand.company_name,
+      industry: brand.industry,
+      domain: brand.domain,
+      verified: brand.verified,
+      trustRating: brand.trust_rating,
+      dealCompletionRate: brand.deal_completion_rate,
+      profileAttributes: (brand.profile_attributes as Record<string, unknown> | null) ?? null,
+    },
   };
 }
 
 async function fetchCreatorMediaKit(
   userId: string,
   profile: { display_name: string; city: string | null; avatar_url: string | null },
-): Promise<CreatorMediaKit | null> {
+): Promise<MediaKitFetchResult> {
   const client = supabase!;
 
-  const { data: cp } = await client
+  const { data: cp, error: cpError } = await client
     .from('creator_profiles')
     .select(
       'id, niches, content_category, bio, content_languages, photo_carousel, inbound_enabled, outbound_enabled, trust_score, deal_completion_rate, response_time_hours, privacy_settings',
     )
     .eq('profile_id', userId)
     .maybeSingle();
-  if (!cp) return null;
+  if (cpError) return { status: 'error' };
+  if (!cp) return { status: 'not_onboarded' };
 
   const creatorId = cp.id as string;
 
@@ -218,7 +232,10 @@ async function fetchCreatorMediaKit(
         .eq('creator_id', creatorId),
     ]);
 
-  return buildCreatorMediaKit(userId, creatorId, cp, profile, handles, rateCards, affiliations, partnerships);
+  return {
+    status: 'ok',
+    data: buildCreatorMediaKit(userId, creatorId, cp, profile, handles, rateCards, affiliations, partnerships),
+  };
 }
 
 /**
@@ -347,8 +364,9 @@ export async function fetchBrandProfileById(brandId: string): Promise<BrandProfi
 // ── Completeness refresh (called after creator/brand edits) ──────────────────
 
 async function refreshCreatorCompleteness(userId: string): Promise<void> {
-  const kit = await fetchOwnMediaKit(userId);
-  if (!kit || kit.kind !== 'creator') return;
+  const result = await fetchOwnMediaKit(userId);
+  if (result.status !== 'ok' || result.data.kind !== 'creator') return;
+  const kit = result.data;
   const pct = computeCreatorCompleteness({
     city: kit.city,
     niches: kit.niches,

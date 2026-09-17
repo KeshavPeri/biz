@@ -90,19 +90,30 @@ export function MediaKitView({
           pointerEvents="none"
         />
 
-        {/* Own-view: edit-photos affordance. */}
+        {/* Own-view: edit-photos + edit-profile affordances. */}
         {isOwn && edit ? (
-          <Pressable
-            className="absolute right-3 top-6 flex-row items-center gap-1.5 rounded-pill bg-[rgba(28,27,24,0.4)] px-3 py-2"
-            onPress={edit.onEditPhotos}
-            accessibilityRole="button"
-            accessibilityLabel="Edit photos"
-          >
-            <EditIcon width={14} height={14} color="#FBFAF6" />
-            <Text className="font-geist-semibold text-[12px] text-white">
-              {hasPhotos ? 'Edit photos' : 'Add photos'}
-            </Text>
-          </Pressable>
+          <View className="absolute right-3 top-6 flex-row items-center gap-2">
+            <Pressable
+              className="flex-row items-center gap-1.5 rounded-pill bg-[rgba(28,27,24,0.4)] px-3 py-2"
+              onPress={edit.onEditProfile}
+              accessibilityRole="button"
+              accessibilityLabel="Edit profile"
+            >
+              <EditIcon width={14} height={14} color="#FBFAF6" />
+              <Text className="font-geist-semibold text-[12px] text-white">Edit profile</Text>
+            </Pressable>
+            <Pressable
+              className="flex-row items-center gap-1.5 rounded-pill bg-[rgba(28,27,24,0.4)] px-3 py-2"
+              onPress={edit.onEditPhotos}
+              accessibilityRole="button"
+              accessibilityLabel="Edit photos"
+            >
+              <EditIcon width={14} height={14} color="#FBFAF6" />
+              <Text className="font-geist-semibold text-[12px] text-white">
+                {hasPhotos ? 'Edit photos' : 'Add photos'}
+              </Text>
+            </Pressable>
+          </View>
         ) : null}
 
         {/* Identity overlay. */}
@@ -118,9 +129,14 @@ export function MediaKitView({
             <Text className="font-geist-bold text-[26px] tracking-tight text-white">
               {data.displayName}
             </Text>
-            <View className="h-5 w-5 items-center justify-center rounded-full bg-[rgba(251,250,246,0.22)]">
-              <CheckIcon width={12} height={12} color="#FFFFFF" />
-            </View>
+            {data.handles.some((h) => h.verification_status === 'verified') ? (
+              <View
+                className="h-5 w-5 items-center justify-center rounded-full bg-[rgba(251,250,246,0.22)]"
+                accessibilityLabel="Verified creator"
+              >
+                <CheckIcon width={12} height={12} color="#FFFFFF" />
+              </View>
+            ) : null}
           </View>
           {meta ? (
             <Text className="mt-1 font-geist-medium text-[13px] text-[rgba(251,250,246,0.85)]">
@@ -164,7 +180,7 @@ export function MediaKitView({
 
       {/* REACH — platform stat cards (B2-032). Handles are edited per-card, so the
           section has no header-level edit link (tap a card in own view). */}
-      <Section title="Reach" sub="mock stats · no live API">
+      <Section title="Reach" sub="Stats are indicative">
         {data.handles.length === 0 ? (
           <EmptyLine text="No platforms connected yet." />
         ) : (
@@ -244,14 +260,9 @@ export function MediaKitView({
               <Text className="font-geist-semibold text-body text-white">Start a deal</Text>
             </Pressable>
           ) : (
-            <>
-              <View className="items-center justify-center rounded-button bg-cane-3 py-3.5 opacity-60">
-                <Text className="font-geist-semibold text-body text-ink-2">Start a deal (coming soon)</Text>
-              </View>
-              <Text className="mt-1.5 text-center font-geist text-[11px] text-ink-3">
-                Connect flow lands with the deal engine.
-              </Text>
-            </>
+            <View className="items-center justify-center rounded-button bg-cane-3 py-3.5 opacity-60">
+              <Text className="font-geist-semibold text-body text-ink-2">Start a deal (coming soon)</Text>
+            </View>
           )}
         </View>
       ) : null}

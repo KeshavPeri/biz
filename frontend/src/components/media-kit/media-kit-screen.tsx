@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Toggle } from '@/components/ui/toggle';
@@ -24,19 +25,24 @@ type Editor = 'profile' | 'handle' | 'rate' | 'privacy' | 'affiliations' | 'phot
 export function MediaKitScreen() {
   const session = useAuthStore((s) => s.session);
   const [data, setData] = useState<MediaKitData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadState, setLoadState] = useState<'loading' | 'ok' | 'not_onboarded' | 'error'>('loading');
   const [preview, setPreview] = useState(false);
   const [editor, setEditor] = useState<Editor>(null);
   const [activeHandle, setActiveHandle] = useState<SocialHandle | null>(null);
 
   const load = useCallback(async () => {
     if (!session) {
-      setLoading(false);
+      setLoadState('error');
       return;
     }
-    const kit = await fetchOwnMediaKit(session.user.id);
-    setData(kit);
-    setLoading(false);
+    setLoadState('loading');
+    const result = await fetchOwnMediaKit(session.user.id);
+    if (result.status === 'ok') {
+      setData(result.data);
+    } else {
+      setData(null);
+    }
+    setLoadState(result.status);
   }, [session]);
 
   useEffect(() => {
@@ -55,7 +61,7 @@ export function MediaKitScreen() {
     await load();
   }, [load]);
 
-  if (loading) {
+  if (loadState === 'loading') {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-app" edges={['top']}>
         <ActivityIndicator color="#847F78" />
@@ -63,7 +69,7 @@ export function MediaKitScreen() {
     );
   }
 
-  if (!data) {
+  if (loadState === 'not_onboarded') {
     return (
       <SafeAreaView className="flex-1 bg-app" edges={['top']}>
         <View className="px-4 pt-2">
@@ -71,6 +77,33 @@ export function MediaKitScreen() {
           <Text className="mt-3 font-geist text-body text-ink-2">
             Finish onboarding to build your profile.
           </Text>
+          <Pressable
+            className="mt-5 items-center justify-center rounded-button bg-ink py-3.5"
+            onPress={() => router.replace('/(onboarding)/role')}
+            accessibilityRole="button"
+          >
+            <Text className="font-geist-semibold text-body text-white">Continue onboarding</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (loadState === 'error' || !data) {
+    return (
+      <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+        <View className="px-4 pt-2">
+          <Text className="font-geist-bold text-display text-ink">You</Text>
+          <Text className="mt-3 font-geist text-body text-ink-2">
+            Couldn&apos;t load your profile. Check your connection and try again.
+          </Text>
+          <Pressable
+            className="mt-5 items-center justify-center rounded-button border border-hairline-card bg-surface-card py-3.5"
+            onPress={() => void load()}
+            accessibilityRole="button"
+          >
+            <Text className="font-geist-semibold text-body text-ink">Retry</Text>
+          </Pressable>
         </View>
       </SafeAreaView>
     );
