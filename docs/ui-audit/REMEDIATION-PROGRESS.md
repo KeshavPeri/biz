@@ -17,7 +17,7 @@ Status values: todo · in progress · done · blocked (reason).
 | 4 | PR-12 Skeleton | done | a2724c8 | Skeleton.CardGrid columns fixed at 2 in discover-screen (accountType unknown while loading, so isBrand can't gate columns yet) |
 | 4 | PR-13 StageAdvance | done | d323a73 | success haptic added only to Accept/Generate contract/approved terms decision/Confirm posts — Sign and Confirm close excluded (WinSpring owns their haptic in PR-14); Decline and dispute submit excluded (not wins) |
 | 4 | PR-14 WinSpring | done | c9b41d8 | decision 6 (all 5 sites); rating-sheet/contract-sign-sheet now hold the sheet open ~380ms after success so the spring is visible before dismissing; no check-circle icon exists, used check.svg |
-| 4 | PR-16 ListItemFade | todo | | |
+| 4 | PR-16 ListItemFade | done | 8df1d9f | chat inbox, label-sheet rows, discover results, submission history |
 | 5 | PR-08 Type sweep deal/* | todo | | |
 | 5 | PR-09 Type sweep chat/discovery/tabs | todo | | |
 | 6 | PR-23 Type sweep auth/onboarding/media-kit | todo | | |
