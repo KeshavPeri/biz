@@ -6,7 +6,7 @@ Status values: todo · in progress · done · blocked (reason).
 | Batch | PR | Status | Commit | Notes |
 |---|---|---|---|---|
 | 1 | Setup: commit docs/ui-audit + .claude/skills | done | 4b87e0b | |
-| 1 | PR-00 Trust fixes | todo | | |
+| 1 | PR-00 Trust fixes | done | ab5d530 | |
 | 1 | PR-01 Delete template code | todo | | |
 | 1 | PR-02 Root layout, tab crossfade, gesture root | todo | | |
 | 2 | PR-03 useMotion + PressableScale | todo | | |
