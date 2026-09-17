@@ -1,12 +1,24 @@
-import { useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Platform, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
+import * as Haptics from 'expo-haptics';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedProps,
+  useAnimatedReaction,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
+import { useMotion } from '@/components/motion/use-motion';
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { computeCompleteness, submitOnboarding } from '@/lib/onboarding';
 import { useAuthStore } from '@/store/auth-store';
 import { useOnboardingStore } from '@/store/onboarding-store';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const RING_RADIUS = 66;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS; // ≈ 414.7
@@ -37,8 +49,8 @@ function RecapRow({ label, value, hint }: { label: string; value: string; hint?:
  * Done (task 7.11) — the mockup's done() step: a completeness ring, a recap of
  * what Inflo now knows, and a below-the-fold nudge. "Start discovering" runs
  * submitOnboarding (the single finish write); on success the onboarding gate
- * flips and the app routes into (tabs). The ring is static (not the mockup's
- * animated sweep).
+ * flips and the app routes into (tabs). The ring draws once on load (400ms
+ * ease-out), matching the mockup's animated sweep.
  */
 export default function DoneScreen() {
   const state = useOnboardingStore();
@@ -47,7 +59,36 @@ export default function DoneScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const pct = useMemo(() => computeCompleteness(state), [state]);
-  const dashoffset = RING_CIRCUMFERENCE * (1 - pct / 100);
+  const { reduce } = useMotion();
+  const progress = useSharedValue(reduce ? pct : 0);
+  const [displayPct, setDisplayPct] = useState(reduce ? pct : 0);
+
+  // Completeness ring draws once on load (B4-56, roadmap §1 #18) — a readout,
+  // not a deal win, so no spring; success haptic lands when the sweep lands.
+  useEffect(() => {
+    if (reduce) {
+      progress.value = pct;
+      setDisplayPct(pct);
+      return;
+    }
+    progress.value = withTiming(pct, { duration: 400, easing: Easing.out(Easing.cubic) }, (finished) => {
+      if (finished && Platform.OS !== 'web') {
+        runOnJS(Haptics.notificationAsync)(Haptics.NotificationFeedbackType.Success);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per mount for this pct
+  }, []);
+
+  useAnimatedReaction(
+    () => Math.round(progress.value),
+    (current, previous) => {
+      if (current !== previous) runOnJS(setDisplayPct)(current);
+    },
+  );
+
+  const ringProps = useAnimatedProps(() => ({
+    strokeDashoffset: RING_CIRCUMFERENCE * (1 - progress.value / 100),
+  }));
   const firstName = state.displayName.trim().split(' ')[0] || 'there';
   const isCreator = state.role === 'creator';
 
@@ -92,7 +133,7 @@ export default function DoneScreen() {
           <View className="my-2 h-[150px] w-[150px] items-center justify-center">
             <Svg width={150} height={150}>
               <Circle cx={75} cy={75} r={RING_RADIUS} stroke={RECESS} strokeWidth={11} fill="none" />
-              <Circle
+              <AnimatedCircle
                 cx={75}
                 cy={75}
                 r={RING_RADIUS}
@@ -101,7 +142,7 @@ export default function DoneScreen() {
                 fill="none"
                 strokeLinecap="round"
                 strokeDasharray={RING_CIRCUMFERENCE}
-                strokeDashoffset={dashoffset}
+                animatedProps={ringProps}
                 rotation={-90}
                 originX={75}
                 originY={75}
@@ -109,7 +150,7 @@ export default function DoneScreen() {
             </Svg>
             <View className="absolute items-center">
               <Text className="font-geist-bold text-display tabular-nums text-ink">
-                {pct}%
+                {displayPct}%
               </Text>
               <Text className="font-geist-medium text-micro uppercase tracking-[0.4px] text-ink-3">
                 Complete

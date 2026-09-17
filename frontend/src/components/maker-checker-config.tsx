@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Platform, Pressable, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
+import { Skeleton } from '@/components/motion/skeleton';
 import { Toggle } from '@/components/ui/toggle';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth-store';
 
 // maker_checker_action_type_enum. payment_release is inert in MVP (tracking-only
-// payments, rbac.md) — shown for completeness but not configurable.
-const ACTIONS: { key: string; label: string; desc: string; inert?: boolean }[] = [
+// payments, rbac.md) — not shown (B5-69): a dead switch next to developer copy
+// reads as broken.
+const ACTIONS: { key: string; label: string; desc: string }[] = [
   {
     key: 'contract_signing',
     label: 'Contract signing',
@@ -17,12 +20,6 @@ const ACTIONS: { key: string; label: string; desc: string; inert?: boolean }[] =
     key: 'content_approval',
     label: 'Content approval',
     desc: 'A second person must approve content before it’s signed off.',
-  },
-  {
-    key: 'payment_release',
-    label: 'Payment release',
-    desc: 'Inert for now — payments are tracking-only in this version.',
-    inert: true,
   },
 ];
 
@@ -40,61 +37,116 @@ export function MakerCheckerConfig() {
   const [membership, setMembership] = useState<Membership | null>(null);
   const [config, setConfig] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
+      setLoadError(false);
       if (!supabase || !session) {
         if (active) setLoaded(true);
         return;
       }
-      // Is this user part of a brand, and as what?
-      const { data: mine } = await supabase
-        .from('brand_members')
-        .select('brand_id, brand_role')
-        .eq('profile_id', session.user.id)
-        .maybeSingle();
-
-      if (!active) return;
-      if (!mine) {
-        setLoaded(true);
-        return;
-      }
-
-      const [{ count }, { data: cfg }] = await Promise.all([
-        supabase
+      try {
+        // Is this user part of a brand, and as what?
+        const { data: mine, error: mineErr } = await supabase
           .from('brand_members')
-          .select('id', { count: 'exact', head: true })
-          .eq('brand_id', mine.brand_id),
-        supabase
-          .from('maker_checker_config')
-          .select('action_type, requires_checker')
-          .eq('brand_id', mine.brand_id),
-      ]);
+          .select('brand_id, brand_role')
+          .eq('profile_id', session.user.id)
+          .maybeSingle();
+        if (mineErr) throw mineErr;
 
-      if (!active) return;
-      setMembership({
-        brandId: mine.brand_id,
-        isAdmin: mine.brand_role === 'admin',
-        memberCount: count ?? 1,
-      });
-      setConfig(Object.fromEntries((cfg ?? []).map((r) => [r.action_type, r.requires_checker])));
-      setLoaded(true);
+        if (!active) return;
+        if (!mine) {
+          setLoaded(true);
+          return;
+        }
+
+        const [{ count, error: countErr }, { data: cfg, error: cfgErr }] = await Promise.all([
+          supabase
+            .from('brand_members')
+            .select('id', { count: 'exact', head: true })
+            .eq('brand_id', mine.brand_id),
+          supabase
+            .from('maker_checker_config')
+            .select('action_type, requires_checker')
+            .eq('brand_id', mine.brand_id),
+        ]);
+        if (countErr) throw countErr;
+        if (cfgErr) throw cfgErr;
+
+        if (!active) return;
+        setMembership({
+          brandId: mine.brand_id,
+          isAdmin: mine.brand_role === 'admin',
+          memberCount: count ?? 1,
+        });
+        setConfig(Object.fromEntries((cfg ?? []).map((r) => [r.action_type, r.requires_checker])));
+        setLoaded(true);
+      } catch {
+        // Load errors used to be swallowed (B5-70): an admin would just see
+        // nothing, with no way to tell "not a brand" from "the query failed".
+        if (active) {
+          setLoadError(true);
+          setLoaded(true);
+        }
+      }
     };
     void load();
     return () => {
       active = false;
     };
-  }, [session]);
+  }, [session, retryToken]);
 
-  // Nothing to show for non-brand users, or before load.
-  if (!loaded || !membership) return null;
+  const retry = useCallback(() => {
+    setLoaded(false);
+    setRetryToken((n) => n + 1);
+  }, []);
+
+  // Three-row skeleton while the two round-trips are in flight (B5-70) —
+  // no more popping in and shifting the settings screen.
+  if (!loaded) {
+    return (
+      <View className="mt-8">
+        <Skeleton.Block width={120} height={18} className="mb-3" radius="pill" />
+        <View className="overflow-hidden rounded-card border border-hairline-card bg-surface-card">
+          {[0, 1].map((i) => (
+            <View key={i} className={`flex-row items-center gap-3.5 p-4 ${i > 0 ? 'border-t border-hairline-card' : ''}`}>
+              <View className="flex-1 gap-2">
+                <Skeleton.Block width="55%" height={14} radius="pill" />
+                <Skeleton.Block width="85%" height={12} radius="pill" />
+              </View>
+              <Skeleton.Block width={48} height={29} radius="pill" />
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <View className="mt-8">
+        <Text className="mb-2 font-geist-semibold text-subtitle text-ink">Approval rules</Text>
+        <Text className="mb-2 font-geist text-secondary text-ink-2">
+          Couldn’t load approval rules right now.
+        </Text>
+        <Pressable onPress={retry} hitSlop={8} accessibilityRole="button" className="self-start">
+          <Text className="font-geist-semibold text-secondary text-ink">Retry</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // Nothing to show for non-brand users.
+  if (!membership) return null;
 
   if (!membership.isAdmin) {
     return (
       <View className="mt-8">
-        <Text className="mb-2 font-geist-semibold text-subtitle text-ink">Maker-checker</Text>
+        <Text className="mb-2 font-geist-semibold text-subtitle text-ink">Approval rules</Text>
         <Text className="font-geist text-secondary text-ink-2">
           Only brand admins can configure approval rules.
         </Text>
@@ -108,6 +160,7 @@ export function MakerCheckerConfig() {
     if (!supabase || !membership) return;
     setError(null);
     setConfig((c) => ({ ...c, [action]: value })); // optimistic
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
     const { error: upErr } = await supabase.from('maker_checker_config').upsert(
       { brand_id: membership.brandId, action_type: action, requires_checker: value },
       { onConflict: 'brand_id,action_type' },
@@ -120,9 +173,9 @@ export function MakerCheckerConfig() {
 
   return (
     <View className="mt-8">
-      <Text className="mb-1 font-geist-semibold text-subtitle text-ink">Maker-checker</Text>
+      <Text className="mb-1 font-geist-semibold text-subtitle text-ink">Approval rules</Text>
       <Text className="mb-3 font-geist text-secondary text-ink-2">
-        Require a second person to approve sensitive actions.
+        Require a second teammate to approve sensitive actions.
       </Text>
 
       {soloBrand ? (
@@ -133,29 +186,31 @@ export function MakerCheckerConfig() {
         </View>
       ) : null}
 
-      {ACTIONS.map((a) => (
-        <View
-          key={a.key}
-          className="mb-3 flex-row items-center gap-3.5 rounded-card border border-hairline-card bg-surface-card p-4 shadow-l1"
-        >
-          <View className="flex-1">
-            <Text className="font-geist-semibold text-body text-ink">{a.label}</Text>
-            <Text className="mt-0.5 font-geist text-secondary leading-[18px] text-ink-2">
-              {a.desc}
-            </Text>
+      {/* Grouped L0 list (B5-72) — one hairline-bordered card, no per-row shadow. */}
+      <View className="overflow-hidden rounded-card border border-hairline-card bg-surface-card">
+        {ACTIONS.map((a, i) => (
+          <View
+            key={a.key}
+            className={`flex-row items-center gap-3.5 p-4 ${i > 0 ? 'border-t border-hairline-card' : ''}`}
+          >
+            <View className="flex-1">
+              <Text className="font-geist-semibold text-body text-ink">{a.label}</Text>
+              <Text className="mt-0.5 font-geist text-secondary leading-[18px] text-ink-2">
+                {a.desc}
+              </Text>
+            </View>
+            <Toggle
+              value={Boolean(config[a.key])}
+              onValueChange={(v) => setRequires(a.key, v)}
+              disabled={soloBrand}
+              accessibilityLabel={a.label}
+            />
           </View>
-          <Toggle
-            value={Boolean(config[a.key])}
-            onValueChange={(v) => setRequires(a.key, v)}
-            disabled={a.inert || soloBrand}
-            accessibilityLabel={a.label}
-          />
-        </View>
-      ))}
+        ))}
+      </View>
 
-      {error ? (
-        <Text className="font-geist text-secondary text-status-critical">{error}</Text>
-      ) : null}
+      {/* Routine settings error, not a payment/contract failure — ink-2, no red (decision 11). */}
+      {error ? <Text className="mt-3 font-geist text-secondary text-ink-2">{error}</Text> : null}
     </View>
   );
 }
