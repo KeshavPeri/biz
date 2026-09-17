@@ -8,14 +8,20 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { EASE_OUT_STRONG, useMotion } from '@/components/motion/use-motion';
 import BackIcon from '@/assets/icons/arrow-left.svg';
 
 const INK = '#1C1B18';
 
 type AuthShellProps = {
-  /** Small uppercase kicker above the title (mockup `.eyebrow`). */
-  eyebrow: string;
+  /**
+   * Small uppercase kicker above the title (mockup `.eyebrow`). No longer
+   * rendered (decision 9: the progress bar + title carry the step) — kept
+   * optional so existing callers don't need editing.
+   */
+  eyebrow?: string;
   /** Big question-style heading (mockup `.qtitle`). */
   title: string;
   /** Supporting line under the title (mockup `.qsub`). */
@@ -45,7 +51,6 @@ type AuthShellProps = {
  * sign-up / verify / login pixel-consistent with the mockup.
  */
 export function AuthShell({
-  eyebrow,
   title,
   subtitle,
   children,
@@ -54,6 +59,15 @@ export function AuthShell({
   progress,
   scrollEnabled = true,
 }: AuthShellProps) {
+  const { reduce, t } = useMotion();
+  const enter = (i: number) =>
+    reduce
+      ? undefined
+      : FadeInDown.duration(240)
+          .easing(EASE_OUT_STRONG)
+          .delay(t(i * 40))
+          .withInitialValues({ transform: [{ translateY: 8 }] });
+
   return (
     <SafeAreaView className="flex-1 bg-app" edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -62,14 +76,13 @@ export function AuthShell({
       >
         {onBack || progress ? (
           // Top chrome (mockup `.obhead`): back button + progress bar.
-          <View className="flex-row items-center gap-3 px-[10px] pt-1.5">
+          <View className="flex-row items-center gap-3 pl-[11px] pr-[10px] pt-2">
             {onBack ? (
               <Pressable
                 onPress={onBack}
-                hitSlop={8}
                 accessibilityRole="button"
                 accessibilityLabel="Go back"
-                className="h-9 w-9 items-center justify-center rounded-panel"
+                className="h-11 w-11 items-center justify-center rounded-panel"
               >
                 <BackIcon width={22} height={22} color={INK} />
               </Pressable>
@@ -80,22 +93,30 @@ export function AuthShell({
 
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-[22px] pt-2 pb-4"
+          contentContainerClassName="px-5 pt-2 pb-4"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           scrollEnabled={scrollEnabled}
         >
-          <Text className="mb-2 font-geist-semibold text-micro uppercase tracking-[0.7px] text-ink-3">
-            {eyebrow}
-          </Text>
-          <Text className="mb-[7px] font-geist-bold text-display text-ink">{title}</Text>
+          <Animated.View entering={enter(0)}>
+            <Text
+              className="mb-2 font-geist-bold text-display text-ink"
+              maxFontSizeMultiplier={1.2}
+            >
+              {title}
+            </Text>
+          </Animated.View>
           {subtitle ? (
-            <Text className="mb-6 font-geist text-body text-ink-2">{subtitle}</Text>
+            <Animated.View entering={enter(1)}>
+              <Text className="mb-6 font-geist text-body text-ink-2" maxFontSizeMultiplier={1.25}>
+                {subtitle}
+              </Text>
+            </Animated.View>
           ) : null}
-          {children}
+          <Animated.View entering={enter(2)}>{children}</Animated.View>
         </ScrollView>
 
-        <View className="px-[22px] pb-[18px] pt-3">{footer}</View>
+        <View className="px-5 pb-4 pt-3">{footer}</View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

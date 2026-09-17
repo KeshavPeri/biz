@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, Text, TextInput } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
 import { AuthShell } from '@/components/ui/auth-shell';
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
+import { useMotion } from '@/components/motion/use-motion';
 import { friendlyAuthError } from '@/lib/auth-errors';
 import { supabase } from '@/lib/supabase';
 
@@ -23,6 +26,9 @@ export default function VerifyOtpScreen() {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN);
+  const { reduce } = useMotion();
+  const shakeX = useSharedValue(0);
+  const rowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shakeX.value }] }));
 
   // Countdown for the resend affordance (mockup "Resend in 0:42").
   useEffect(() => {
@@ -30,6 +36,17 @@ export default function VerifyOtpScreen() {
     const id = setTimeout(() => setCooldown((s) => s - 1), 1000);
     return () => clearTimeout(id);
   }, [cooldown]);
+
+  const shake = () => {
+    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    if (reduce) return;
+    shakeX.value = withSequence(
+      withTiming(-6, { duration: 60 }),
+      withTiming(6, { duration: 60 }),
+      withTiming(-4, { duration: 60 }),
+      withTiming(0, { duration: 60 }),
+    );
+  };
 
   const verify = async (token: string) => {
     if (!email) {
@@ -51,13 +68,18 @@ export default function VerifyOtpScreen() {
       if (verifyError) {
         setError(friendlyAuthError(verifyError, 'otp'));
         setCode('');
+        shake();
         return;
       }
       // Success: onAuthStateChange sets the session → the root layout's guard
       // flips and routes into (tabs). No manual navigation needed.
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
     } catch (err) {
       setError(friendlyAuthError(err, 'otp'));
       setCode('');
+      shake();
     } finally {
       setVerifying(false);
     }
@@ -89,7 +111,6 @@ export default function VerifyOtpScreen() {
 
   return (
     <AuthShell
-      eyebrow="Account"
       title="Enter the code we sent."
       subtitle={`Sent to ${email ?? 'your email'} — enter the 6-digit code to continue.`}
       onBack={() => router.back()}
@@ -108,42 +129,11 @@ export default function VerifyOtpScreen() {
     >
       {/* Tap anywhere on the boxes focuses the hidden input. */}
       <Pressable onPress={() => inputRef.current?.focus()}>
-        <View className="my-1.5 flex-row gap-2.5">
-          {Array.from({ length: CODE_LENGTH }).map((_, i) => {
-            const char = code[i] ?? '';
-            const filled = Boolean(char);
-            return (
-              <View
-                key={i}
-                // Shadow via inline style, not a conditionally-toggled
-                // shadow-* className — documented NativeWind native-only bug
-                // (nativewind/nativewind#1536/#1557/#1711): toggling a
-                // shadow-* class races React Navigation's context init and
-                // throws "Couldn't find a navigation context." recessInset is
-                // an inset shadow (no native RN equivalent anyway, so nothing
-                // is lost by dropping it there).
-                className={`h-[60px] flex-1 items-center justify-center rounded-[13px] ${
-                  filled ? 'bg-surface-card' : 'bg-surface-recess'
-                }`}
-                style={
-                  filled
-                    ? {
-                        shadowColor: '#1C1B18',
-                        shadowOffset: { width: 0, height: 8 },
-                        shadowOpacity: 0.09,
-                        shadowRadius: 9,
-                        elevation: 3,
-                      }
-                    : undefined
-                }
-              >
-                <Text className="font-geist-semibold text-ink" style={{ fontSize: 24 }}>
-                  {char}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
+        <Animated.View style={rowStyle} className="my-1.5 flex-row gap-2.5">
+          {Array.from({ length: CODE_LENGTH }).map((_, i) => (
+            <OtpBox key={i} char={code[i] ?? ''} active={i === code.length} />
+          ))}
+        </Animated.View>
       </Pressable>
 
       {/* Hidden field that actually holds the code (paste + autofill capable). */}
@@ -175,5 +165,52 @@ export default function VerifyOtpScreen() {
         </Text>
       </Pressable>
     </AuthShell>
+  );
+}
+
+/** One code box (B4-24/25/26): a filled digit pops (scale 1→1.04→1, 90+120ms)
+ *  with a selection haptic; the box the user is about to fill carries a 1px
+ *  ink hairline instead of a caret; flush surface, no outer lift (inputs
+ *  don't get nav-pill elevation). Reduce-motion: no pop, haptic still fires. */
+function OtpBox({ char, active }: { char: string; active: boolean }) {
+  const { reduce, t } = useMotion();
+  const filled = Boolean(char);
+  const scale = useSharedValue(1);
+  const wasFilled = useRef(filled);
+
+  useEffect(() => {
+    if (filled && !wasFilled.current) {
+      if (!reduce) {
+        scale.value = withSequence(
+          withTiming(1.04, { duration: t(90) }),
+          withTiming(1, { duration: t(120) }),
+        );
+      }
+      if (Platform.OS !== 'web') Haptics.selectionAsync();
+    }
+    wasFilled.current = filled;
+  }, [filled, reduce, scale, t]);
+
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  return (
+    <Animated.View
+      style={animatedStyle}
+      className={`h-[60px] flex-1 items-center justify-center rounded-input border ${
+        filled
+          ? 'border-hairline bg-surface-card'
+          : active
+            ? 'border-ink bg-surface-recess'
+            : 'border-transparent bg-surface-recess'
+      }`}
+    >
+      <Text
+        className="font-geist-semibold text-display text-ink"
+        style={{ fontVariant: ['tabular-nums'] }}
+        maxFontSizeMultiplier={1.15}
+      >
+        {char}
+      </Text>
+    </Animated.View>
   );
 }
