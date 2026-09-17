@@ -35,7 +35,8 @@ export function Chip({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      className={`overflow-hidden rounded-pill border px-4 py-2.5 ${
+      hitSlop={{ top: 2, bottom: 2 }}
+      className={`min-h-11 overflow-hidden rounded-pill border px-4 py-2.5 ${
         selected ? 'border-ink' : 'border-hairline'
       } bg-surface-card`}
     >

@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { type BrandCardData } from '@/lib/discovery';
 
 import CheckIcon from '@/assets/icons/check.svg';
+import StarIcon from '@/assets/icons/star.svg';
 
 // Deterministic warm accent for the logo tile from the company name.
 const LOGO_COLORS = ['#B96A83', '#A9BE8E', '#CBB080', '#8FA3B5', '#C98FA0', '#7E5B4E'];
@@ -50,7 +51,10 @@ export function BrandCard({ brand, onPress }: { brand: BrandCardData; onPress: (
       </View>
       {brand.trustRating !== null ? (
         <View className="items-end">
-          <Text className="font-geist-bold text-body text-ink">★ {brand.trustRating.toFixed(1)}</Text>
+          <View className="flex-row items-center gap-1">
+            <StarIcon width={11} height={11} color="#847F78" />
+            <Text className="font-geist-bold text-body tabular-nums text-ink">{brand.trustRating.toFixed(1)}</Text>
+          </View>
           <Text className="font-geist text-micro text-ink-3">rating</Text>
         </View>
       ) : null}

@@ -7,6 +7,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { DealPreviewCard } from '@/components/chat/deal-preview-card';
 import { ListItemFade } from '@/components/motion/list-item-fade';
 import { Skeleton } from '@/components/motion/skeleton';
+import { EmptyState as SharedEmptyState } from '@/components/ui/empty-state';
 import { PrivateDealLabelSheet } from '@/components/chat/private-deal-label-sheet';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
 import { fetchMyDealPreviews, type DealPreview } from '@/lib/deals';
@@ -164,16 +165,9 @@ function FilterChip({ label, selected, onPress }: { label: string; selected: boo
   return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} className={`rounded-pill border px-3 py-1.5 ${selected ? 'border-ink bg-ink' : 'border-hairline bg-surface-card'}`}><Text className={`font-geist-semibold text-micro ${selected ? 'text-white' : 'text-ink-2'}`}>{label}</Text></Pressable>;
 }
 function LabelEmptyState({ onClear }: { onClear: () => void }) {
-  return <View className="items-center px-8 py-12"><Text className="font-geist-semibold text-subtitle text-ink">No chats with this label</Text><Pressable accessibilityRole="button" onPress={onClear} className="mt-3 rounded-pill border border-hairline px-3 py-2"><Text className="font-geist-semibold text-secondary text-ink">Show all chats</Text></Pressable></View>;
+  return <SharedEmptyState title="No chats with this label" description="Try another label or show all chats." actionLabel="Show all chats" onAction={onClear} />;
 }
 
 function EmptyState() {
-  return (
-    <View className="flex-1 items-center justify-center px-10">
-      <Text className="mb-1 text-center font-geist-semibold text-body text-ink">No deals yet</Text>
-      <Text className="text-center font-geist text-secondary text-ink-3">
-        Start one from Discover — your deal threads will show up here.
-      </Text>
-    </View>
-  );
+  return <SharedEmptyState title="No deals yet" description="Start one from Discover — your deal threads will show up here." actionLabel="Browse Discover" onAction={() => router.push('/')} />;
 }

@@ -76,7 +76,7 @@ export function StageProgressBar({ stage, isDisputed }: { stage: DealStage; isDi
         >
           {headerLabel}
         </Text>
-        <Text className="font-geist-medium text-[12px] text-ink-2">{currentIndex + 1} / 7 ›</Text>
+        <Text className="font-geist-medium text-secondary tabular-nums text-ink-2">{currentIndex + 1} / 7</Text>
       </View>
 
       {/* Stepper: nodes joined by segments. */}

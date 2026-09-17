@@ -5,6 +5,7 @@ import { type CreatorCardData } from '@/lib/discovery';
 import { formatCount, formatPercent } from '@/lib/format';
 
 import CheckIcon from '@/assets/icons/check.svg';
+import StarIcon from '@/assets/icons/star.svg';
 
 /**
  * CreatorCard — a brand-facing browse card (B2-001). Photo (primary/avatar via
@@ -37,10 +38,15 @@ export function CreatorCard({ creator, onPress }: { creator: CreatorCardData; on
       </View>
 
       <View className="px-2.5 pb-3 pt-2">
-        <Text className="mb-1.5 font-geist text-micro text-ink-3" numberOfLines={1}>
-          {line}
-          {creator.trustScore !== null ? ` · ★ ${creator.trustScore.toFixed(1)}` : ''}
-        </Text>
+        <View className="mb-1.5 flex-row items-center">
+          <Text className="min-w-0 flex-1 font-geist text-micro text-ink-3" numberOfLines={1}>{line}</Text>
+          {creator.trustScore !== null ? (
+            <View className="ml-1 flex-row items-center gap-1">
+              <StarIcon width={11} height={11} color="#847F78" />
+              <Text className="font-geist text-micro tabular-nums text-ink-3">{creator.trustScore.toFixed(1)}</Text>
+            </View>
+          ) : null}
+        </View>
         <View className="flex-row justify-between">
           <View>
             <Text className="font-geist-bold text-secondary tabular-nums text-ink">
