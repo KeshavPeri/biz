@@ -4,6 +4,7 @@ import { Button, ButtonText } from '@/components/ui/button';
 import { type BrandProfile } from '@/lib/media-kit';
 
 import CheckIcon from '@/assets/icons/check.svg';
+import StarIcon from '@/assets/icons/star.svg';
 
 const LOGO_COLORS = ['#B96A83', '#A9BE8E', '#CBB080', '#8FA3B5', '#C98FA0', '#7E5B4E'];
 function logoColor(name: string): string {
@@ -32,7 +33,7 @@ export function BrandProfileView({ data, onConnect }: { data: BrandProfile; onCo
       {/* Header */}
       <View className="flex-row items-center gap-3.5">
         <View
-          className="h-16 w-16 items-center justify-center rounded-2xl"
+          className="h-16 w-16 items-center justify-center rounded-panel"
           style={{ backgroundColor: logoColor(data.companyName) }}
         >
           <Text className="font-geist-bold text-[22px] text-white">
@@ -59,9 +60,12 @@ export function BrandProfileView({ data, onConnect }: { data: BrandProfile; onCo
       {/* Trust strip */}
       <View className="mt-5 flex-row rounded-card border border-hairline-card bg-surface-card shadow-l1">
         <View className="flex-1 items-center px-2 py-3.5">
-          <Text className="font-geist-bold text-[18px] tabular-nums text-ink">
-            {data.trustRating !== null ? `★ ${data.trustRating.toFixed(1)}` : '—'}
-          </Text>
+          <View className="flex-row items-center gap-1">
+            {data.trustRating !== null ? <StarIcon width={11} height={11} color="#847F78" /> : null}
+            <Text className="font-geist-bold text-[18px] tabular-nums text-ink">
+              {data.trustRating !== null ? data.trustRating.toFixed(1) : '—'}
+            </Text>
+          </View>
           <Text className="mt-0.5 font-geist-medium text-micro text-ink-3">Trust rating</Text>
         </View>
         <View className="flex-1 items-center border-l border-hairline px-2 py-3.5">

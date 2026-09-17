@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { Alert, Linking, Platform, Text, View } from 'react-native';
+import { Linking, Platform, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import * as Haptics from 'expo-haptics';
 import { Button, ButtonText } from '@/components/ui/button';
+import { EditSheet } from '@/components/ui/edit-sheet';
 import { ContractSignSheet } from '@/components/deal/contract-sign-sheet';
 import { ContractAlignmentCard } from '@/components/deal/contract-alignment-card';
 import { TermsReviewCard } from '@/components/deal/terms-review-card';
@@ -168,6 +169,7 @@ export function StickyActionBar({
   const [closeLoading, setCloseLoading] = useState(false);
   const [closeError, setCloseError] = useState<string | null>(null);
   const [closeActing, setCloseActing] = useState(false);
+  const [closeConfirming, setCloseConfirming] = useState(false);
   const [postCloseRatings, setPostCloseRatings] = useState<PostCloseRatings | null>(null);
   const [sharedEntries, setSharedEntries] = useState<PostCloseEntryFeed | null>(null);
   const [privateEntries, setPrivateEntries] = useState<PostCloseEntryFeed | null>(null);
@@ -904,15 +906,8 @@ export function StickyActionBar({
   const confirmClose = useCallback(() => {
     const current = closeStatusRef.current;
     if (!current?.available || !current.allowed_actions.can_confirm) return;
-    Alert.alert(
-      'Confirm close?',
-      'This confirmation is final. Once both sides confirm, the deal thread becomes read-only.',
-      [
-        { text: 'Not now', style: 'cancel' },
-        { text: 'Confirm close', onPress: () => { void submitCloseConfirmation(); } },
-      ],
-    );
-  }, [submitCloseConfirmation]);
+    setCloseConfirming(true);
+  }, []);
 
   const submitRating = useCallback(async (score: number, review: string | null, requestId: string) => {
     if (postCloseActing) return { ok: false as const, message: 'Another post-deal action is in progress.' };
@@ -1423,6 +1418,33 @@ export function StickyActionBar({
         onClose={() => setEntryVisibility(null)}
         onSubmit={submitEntry}
       />
+      <EditSheet
+        visible={closeConfirming}
+        onClose={() => { if (!closeActing) setCloseConfirming(false); }}
+        title="Confirm close?"
+        subtitle="This confirmation is final. Once both sides confirm, the deal thread becomes read-only."
+        footer={(
+          <View className="gap-2">
+            <Button action="secondary" size="lg" onPress={() => setCloseConfirming(false)} isDisabled={closeActing}>
+              <ButtonText>Not now</ButtonText>
+            </Button>
+            <Button
+              action="primary"
+              size="lg"
+              onPress={() => { setCloseConfirming(false); void submitCloseConfirmation(); }}
+              isDisabled={closeActing}
+            >
+              <ButtonText>Confirm close</ButtonText>
+            </Button>
+          </View>
+        )}
+      >
+        <View className="rounded-panel bg-surface-recess p-4">
+          <Text className="font-geist text-secondary text-ink-2">
+            Both sides need to confirm before the deal can close.
+          </Text>
+        </View>
+      </EditSheet>
     </>
   );
 }

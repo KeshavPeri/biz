@@ -16,10 +16,15 @@ const RECESS = '#EFEAE2';
 // One "what Inflo now knows" recap line (mockup `.rfield`).
 function RecapRow({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <View className="flex-row justify-between gap-3 border-b border-[#F4F2ED] py-2.5">
-      <Text className="font-geist text-secondary text-ink-2">{label}</Text>
+    <View className="flex-row justify-between gap-3 border-b border-hairline-card py-2.5">
+      <Text className="w-24 shrink-0 font-geist text-secondary text-ink-2">{label}</Text>
       <View className="flex-1">
-        <Text className="text-right font-geist-semibold text-secondary text-ink">{value}</Text>
+        <Text
+          className="text-right font-geist-semibold text-secondary tabular-nums text-ink"
+          numberOfLines={2}
+        >
+          {value}
+        </Text>
         {hint ? (
           <Text className="text-right font-geist text-micro text-ink-3">{hint}</Text>
         ) : null}
@@ -103,7 +108,7 @@ export default function DoneScreen() {
               />
             </Svg>
             <View className="absolute items-center">
-              <Text className="font-geist-bold text-ink" style={{ fontSize: 32 }}>
+              <Text className="font-geist-bold text-display tabular-nums text-ink">
                 {pct}%
               </Text>
               <Text className="font-geist-medium text-micro uppercase tracking-[0.4px] text-ink-3">

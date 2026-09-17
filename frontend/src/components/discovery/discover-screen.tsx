@@ -9,6 +9,7 @@ import { BrandCard } from '@/components/discovery/brand-card';
 import { FilterChips } from '@/components/discovery/filter-chips';
 import { ListItemFade } from '@/components/motion/list-item-fade';
 import { Skeleton } from '@/components/motion/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   fetchBrandsForBrowse,
   fetchCreatorsForBrowse,
@@ -144,7 +145,18 @@ export function DiscoverScreen() {
           </Text>
 
           {count === 0 ? (
-            <Text className="font-geist text-body text-ink-3">Nothing matches those filters yet.</Text>
+            <EmptyState
+              title="Nothing matches those filters"
+              description="Try a different search or clear the filters to see everyone available."
+              actionLabel="Clear filters"
+              onAction={() => {
+                setSearch('');
+                setNiche(null);
+                setPlatform(null);
+                setCity(null);
+                setIndustry(null);
+              }}
+            />
           ) : isBrand ? (
             <LayoutAnimationConfig skipEntering>
               <View className="flex-row flex-wrap justify-between gap-y-3">

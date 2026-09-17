@@ -228,7 +228,7 @@ function DeliverableRow({
                 <View className="rounded-lg bg-surface-card px-2.5 py-2">
                   <View className="flex-row items-start justify-between gap-2">
                     <View className="min-w-0 flex-1">
-                      <Text selectable className="font-geist-semibold text-secondary text-ink">
+                      <Text selectable numberOfLines={1} ellipsizeMode="middle" className="font-geist-semibold text-secondary text-ink">
                         Round {submission.round_number} · {submission.original_filename}
                       </Text>
                       <Text className="mt-0.5 font-geist text-micro text-ink-3">
@@ -349,10 +349,10 @@ function PostEvidence({ evidence, current, onOpenVerifiedPost }: {
         </Text>
         <Text className="font-geist text-micro text-ink-3">{evidence.host}</Text>
       </View>
-      {evidence.title ? <Text selectable className="font-geist-semibold text-secondary text-ink-2">{evidence.title}</Text> : null}
-      {evidence.site_name ? <Text selectable className="font-geist text-micro text-ink-3">{evidence.site_name}</Text> : null}
-      {evidence.description ? <Text selectable className="font-geist text-micro text-ink-2">{evidence.description}</Text> : null}
-      <Text selectable numberOfLines={3} className="font-geist text-micro text-ink-2">
+      {evidence.title ? <Text selectable numberOfLines={1} ellipsizeMode="middle" className="font-geist-semibold text-secondary text-ink-2">{evidence.title}</Text> : null}
+      {evidence.site_name ? <Text selectable numberOfLines={1} ellipsizeMode="middle" className="font-geist text-micro text-ink-3">{evidence.site_name}</Text> : null}
+      {evidence.description ? <Text selectable numberOfLines={2} ellipsizeMode="tail" className="font-geist text-micro text-ink-2">{evidence.description}</Text> : null}
+      <Text selectable numberOfLines={1} ellipsizeMode="middle" className="font-geist text-micro text-ink-2">
         {evidence.final_url}
       </Text>
       <Text className="font-geist text-micro text-ink-3">Submitted by {evidence.submitted_by_name} · {formatTimestamp(evidence.verified_at)}</Text>

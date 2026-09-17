@@ -71,7 +71,7 @@ export function MediaKitView({
     <View className="pb-4">
       {/* HERO — real photos (B2-031) behind a scrim, or a warm gradient placeholder
           when the creator has none. The identity block overlays the bottom. */}
-      <View className="relative overflow-hidden rounded-b-[26px]" style={{ minHeight: HERO_H }}>
+      <View className="relative overflow-hidden rounded-b-card" style={{ minHeight: HERO_H }}>
         {hasPhotos ? (
           <PhotoCarousel paths={data.photoCarousel} height={HERO_H} />
         ) : (
@@ -100,7 +100,7 @@ export function MediaKitView({
               accessibilityLabel="Edit profile"
             >
               <EditIcon width={14} height={14} color="#FBFAF6" />
-              <Text className="font-geist-semibold text-[12px] text-white">Edit profile</Text>
+              <Text className="font-geist-semibold text-secondary text-white">Edit profile</Text>
             </Pressable>
             <Pressable
               className="flex-row items-center gap-1.5 rounded-pill bg-[rgba(28,27,24,0.4)] px-3 py-2"
@@ -109,7 +109,7 @@ export function MediaKitView({
               accessibilityLabel="Edit photos"
             >
               <EditIcon width={14} height={14} color="#FBFAF6" />
-              <Text className="font-geist-semibold text-[12px] text-white">
+              <Text className="font-geist-semibold text-secondary text-white">
                 {hasPhotos ? 'Edit photos' : 'Add photos'}
               </Text>
             </Pressable>
@@ -119,14 +119,14 @@ export function MediaKitView({
         {/* Identity overlay. */}
         <View className="absolute inset-x-0 bottom-0 px-5 pb-5">
           {!hasPhotos ? (
-            <View className="mb-3 h-14 w-14 items-center justify-center rounded-2xl bg-[rgba(251,250,246,0.22)]">
-              <Text className="font-geist-bold text-[20px] text-white">
+            <View className="mb-3 h-14 w-14 items-center justify-center rounded-pill bg-[rgba(251,250,246,0.22)]">
+              <Text className="font-geist-bold text-subtitle text-white">
                 {data.displayName.trim()[0]?.toUpperCase() ?? '·'}
               </Text>
             </View>
           ) : null}
           <View className="flex-row items-center gap-2">
-            <Text className="font-geist-bold text-[26px] tracking-tight text-white">
+            <Text className="font-geist-bold text-display tracking-tight text-white">
               {data.displayName}
             </Text>
             {data.handles.some((h) => h.verification_status === 'verified') ? (
@@ -139,19 +139,19 @@ export function MediaKitView({
             ) : null}
           </View>
           {meta ? (
-            <Text className="mt-1 font-geist-medium text-[13px] text-[rgba(251,250,246,0.85)]">
+            <Text className="mt-1 font-geist-medium text-secondary text-[rgba(251,250,246,0.85)]">
               {meta}
             </Text>
           ) : null}
           {data.bio ? (
-            <Text className="mt-1.5 max-w-[300px] font-geist text-[13px] leading-[19px] text-[rgba(251,250,246,0.82)]">
+            <Text className="mt-1.5 max-w-[300px] font-geist text-secondary text-[rgba(251,250,246,0.82)]">
               {data.bio}
             </Text>
           ) : null}
           {(data.inboundEnabled || data.outboundEnabled) && (
             <View className="mt-3 flex-row items-center gap-1.5 self-start rounded-pill border border-[rgba(251,250,246,0.22)] bg-[rgba(251,250,246,0.16)] px-3 py-1.5">
               <View className="h-1.5 w-1.5 rounded-full bg-status-good" />
-              <Text className="font-geist-semibold text-[11.5px] text-white">
+              <Text className="font-geist-semibold text-micro text-white">
                 {openToLabel(data.inboundEnabled, data.outboundEnabled)}
               </Text>
             </View>
@@ -216,7 +216,7 @@ export function MediaKitView({
               />
             )
           ) : (
-            <Text className="px-2 py-5 text-center font-geist text-[12.5px] leading-[19px] text-ink-3">
+            <Text className="px-2 py-5 text-center font-geist text-secondary text-ink-3">
               Rates are visible only to verified brands — never to other creators, never public.
               Indicative only; every deal is negotiated in chat.
             </Text>
@@ -281,7 +281,7 @@ export function MediaKitView({
               Control who sees your contact, rate card and handles.
             </Text>
           </View>
-          <Text className="font-geist-semibold text-[13px] text-ink">›</Text>
+          <Text className="font-geist-semibold text-secondary text-ink">›</Text>
         </Pressable>
       ) : null}
     </View>
@@ -309,12 +309,12 @@ function Section({
         <Text className="font-geist-semibold text-subtitle text-ink">{title}</Text>
         {onEdit ? (
           <Pressable onPress={onEdit} accessibilityRole="button">
-            <Text className="font-geist-semibold text-[13px] text-ink">Edit ›</Text>
+            <Text className="font-geist-semibold text-secondary text-ink">Edit ›</Text>
           </Pressable>
         ) : rightAccessory ? (
           rightAccessory
         ) : sub ? (
-          <Text className="font-geist-medium text-[11.5px] text-ink-3">{sub}</Text>
+          <Text className="font-geist-medium text-micro text-ink-3">{sub}</Text>
         ) : null}
       </View>
       {children}
@@ -325,8 +325,8 @@ function Section({
 function TrustCell({ value, label, divider }: { value: string; label: string; divider?: boolean }) {
   return (
     <View className={`flex-1 items-center px-1.5 py-3 ${divider ? 'border-l border-hairline' : ''}`}>
-      <Text className="font-geist-bold text-[18px] text-ink">{value}</Text>
-      <Text className="mt-0.5 font-geist-medium text-[10.5px] text-ink-3">{label}</Text>
+      <Text className="font-geist-bold text-subtitle tabular-nums text-ink">{value}</Text>
+      <Text className="mt-0.5 font-geist-medium text-micro text-ink-3">{label}</Text>
     </View>
   );
 }
@@ -340,7 +340,7 @@ function RateRow({ item, first }: { item: RateCardItem; first: boolean }) {
     >
       <View className="flex-1 pr-3">
         <Text className="font-geist-medium text-body text-ink">{item.title}</Text>
-        <Text className="mt-0.5 font-geist text-[11px] text-ink-3">
+        <Text className="mt-0.5 font-geist text-secondary text-ink-3">
           {platformLabel(item.platform)} · {item.description ?? ''}
         </Text>
       </View>
@@ -354,9 +354,9 @@ function AffiliationRow({ a, first }: { a: Affiliation; first: boolean }) {
     <View className={`py-2.5 ${first ? '' : 'border-t border-hairline'}`}>
       <View className="flex-row items-center justify-between">
         <Text className="flex-1 pr-3 font-geist-semibold text-body text-ink">{a.name}</Text>
-        {a.year ? <Text className="font-geist text-[11px] text-ink-3">{a.year}</Text> : null}
+        {a.year ? <Text className="font-geist text-secondary tabular-nums text-ink-3">{a.year}</Text> : null}
       </View>
-      <Text className="mt-0.5 font-geist text-[11.5px] text-ink-2">
+      <Text className="mt-0.5 font-geist text-secondary text-ink-2">
         {affiliationTypeLabel(a.type)}
         {a.description ? ` · ${a.description}` : ''}
       </Text>
@@ -372,15 +372,15 @@ function PartnershipRow({ p, first }: { p: BrandPartnership; first: boolean }) {
   ].filter(Boolean);
   return (
     <View className={`flex-row items-center gap-3 py-2.5 ${first ? '' : 'border-t border-hairline'}`}>
-      <View className="h-9 w-9 items-center justify-center rounded-[11px] bg-avatar">
-        <Text className="font-geist-semibold text-[12px] text-ink-2">
+      <View className="h-9 w-9 items-center justify-center rounded-pill bg-avatar">
+        <Text className="font-geist-semibold text-secondary text-ink-2">
           {p.brand_name.trim().slice(0, 2).toUpperCase()}
         </Text>
       </View>
       <View className="flex-1">
         <Text className="font-geist-semibold text-body text-ink">{p.brand_name}</Text>
         {parts.length > 0 ? (
-          <Text className="mt-0.5 font-geist text-[11.5px] text-ink-3">{parts.join(' · ')}</Text>
+          <Text className="mt-0.5 font-geist text-secondary text-ink-3">{parts.join(' · ')}</Text>
         ) : null}
       </View>
     </View>
@@ -391,7 +391,7 @@ function LockChip() {
   return (
     <View className="flex-row items-center gap-1.5 rounded-pill bg-surface-recess px-2.5 py-1">
       <LockIcon width={11} height={11} color="#847F78" />
-      <Text className="font-geist-semibold text-[10px] uppercase tracking-wide text-ink-3">
+      <Text className="font-geist-semibold text-micro text-ink-3">
         Brands only
       </Text>
     </View>
