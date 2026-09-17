@@ -24,7 +24,7 @@ Status values: todo · in progress · done · blocked (reason).
 | 6 | PR-17 Polish batch | done | 1d8a774 | decisions 1, 11 |
 | 6 | PR-18 Detail-route header | done | 95c2cea | |
 | 7 | PR-19 AuthShell + onboarding moments | done | b964d21 | decision 9; eyebrow prop kept optional on AuthShell (unrendered) so out-of-scope callers didn't need edits |
-| 7 | PR-21 Grouped settings lists | todo | | decision 10 |
+| 7 | PR-21 Grouped settings lists | done | 81894cb | decision 10 not applicable (no inset-recess shadows touched); B5-71's invite-teammate button deferred (no team-invite flow exists yet); B3-20 left out (belongs to deal-preview-card.tsx, not a settings screen) |
 | 8 | PR-22 Media-kit editors + hero | todo | | |
 | 9 | PR-10 Red-tint sweep + stage pills | todo | | decisions 3, 5 |
 | 9 | PR-11 Off-palette sweep + chat bubble | todo | | decisions 7, 8 |
