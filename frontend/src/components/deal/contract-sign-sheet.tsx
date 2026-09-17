@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 
+import CheckIcon from '@/assets/icons/check.svg';
+import { WinSpring } from '@/components/motion/win-spring';
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import { SignaturePad } from '@/components/ui/signature-pad';
@@ -40,6 +42,7 @@ export function ContractSignSheet({
   const [busy, setBusy] = useState(false);
   const [drawing, setDrawing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justSigned, setJustSigned] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -49,6 +52,7 @@ export function ContractSignSheet({
     setUploaded(null);
     setError(null);
     setBusy(false);
+    setJustSigned(false);
   }, [visible, contractId]);
 
   const close = () => {
@@ -114,8 +118,13 @@ export function ContractSignSheet({
     // owner-folder upload after a successful sign/hold.
     if (uploaded?.path) await removeWetSignedContract(uploaded.path);
     setUploaded(null);
-    setBusy(false);
-    onClose();
+    // Contract signing is the deal's legal win moment (B2-67/decision 6) — let
+    // the win spring play before the sheet dismisses.
+    setJustSigned(true);
+    setTimeout(() => {
+      setBusy(false);
+      onClose();
+    }, 380);
   };
 
   return (
@@ -131,6 +140,15 @@ export function ContractSignSheet({
         </Button>
       }
     >
+      {justSigned ? (
+        <WinSpring trigger={justSigned} style={{ marginBottom: 12 }}>
+          <View className="flex-row items-center gap-2 rounded-panel bg-status-good-tint px-3 py-2.5">
+            <CheckIcon width={16} height={16} color="#4F7A1E" />
+            <Text className="font-geist-medium text-[13px] text-status-good-label">Contract signed</Text>
+          </View>
+        </WinSpring>
+      ) : null}
+
       <View className="gap-2">
         {(['stored', 'drawn', 'print_bypass'] as const).map((item) => (
           <Pressable

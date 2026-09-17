@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 
 import { Button, ButtonText } from '@/components/ui/button';
 import { RefreshDip, Skeleton } from '@/components/motion/skeleton';
+import { WinSpring } from '@/components/motion/win-spring';
 import { PAYMENT_STATE_LABELS, PaymentStateSheet } from '@/components/deal/payment-state-sheet';
 import type {
   PaymentState,
@@ -312,7 +313,9 @@ function AggregateSummary({ state }: { state: PaymentTrackingAvailable }) {
         </View>
       </View>
       <View className="border-t border-hairline pt-2">
-        <StatusLine state={state.state} />
+        <WinSpring trigger={state.state === 'paid_full'}>
+          <StatusLine state={state.state} />
+        </WinSpring>
         <Text className="mt-1 font-geist text-[10.5px] text-ink-3">
           Reported {formatDateTime(state.reported_at)} · payment version {state.version}
         </Text>
@@ -380,7 +383,9 @@ function MilestoneRow({
           </Text>
         </View>
       </View>
-      <StatusLine state={milestone.state} />
+      <WinSpring trigger={milestone.state === 'paid_full'}>
+        <StatusLine state={milestone.state} />
+      </WinSpring>
       <View className="gap-1 border-t border-hairline pt-2">
         <LedgerFact label="Due" value={formatDateOnly(milestone.due_date)} compact />
         <LedgerFact label="Reported" value={`${formatDateTime(milestone.reported_at)} · version ${milestone.version}`} compact />

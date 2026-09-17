@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
+import { WinSpring } from '@/components/motion/win-spring';
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import { connectDeal } from '@/lib/deals';
@@ -89,14 +90,16 @@ export function ConnectSheet({
     >
       {phase === 'done' ? (
         <View>
-          <View className="mb-3 flex-row items-center gap-2">
-            <View className="h-6 w-6 items-center justify-center rounded-full bg-status-good-tint">
-              <CheckIcon width={14} height={14} color="#4F7A1E" />
+          <WinSpring trigger={phase === 'done'} style={{ marginBottom: 12 }}>
+            <View className="flex-row items-center gap-2">
+              <View className="h-6 w-6 items-center justify-center rounded-full bg-status-good-tint">
+                <CheckIcon width={14} height={14} color="#4F7A1E" />
+              </View>
+              <Text className="font-geist-medium text-body text-ink">
+                {reused ? 'You already have a deal with them — reopened it.' : 'Deal opened at Pending.'}
+              </Text>
             </View>
-            <Text className="font-geist-medium text-body text-ink">
-              {reused ? 'You already have a deal with them — reopened it.' : 'Deal opened at Pending.'}
-            </Text>
-          </View>
+          </WinSpring>
           {warning ? (
             <View className="flex-row items-start gap-2 rounded-panel bg-surface-recess p-3 shadow-recessInset">
               <ShieldIcon width={16} height={16} color="#847F78" />
