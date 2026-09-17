@@ -13,7 +13,7 @@ Status values: todo · in progress · done · blocked (reason).
 | 2 | PR-04 Rebuild ui/button + GlassFlush | done | 52058f5 | callers remapped lg→md, xl→lg (same heights); ButtonIcon dropped (unused) |
 | 2 | PR-05 Migrate hand-rolled buttons | done | 0902816 | all labelled action buttons in deal/* (not just the named helpers); rows/chips/star pickers left for later PRs |
 | 3 | PR-06 Liquid Glass nav + useTabBarInset | done | 89e5419 | decision 4; Chat dot bound to real unread (ink, like the inbox badge) |
-| 3 | PR-07 EditSheet rebuild | todo | | decision 2 |
+| 3 | PR-07 EditSheet rebuild | done | 8837d1e | decision 2; `sheet: 24` in tailwind only — docs/design-tokens.md is read-only on disk, line still to add (see session log) |
 | 4 | PR-12 Skeleton | todo | | |
 | 4 | PR-13 StageAdvance | todo | | |
 | 4 | PR-14 WinSpring | todo | | decision 6 |
