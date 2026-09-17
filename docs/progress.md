@@ -758,6 +758,12 @@ up exactly where the last one left off, with zero context lost.
   fade-on-web, `GestureHandlerRootView`, warm loading frame, light/system theme sync.
   tsc/lint/web-export/node-tests all green. Next: batch 2 (`useMotion` + `PressableScale`,
   `ui/button` rebuild). See `docs/ui-audit/REMEDIATION-PROGRESS.md`.
+- **2026-09-17 — Batch 2 (`ui/batch-2`):** PR-03 `useMotion` + `PressableScale` (press scale,
+  haptic on press-in, reduce-motion aware) on buttons, chips, tab bar, role cards; PR-04
+  `ui/button` rebuilt to the Inflo tiers (primary / glass secondary / tertiary / ghost, 44/48pt,
+  solid disabled spec, ink focus ring) + shared `GlassFlush`; PR-05 every labelled deal-room
+  button plus brand-profile and label-sheet CTAs moved onto it. tsc/lint/web-export/node-tests
+  green. Next: batch 3 (Liquid Glass nav + `EditSheet`).
 
 ## NEXT UP  *(ordered)*
 
