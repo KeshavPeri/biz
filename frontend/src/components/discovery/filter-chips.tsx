@@ -21,7 +21,7 @@ export function FilterChips({
   if (options.length === 0) return null;
   return (
     <View className="mb-2.5">
-      <Text className="mb-1.5 font-geist-medium text-[11px] uppercase tracking-wide text-ink-3">
+      <Text className="mb-1.5 font-geist-medium text-micro text-ink-3">
         {label}
       </Text>
       <ScrollView

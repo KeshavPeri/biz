@@ -47,13 +47,13 @@ export function PostCloseCard({
               return rating ? (
                 <View key={side} className="rounded-xl bg-surface-recess px-3 py-2.5">
                   <View className="flex-row items-center justify-between gap-3">
-                    <Text className="font-geist-semibold text-[11px] text-ink">{rating.display_label}</Text>
-                    <Text accessibilityLabel={`${rating.score} out of 5 stars`} className="font-geist-semibold text-[12px] text-ink">{'★'.repeat(rating.score)}{'☆'.repeat(5 - rating.score)}</Text>
+                    <Text className="font-geist-semibold text-micro text-ink">{rating.display_label}</Text>
+                    <Text accessibilityLabel={`${rating.score} out of 5 stars`} className="font-geist-semibold text-secondary text-ink">{'★'.repeat(rating.score)}{'☆'.repeat(5 - rating.score)}</Text>
                   </View>
-                  {rating.review ? <Text className="mt-1 font-geist text-[10.5px] leading-[15px] text-ink-2">{rating.review}</Text> : null}
+                  {rating.review ? <Text className="mt-1 font-geist text-micro text-ink-2">{rating.review}</Text> : null}
                 </View>
               ) : (
-                <Text key={side} className="rounded-xl bg-surface-recess px-3 py-2.5 font-geist text-[10.5px] text-ink-3">{side === 'creator' ? 'Creator' : 'Brand'} rating pending</Text>
+                <Text key={side} className="rounded-xl bg-surface-recess px-3 py-2.5 font-geist text-micro text-ink-3">{side === 'creator' ? 'Creator' : 'Brand'} rating pending</Text>
               );
             })}
             {ratings.allowed_actions.can_rate ? <InlineButton label="Leave final rating" onPress={onRate} disabled={acting} /> : null}
@@ -67,20 +67,20 @@ export function PostCloseCard({
       <Section title="Immutable chat record" description="A private PDF snapshot of the terminal chat. Post-deal entries are excluded.">
         {!archive ? <LoadingLine loading={loading} text="Chat record status unavailable." rows={1} /> : archive.state === 'ready' ? (
           <View className="gap-2">
-            <Text className="font-geist text-[10.5px] text-status-good-label">Ready · {archive.message_count} messages · {archive.page_count} pages</Text>
+            <Text className="font-geist text-micro text-status-good-label">Ready · {archive.message_count} messages · {archive.page_count} pages</Text>
             <InlineButton label="Download private PDF" onPress={onDownloadArchive} disabled={acting} />
           </View>
         ) : archive.state === 'failed' ? (
           <View className="gap-2">
-            <Text accessibilityRole="alert" className="font-geist text-[10.5px] leading-[15px] text-status-critical">Could not prepare. The deal remains safely Closed.</Text>
+            <Text accessibilityRole="alert" className="font-geist text-micro text-status-critical">Could not prepare. The deal remains safely Closed.</Text>
             {archive.allowed_actions.can_retry ? <InlineButton label="Retry chat record" onPress={onRetryArchive} disabled={acting} /> : null}
           </View>
-        ) : <View className="flex-row items-center gap-2"><ActivityIndicator size="small" color="#847F78" /><Text className="font-geist text-[10.5px] text-ink-2">Preparing private chat record…</Text></View>}
+        ) : <View className="flex-row items-center gap-2"><ActivityIndicator size="small" color="#847F78" /><Text className="font-geist text-micro text-ink-2">Preparing private chat record…</Text></View>}
       </Section>
 
       {error ? (
         <View className="gap-2 rounded-xl bg-status-critical-tint px-3 py-2.5">
-          <Text accessibilityRole="alert" className="font-geist text-[11px] leading-[16px] text-status-critical">{error}</Text>
+          <Text accessibilityRole="alert" className="font-geist text-micro text-status-critical">{error}</Text>
           <InlineButton label="Refresh post-deal record" onPress={onRetry} disabled={loading || acting} />
         </View>
       ) : null}
@@ -106,12 +106,12 @@ function FeedSection({ title, description, feed, loading, empty, addLabel, onAdd
           {feed.entries.length ? feed.entries.map((entry) => (
             <View key={entry.id} className="rounded-xl bg-surface-recess px-3 py-2.5">
               <View className="flex-row items-center justify-between gap-2">
-                <Text className="font-geist-semibold text-[10.5px] text-ink">{entry.author_label}</Text>
-                <Text className="font-geist text-[9.5px] text-ink-3">{formatDate(entry.created_at)}</Text>
+                <Text className="font-geist-semibold text-micro text-ink">{entry.author_label}</Text>
+                <Text className="font-geist text-micro tabular-nums text-ink-3">{formatDate(entry.created_at)}</Text>
               </View>
-              <Text className="mt-1 font-geist text-[10.5px] leading-[15px] text-ink-2">{entry.body}</Text>
+              <Text className="mt-1 font-geist text-micro text-ink-2">{entry.body}</Text>
             </View>
-          )) : <Text className="font-geist text-[10.5px] text-ink-3">{empty}</Text>}
+          )) : <Text className="font-geist text-micro text-ink-3">{empty}</Text>}
           <View className="flex-row gap-2">
             <View className="flex-1"><InlineButton label={addLabel} onPress={onAdd} disabled={acting} /></View>
             {feed.next_cursor ? <View className="flex-1"><InlineButton label="Load older" onPress={onMore} disabled={acting} /></View> : null}
@@ -126,8 +126,8 @@ function Section({ title, description, children }: { title: string; description:
   return (
     <View className="gap-2 rounded-2xl border border-hairline bg-surface-card p-3">
       <View>
-        <Text className="font-geist-semibold text-[13px] text-ink">{title}</Text>
-        <Text className="mt-0.5 font-geist text-[10.5px] leading-[15px] text-ink-2">{description}</Text>
+        <Text className="font-geist-semibold text-secondary text-ink">{title}</Text>
+        <Text className="mt-0.5 font-geist text-micro text-ink-2">{description}</Text>
       </View>
       {children}
     </View>
@@ -150,7 +150,7 @@ function LoadingLine({ loading, text, rows }: { loading: boolean; text: string; 
       </View>
     );
   }
-  return <Text className="font-geist text-[10.5px] text-ink-3">{text}</Text>;
+  return <Text className="font-geist text-micro text-ink-3">{text}</Text>;
 }
 
 function formatDate(value: string): string {

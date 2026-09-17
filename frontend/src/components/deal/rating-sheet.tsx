@@ -88,24 +88,24 @@ export function RatingSheet({
     >
       <View className="gap-4">
         <View>
-          <Text className="mb-2 font-geist-semibold text-[12px] text-ink">Score</Text>
+          <Text className="mb-2 font-geist-semibold text-secondary text-ink">Score</Text>
           <WinSpring trigger={justSubmitted}>
             <View className="flex-row gap-2">
               {[1, 2, 3, 4, 5].map((value) => (
                 <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} star${value === 1 ? '' : 's'}`} accessibilityState={{ selected: score === value }} onPress={() => { setScore(value); setError(null); }} disabled={busy} className={`h-11 w-11 items-center justify-center rounded-full border ${score >= value ? 'border-ink bg-ink' : 'border-hairline bg-surface-card'}`}>
-                  <Text className={`font-geist-semibold text-[16px] ${score >= value ? 'text-white' : 'text-ink-2'}`}>★</Text>
+                  <Text className={`font-geist-semibold text-subtitle ${score >= value ? 'text-white' : 'text-ink-2'}`}>★</Text>
                 </Pressable>
               ))}
             </View>
           </WinSpring>
         </View>
         <View>
-          <Text className="mb-1.5 font-geist-semibold text-[12px] text-ink">Optional review</Text>
-          <TextInput value={review} onChangeText={(value) => { setReview(value); setError(null); }} editable={!busy} multiline maxLength={1000} accessibilityLabel="Optional plain-text review, up to 1,000 characters" placeholder="Share a concise review…" placeholderTextColor="#847F78" className="min-h-28 rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-[13px] leading-[19px] text-ink" />
-          <Text className="mt-1 text-right font-geist text-[10.5px] text-ink-3">{trimmed.length}/1,000</Text>
+          <Text className="mb-1.5 font-geist-semibold text-secondary text-ink">Optional review</Text>
+          <TextInput value={review} onChangeText={(value) => { setReview(value); setError(null); }} editable={!busy} multiline maxLength={1000} accessibilityLabel="Optional plain-text review, up to 1,000 characters" placeholder="Share a concise review…" placeholderTextColor="#847F78" className="min-h-28 rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-secondary text-ink" />
+          <Text className="mt-1 text-right font-geist text-micro text-ink-3">{trimmed.length}/1,000</Text>
         </View>
-        <Text className="font-geist text-[10.5px] leading-[15px] text-ink-2">Plain text only. Links and markup are not accepted.</Text>
-        {error ? <Text accessibilityRole="alert" className="font-geist-medium text-[11px] leading-[16px] text-status-critical">{error}</Text> : null}
+        <Text className="font-geist text-micro text-ink-2">Plain text only. Links and markup are not accepted.</Text>
+        {error ? <Text accessibilityRole="alert" className="font-geist-medium text-micro text-status-critical">{error}</Text> : null}
       </View>
     </EditSheet>
   );

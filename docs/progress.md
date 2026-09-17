@@ -782,6 +782,16 @@ up exactly where the last one left off, with zero context lost.
   and a contract signed. PR-16 new `ListItemFade` fades rows in/out on add/remove (inbox, private
   labels, discover results, submission history) without animating the first render of any list.
   tsc/lint/web-export/node-tests (15/15) green. Next: batch 5 (type-role sweep, deal/chat/discover/tabs).
+- **2026-09-17 — Batch 5 (`ui/batch-5`):** PR-08/PR-09 type-role sweep — every off-token
+  `text-[8–13.5px]` size and uppercase kicker label across deal/*, chat/*, discovery/*, and the
+  chat tab replaced with the 6 role classes (Subtitle/Secondary/Micro), plus `tabular-nums` on
+  money/date/version/count values. Fixed the private-label sheet's `text-status-bad` (not a real
+  token, so the error rendered uncoloured) to `text-ink-2` per decision 11 (routine errors are
+  ink-2, red reserved for payment/dispute/contract harm). Also fixed the shared `ui/chip`
+  primitive's off-role label and off-grid padding. No colour, layout, or behaviour changes — the
+  red-tint-fill sweep and stage-pill colours (decision-gated) are batch 9's PR-10.
+  tsc/lint/web-export (35 routes)/node-tests (15/15) green. Next: batch 6 (type sweep
+  auth/onboarding/media-kit, polish batch, detail-route header).
 
 ## NEXT UP  *(ordered)*
 

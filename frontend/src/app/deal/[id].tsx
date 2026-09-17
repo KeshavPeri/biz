@@ -296,7 +296,7 @@ export default function DealRoomScreen() {
           </Pressable>
           <View className="min-w-0 flex-1">
             <View className="flex-row items-center gap-1.5">
-              <Text className="min-w-0 flex-shrink font-geist-semibold text-[16px] text-ink" numberOfLines={1}>
+              <Text className="min-w-0 flex-shrink font-geist-semibold text-subtitle text-ink" numberOfLines={1}>
                 {currentThread?.dealName ?? 'Deal'}
               </Text>
               {currentThread && !isTerminal && currentThread.dealNameVersion !== null ? (
@@ -307,7 +307,7 @@ export default function DealRoomScreen() {
             </View>
             {currentThread ? (
               <Pressable accessibilityRole="button" accessibilityLabel={`View ${Object.keys(currentThread.namesById).length} deal participants`} onPress={() => setParticipantsOpen(true)} className="self-start py-0.5">
-                <Text className="font-geist text-[12px] text-ink-2" numberOfLines={1}>
+                <Text className="font-geist text-secondary tabular-nums text-ink-2" numberOfLines={1}>
                   {Object.keys(currentThread.namesById).length} in this deal ›
                 </Text>
               </Pressable>
@@ -384,7 +384,7 @@ export default function DealRoomScreen() {
                   placeholderTextColor="#847F78"
                   multiline
                   editable={!sending}
-                  className="max-h-28 min-h-[40px] flex-1 rounded-2xl border border-hairline bg-surface-card px-3.5 py-2.5 font-geist text-[15px] text-ink"
+                  className="max-h-28 min-h-[40px] flex-1 rounded-2xl border border-hairline bg-surface-card px-3.5 py-2.5 font-geist text-body text-ink"
                 />
                 <Pressable
                   onPress={onSend}
@@ -444,8 +444,8 @@ function MessageBubble({ message, dealId, contextKey }: { message: ChatMessage; 
           <ChatAttachment key={`${contextKey}:${message.id}:${attachment.id}`} attachment={attachment} unavailable={false} dealId={dealId} contextKey={contextKey} messageId={message.id} />
         ))}
         {message.attachmentUnavailable ? <ChatAttachment attachment={null} unavailable dealId={dealId} contextKey={contextKey} messageId={message.id} /> : null}
-        {message.body ? <Text className="font-geist text-[15px] leading-[21px] text-ink">{message.body}</Text> : null}
-        <Text className="mt-1 self-end font-geist text-[11px] text-ink-3">
+        {message.body ? <Text className="font-geist text-body text-ink">{message.body}</Text> : null}
+        <Text className="mt-1 self-end font-geist text-micro text-ink-3">
           {formatClockTime(message.createdAt)}
         </Text>
       </View>
@@ -453,15 +453,15 @@ function MessageBubble({ message, dealId, contextKey }: { message: ChatMessage; 
   }
   return (
     <View className="max-w-[86%] self-start rounded-2xl rounded-bl-md border border-hairline bg-surface-card px-3.5 py-2">
-      <Text className="mb-0.5 font-geist-bold text-[12px] text-ink">
+      <Text className="mb-0.5 font-geist-bold text-micro text-ink">
         {message.senderName.split(' ')[0]}
       </Text>
       {message.attachments.map((attachment) => (
         <ChatAttachment key={`${contextKey}:${message.id}:${attachment.id}`} attachment={attachment} unavailable={false} dealId={dealId} contextKey={contextKey} messageId={message.id} />
       ))}
       {message.attachmentUnavailable ? <ChatAttachment attachment={null} unavailable dealId={dealId} contextKey={contextKey} messageId={message.id} /> : null}
-      {message.body ? <Text className="font-geist text-[15px] leading-[21px] text-ink">{message.body}</Text> : null}
-      <Text className="mt-1 self-end font-geist text-[11px] text-ink-3">
+      {message.body ? <Text className="font-geist text-body text-ink">{message.body}</Text> : null}
+      <Text className="mt-1 self-end font-geist text-micro text-ink-3">
         {formatClockTime(message.createdAt)}
       </Text>
     </View>

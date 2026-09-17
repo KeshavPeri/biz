@@ -85,14 +85,14 @@ export function DeliverablesCard({
   return (
     <View className="gap-3 rounded-2xl border border-hairline bg-surface-card p-3">
       <View>
-        <Text className="font-geist-semibold text-[14px] text-ink">Agreed deliverables</Text>
-        <Text className="mt-0.5 font-geist text-[11px] text-ink-3">
+        <Text className="font-geist-semibold text-subtitle text-ink">Agreed deliverables</Text>
+        <Text className="mt-0.5 font-geist text-micro text-ink-3">
           {state.deliverables.length} item{state.deliverables.length === 1 ? '' : 's'} from the approved terms
         </Text>
       </View>
       {state.deliverables.length === 0 ? (
         <View className="rounded-xl bg-status-critical-tint px-3 py-3">
-          <Text className="font-geist-medium text-[12px] text-status-critical">
+          <Text className="font-geist-medium text-secondary text-status-critical">
             The agreed plan is empty. Refresh or ask support to review the approved terms.
           </Text>
         </View>
@@ -115,7 +115,7 @@ export function DeliverablesCard({
           onOpenVerifiedPost={onOpenVerifiedPost}
         />
       ))}
-      {error ? <Text className="font-geist-medium text-[12px] text-status-critical">{error}</Text> : null}
+      {error ? <Text className="font-geist-medium text-secondary text-status-critical">{error}</Text> : null}
     </View>
   );
 }
@@ -158,12 +158,12 @@ function DeliverableRow({
     <View className="gap-2 rounded-xl bg-surface-recess p-3">
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
-          <Text className="font-geist-semibold text-[13px] text-ink">{deliverable.display_name}</Text>
-          <Text className="mt-0.5 font-geist text-[11px] text-ink-2">
+          <Text className="font-geist-semibold text-secondary text-ink">{deliverable.display_name}</Text>
+          <Text className="mt-0.5 font-geist text-micro text-ink-2">
             {PLATFORM_LABELS[deliverable.platform]} · {FORMAT_LABELS[deliverable.content_format]}
           </Text>
         </View>
-        <Text className="font-geist-semibold text-[10.5px] text-ink-2">
+        <Text className="font-geist-semibold text-micro text-ink-2">
           {STATUS_LABELS[deliverable.status]}
         </Text>
       </View>
@@ -180,12 +180,12 @@ function DeliverableRow({
       ) : null}
       {currentPost ? (
         <View className="gap-2 border-t border-hairline pt-2">
-          <Text className="font-geist-medium text-[10.5px] uppercase tracking-wide text-ink-3">Current live proof</Text>
+          <Text className="font-geist-medium text-micro text-ink-3">Current live proof</Text>
           <PostEvidence evidence={currentPost} current onOpenVerifiedPost={onOpenVerifiedPost} />
           {currentPost.verification_status === 'flagged' && currentPost.flag_reason ? (
             <View className="rounded-lg bg-status-critical-tint px-2.5 py-2">
-              <Text className="font-geist-semibold text-[11px] text-status-critical">Flagged for correction</Text>
-              <Text selectable className="mt-0.5 font-geist text-[10.5px] text-ink-2">{currentPost.flag_reason}</Text>
+              <Text className="font-geist-semibold text-secondary text-status-critical">Flagged for correction</Text>
+              <Text selectable className="mt-0.5 font-geist text-micro text-ink-2">{currentPost.flag_reason}</Text>
             </View>
           ) : null}
           {priorPosts.length || deliverable.post_state.history_truncated ? (
@@ -203,35 +203,35 @@ function DeliverableRow({
             <View className="gap-2">
               {priorPosts.map((evidence) => <PostEvidence key={evidence.id} evidence={evidence} current={false} onOpenVerifiedPost={onOpenVerifiedPost} />)}
               {deliverable.post_state.history_truncated ? (
-                <Text className="font-geist text-[10.5px] text-ink-3">Earlier proof history is truncated.</Text>
+                <Text className="font-geist text-micro text-ink-3">Earlier proof history is truncated.</Text>
               ) : null}
             </View>
           ) : null}
         </View>
       ) : deliverable.status === 'approved' ? (
-        <Text className="border-t border-hairline pt-2 font-geist text-[10.5px] text-ink-3">No live URL submitted yet.</Text>
+        <Text className="border-t border-hairline pt-2 font-geist text-micro text-ink-3">No live URL submitted yet.</Text>
       ) : null}
       {deliverable.content_ops_attention ? (
         <View className="rounded-lg bg-status-critical-tint px-2.5 py-2">
-          <Text className="font-geist-semibold text-[11px] text-status-critical">Revision rounds exhausted</Text>
-          <Text className="mt-0.5 font-geist text-[10.5px] text-ink-2">
+          <Text className="font-geist-semibold text-secondary text-status-critical">Revision rounds exhausted</Text>
+          <Text className="mt-0.5 font-geist text-micro text-ink-2">
             This deal remains in Creating and is paused for platform help.
           </Text>
         </View>
       ) : null}
       {deliverable.submission_history.length ? (
         <View className="gap-2 border-t border-hairline pt-2">
-          <Text className="font-geist-medium text-[10.5px] uppercase tracking-wide text-ink-3">Submission history</Text>
+          <Text className="font-geist-medium text-micro text-ink-3">Submission history</Text>
           <LayoutAnimationConfig skipEntering>
             {deliverable.submission_history.map((submission) => (
               <ListItemFade key={submission.id}>
                 <View className="rounded-lg bg-surface-card px-2.5 py-2">
                   <View className="flex-row items-start justify-between gap-2">
                     <View className="min-w-0 flex-1">
-                      <Text selectable className="font-geist-semibold text-[11.5px] text-ink">
+                      <Text selectable className="font-geist-semibold text-secondary text-ink">
                         Round {submission.round_number} · {submission.original_filename}
                       </Text>
-                      <Text className="mt-0.5 font-geist text-[10.5px] text-ink-3">
+                      <Text className="mt-0.5 font-geist text-micro text-ink-3">
                         {submissionLabel(submission.lifecycle)} · {formatBytes(submission.size_bytes)}
                       </Text>
                     </View>
@@ -240,7 +240,7 @@ function DeliverableRow({
                     </Button>
                   </View>
                   {submission.comment ? (
-                    <Text className="mt-2 border-t border-hairline pt-2 font-geist text-[11px] text-ink-2">
+                    <Text className="mt-2 border-t border-hairline pt-2 font-geist text-secondary text-ink-2">
                       Revision note: {submission.comment}
                     </Text>
                   ) : null}
@@ -250,7 +250,7 @@ function DeliverableRow({
           </LayoutAnimationConfig>
         </View>
       ) : (
-        <Text className="border-t border-hairline pt-2 font-geist text-[10.5px] text-ink-3">No draft submitted yet.</Text>
+        <Text className="border-t border-hairline pt-2 font-geist text-micro text-ink-3">No draft submitted yet.</Text>
       )}
       {deliverable.content_approval ? (
         <View className={`rounded-lg px-2.5 py-2 ${
@@ -260,18 +260,18 @@ function DeliverableRow({
               ? 'bg-status-good-tint'
               : 'bg-cane-1'
         }`}>
-          <Text className="font-geist-semibold text-[11.5px] text-ink">
+          <Text className="font-geist-semibold text-secondary text-ink">
             {deliverable.content_approval.status === 'pending'
               ? `Awaiting checker · ${deliverable.content_approval.checker_name}`
               : deliverable.content_approval.status === 'approved'
                 ? `Checker confirmed ${deliverable.content_approval.maker_name}'s approval`
                 : `Checker rejected ${deliverable.content_approval.maker_name}'s approval`}
           </Text>
-          <Text className="mt-0.5 font-geist text-[10.5px] text-ink-2">
+          <Text className="mt-0.5 font-geist text-micro text-ink-2">
             Maker: {deliverable.content_approval.maker_name} · Round {deliverable.content_approval.round_number}
           </Text>
           {deliverable.content_approval.comment ? (
-            <Text className="mt-1 font-geist text-[10.5px] text-ink-2">
+            <Text className="mt-1 font-geist text-micro text-ink-2">
               Explanation: {deliverable.content_approval.comment}
             </Text>
           ) : null}
@@ -325,7 +325,7 @@ function DeliverableRow({
         </Button>
       ) : null}
       {deliverable.status === 'submitted' && !deliverable.available_actions.can_approve_content && !deliverable.content_approval ? (
-        <Text className="font-geist text-[10.5px] text-ink-3">
+        <Text className="font-geist text-micro text-ink-3">
           This submission is awaiting brand review.
         </Text>
       ) : null}
@@ -344,23 +344,23 @@ function PostEvidence({ evidence, current, onOpenVerifiedPost }: {
   return (
     <View className="gap-1 rounded-lg bg-surface-card px-2.5 py-2">
       <View className="flex-row items-start justify-between gap-2">
-        <Text className="min-w-0 flex-1 font-geist-semibold text-[11.5px] text-ink">
+        <Text className="min-w-0 flex-1 font-geist-semibold text-secondary text-ink">
           {status} · v{evidence.version}{current ? ' · current' : ''}
         </Text>
-        <Text className="font-geist text-[10px] text-ink-3">{evidence.host}</Text>
+        <Text className="font-geist text-micro text-ink-3">{evidence.host}</Text>
       </View>
-      {evidence.title ? <Text selectable className="font-geist-semibold text-[11px] text-ink-2">{evidence.title}</Text> : null}
-      {evidence.site_name ? <Text selectable className="font-geist text-[10.5px] text-ink-3">{evidence.site_name}</Text> : null}
-      {evidence.description ? <Text selectable className="font-geist text-[10.5px] leading-[15px] text-ink-2">{evidence.description}</Text> : null}
-      <Text selectable numberOfLines={3} className="font-geist text-[10.5px] leading-[15px] text-ink-2">
+      {evidence.title ? <Text selectable className="font-geist-semibold text-secondary text-ink-2">{evidence.title}</Text> : null}
+      {evidence.site_name ? <Text selectable className="font-geist text-micro text-ink-3">{evidence.site_name}</Text> : null}
+      {evidence.description ? <Text selectable className="font-geist text-micro text-ink-2">{evidence.description}</Text> : null}
+      <Text selectable numberOfLines={3} className="font-geist text-micro text-ink-2">
         {evidence.final_url}
       </Text>
-      <Text className="font-geist text-[10px] text-ink-3">Submitted by {evidence.submitted_by_name} · {formatTimestamp(evidence.verified_at)}</Text>
+      <Text className="font-geist text-micro text-ink-3">Submitted by {evidence.submitted_by_name} · {formatTimestamp(evidence.verified_at)}</Text>
       {evidence.flagged_at && evidence.flagged_by_name ? (
-        <Text className="font-geist text-[10px] text-ink-3">Flagged by {evidence.flagged_by_name} · {formatTimestamp(evidence.flagged_at)}</Text>
+        <Text className="font-geist text-micro text-ink-3">Flagged by {evidence.flagged_by_name} · {formatTimestamp(evidence.flagged_at)}</Text>
       ) : null}
       {evidence.confirmed_at && evidence.confirmed_by_name ? (
-        <Text className="font-geist text-[10px] text-ink-3">Confirmed by {evidence.confirmed_by_name} · {formatTimestamp(evidence.confirmed_at)}</Text>
+        <Text className="font-geist text-micro text-ink-3">Confirmed by {evidence.confirmed_by_name} · {formatTimestamp(evidence.confirmed_at)}</Text>
       ) : null}
       {current ? (
         <Button
@@ -398,8 +398,8 @@ function formatBytes(value: number): string {
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row items-start justify-between gap-3 border-t border-hairline pt-2">
-      <Text className="font-geist-medium text-[10.5px] uppercase tracking-wide text-ink-3">{label}</Text>
-      <Text selectable className="min-w-0 flex-1 text-right font-geist-medium text-[11.5px] text-ink-2">{value}</Text>
+      <Text className="font-geist-medium text-micro text-ink-3">{label}</Text>
+      <Text selectable className="min-w-0 flex-1 text-right font-geist-medium text-secondary text-ink-2">{value}</Text>
     </View>
   );
 }

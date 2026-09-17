@@ -34,8 +34,8 @@ export function ContractAlignmentCard({
   if (alignment.status === 'not_started' || alignment.status === 'processing') {
     return (
       <View className="rounded-xl bg-cane-1 px-3 py-2.5">
-        <Text className="font-geist-semibold text-[12px] text-ink">Checking contract against approved terms…</Text>
-        <Text className="mt-1 font-geist text-[11px] text-ink-2">Signing stays locked while the exact PDF is checked.</Text>
+        <Text className="font-geist-semibold text-secondary text-ink">Checking contract against approved terms…</Text>
+        <Text className="mt-1 font-geist text-micro text-ink-2">Signing stays locked while the exact PDF is checked.</Text>
       </View>
     );
   }
@@ -43,8 +43,8 @@ export function ContractAlignmentCard({
   if (alignment.status === 'failed') {
     return (
       <View className="rounded-xl bg-status-critical-tint px-3 py-2.5">
-        <Text className="font-geist-semibold text-[12px] text-status-critical">Alignment check needs attention</Text>
-        <Text className="mt-1 font-geist text-[11px] text-ink-2">{alignment.failure_message}</Text>
+        <Text className="font-geist-semibold text-secondary text-status-critical">Alignment check needs attention</Text>
+        <Text className="mt-1 font-geist text-micro text-ink-2">{alignment.failure_message}</Text>
         <Action label={acting ? 'Retrying…' : 'Retry check'} onPress={onRetry} disabled={acting} />
       </View>
     );
@@ -53,30 +53,30 @@ export function ContractAlignmentCard({
   if (alignment.status === 'clear') {
     return (
       <View className="rounded-xl bg-status-good-tint px-3 py-2.5">
-        <Text className="font-geist-semibold text-[12px] text-status-good-label">Contract matches the approved terms</Text>
-        <Text className="mt-1 font-geist text-[11px] text-ink-2">All 22 applicable fields are clear. Signing is enabled.</Text>
+        <Text className="font-geist-semibold text-secondary text-status-good-label">Contract matches the approved terms</Text>
+        <Text className="mt-1 font-geist text-micro text-ink-2">All 22 applicable fields are clear. Signing is enabled.</Text>
       </View>
     );
   }
 
   return (
     <View className={`rounded-xl px-3 py-2.5 ${alignment.status === 'overridden' ? 'bg-status-good-tint' : 'bg-status-critical-tint'}`}>
-      <Text className={`font-geist-semibold text-[12px] ${alignment.status === 'overridden' ? 'text-status-good-label' : 'text-status-critical'}`}>
+      <Text className={`font-geist-semibold text-secondary ${alignment.status === 'overridden' ? 'text-status-good-label' : 'text-status-critical'}`}>
         {alignment.conflicts.length} contract conflict{alignment.conflicts.length === 1 ? '' : 's'} {alignment.status === 'overridden' ? 'accepted' : 'found'}
       </Text>
       {alignment.conflicts.map((conflict) => (
         <View key={conflict.field_key} className="mt-2 border-t border-hairline pt-2">
-          <Text className="font-geist-semibold text-[11px] text-ink">{conflict.label}</Text>
-          <Text className="mt-0.5 font-geist text-[11px] text-ink-2">Approved: {displayValue(conflict.approved_value)}</Text>
-          <Text className="font-geist text-[11px] text-ink-2">Contract: {displayValue(conflict.contract_value)}</Text>
+          <Text className="font-geist-semibold text-micro text-ink">{conflict.label}</Text>
+          <Text className="mt-0.5 font-geist text-micro text-ink-2">Approved: {displayValue(conflict.approved_value)}</Text>
+          <Text className="font-geist text-micro text-ink-2">Contract: {displayValue(conflict.contract_value)}</Text>
         </View>
       ))}
-      <Text className="mt-2 font-geist-medium text-[11px] text-ink-2">{confirmations}</Text>
+      <Text className="mt-2 font-geist-medium text-micro text-ink-2">{confirmations}</Text>
       {alignment.status === 'conflict' && alignment.can_override ? (
         <Action label={acting ? 'Saving…' : 'Accept this exact conflict set'} onPress={onOverride} disabled={acting} />
       ) : null}
       {alignment.status === 'conflict' && !alignment.can_override ? (
-        <Text className="mt-1 font-geist text-[11px] text-ink-2">Signing remains locked until both eligible sides accept this exact set.</Text>
+        <Text className="mt-1 font-geist text-micro text-ink-2">Signing remains locked until both eligible sides accept this exact set.</Text>
       ) : null}
     </View>
   );

@@ -75,8 +75,8 @@ export function LivePostSheet({
       <View className="gap-3">
         {mode === 'submit' ? (
           <View className="rounded-xl bg-surface-recess px-3 py-3">
-            <Text className="font-geist-semibold text-[12px] text-ink">Public link verification</Text>
-            <Text className="mt-1 font-geist text-[11px] leading-[16px] text-ink-2">
+            <Text className="font-geist-semibold text-secondary text-ink">Public link verification</Text>
+            <Text className="mt-1 font-geist text-micro text-ink-2">
               Inflo verifies the public HTTPS destination for this platform. It does not check authenticity or private content.
             </Text>
           </View>
@@ -92,12 +92,12 @@ export function LivePostSheet({
           maxLength={mode === 'flag' ? 500 : 2048}
           placeholder={mode === 'flag' ? 'Describe what is wrong with this link…' : 'https://…'}
           placeholderTextColor="#847F78"
-          className={`rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-[13px] text-ink ${mode === 'flag' ? 'min-h-28' : ''}`}
+          className={`rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-secondary text-ink ${mode === 'flag' ? 'min-h-28' : ''}`}
         />
-        <Text className="text-right font-geist text-[10.5px] text-ink-3">
+        <Text className="text-right font-geist text-micro text-ink-3">
           {value.length}/{mode === 'flag' ? 500 : 2048}
         </Text>
-        {error ? <Text className="font-geist-medium text-[12px] text-status-critical">{error}</Text> : null}
+        {error ? <Text className="font-geist-medium text-secondary text-status-critical">{error}</Text> : null}
       </View>
     </EditSheet>
   );

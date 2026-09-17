@@ -35,7 +35,7 @@ export function Chip({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      className={`overflow-hidden rounded-pill border px-[15px] py-2.5 ${
+      className={`overflow-hidden rounded-pill border px-4 py-2.5 ${
         selected ? 'border-ink' : 'border-hairline'
       } bg-surface-card`}
     >
@@ -44,7 +44,7 @@ export function Chip({
         style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#1C1B18' }, fillStyle]}
       />
       <Text
-        className={`text-[13.5px] ${
+        className={`text-secondary ${
           selected ? 'font-geist-semibold text-white' : 'font-geist-medium text-ink-2'
         }`}
       >

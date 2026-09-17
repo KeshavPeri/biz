@@ -33,8 +33,8 @@ export function PaymentDetailsCard({
   return (
     <View className="gap-3 rounded-2xl border border-hairline bg-surface-card p-3">
       <View>
-        <Text className="font-geist-semibold text-[14px] text-ink">Off-platform payment information</Text>
-        <Text className="mt-0.5 font-geist text-[11px] leading-[16px] text-ink-3">
+        <Text className="font-geist-semibold text-subtitle text-ink">Off-platform payment information</Text>
+        <Text className="mt-0.5 font-geist text-micro text-ink-3">
           A shared deal record for billing and payment instructions. Inflo does not transfer or verify funds.
         </Text>
       </View>
@@ -90,9 +90,9 @@ export function PaymentDetailsCard({
           ) : null}
         </View>
       )}
-      {error && !draftError ? <Text className="font-geist-medium text-[12px] text-status-critical">{error}</Text> : null}
+      {error && !draftError ? <Text className="font-geist-medium text-secondary text-status-critical">{error}</Text> : null}
       {state.stage !== 'posted' ? (
-        <Text className="font-geist text-[11px] text-ink-3">This record is read-only after post confirmation.</Text>
+        <Text className="font-geist text-micro text-ink-3">This record is read-only after post confirmation.</Text>
       ) : null}
     </View>
   );
@@ -148,9 +148,9 @@ function Editor({ title, error, saving, invalid, onCancel, onSave, children }: {
 }) {
   return (
     <View className="gap-2 rounded-xl border border-hairline bg-app p-3">
-      <Text className="font-geist-semibold text-[12px] text-ink">{title}</Text>
+      <Text className="font-geist-semibold text-secondary text-ink">{title}</Text>
       {children}
-      {error ? <Text className="font-geist-medium text-[11px] text-status-critical">{error}</Text> : null}
+      {error ? <Text className="font-geist-medium text-micro text-status-critical">{error}</Text> : null}
       <View className="flex-row gap-2">
         <SmallButton className="flex-1" label="Cancel" secondary disabled={saving} onPress={onCancel} />
         <SmallButton className="flex-1" label={saving ? 'Saving…' : 'Save'} disabled={saving || invalid} onPress={onSave} />
@@ -164,7 +164,7 @@ function Field({ label, value, onChangeText, maxLength, multiline = false }: {
 }) {
   return (
     <View className="gap-1">
-      <Text className="font-geist-medium text-[10.5px] text-ink-3">{label}</Text>
+      <Text className="font-geist-medium text-micro text-ink-3">{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -172,7 +172,7 @@ function Field({ label, value, onChangeText, maxLength, multiline = false }: {
         multiline={multiline}
         autoCorrect={false}
         placeholderTextColor="#847F78"
-        className={`rounded-xl border border-hairline bg-surface-card px-3 py-2 font-geist text-[12px] text-ink ${multiline ? 'min-h-16' : ''}`}
+        className={`rounded-xl border border-hairline bg-surface-card px-3 py-2 font-geist text-secondary text-ink ${multiline ? 'min-h-16' : ''}`}
       />
     </View>
   );
@@ -182,10 +182,10 @@ function CompletionRow({ label, complete, updatedAt }: { label: string; complete
   return (
     <View className="flex-row items-start justify-between gap-3 border-t border-hairline pt-2">
       <View className="min-w-0 flex-1">
-        <Text className="font-geist-semibold text-[12px] text-ink">{label}</Text>
-        <Text className="font-geist text-[10.5px] text-ink-3">{updatedAt ? `Updated ${formatDate(updatedAt)}` : 'Not added yet'}</Text>
+        <Text className="font-geist-semibold text-secondary text-ink">{label}</Text>
+        <Text className="font-geist text-micro tabular-nums text-ink-3">{updatedAt ? `Updated ${formatDate(updatedAt)}` : 'Not added yet'}</Text>
       </View>
-      <Text className={`font-geist-semibold text-[10.5px] ${complete ? 'text-status-good-label' : 'text-status-critical'}`}>
+      <Text className={`font-geist-semibold text-micro ${complete ? 'text-status-good-label' : 'text-status-critical'}`}>
         {complete ? 'Complete' : 'Missing'}
       </Text>
     </View>
@@ -195,8 +195,8 @@ function CompletionRow({ label, complete, updatedAt }: { label: string; complete
 function Detail({ label, value }: { label: string; value: string | null }) {
   return (
     <View className="border-t border-hairline py-1.5 first:border-t-0">
-      <Text className="font-geist-medium text-[10px] uppercase tracking-wide text-ink-3">{label}</Text>
-      <Text selectable className="mt-0.5 font-geist text-[11.5px] text-ink-2">{value || 'Not provided'}</Text>
+      <Text className="font-geist-medium text-micro text-ink-3">{label}</Text>
+      <Text selectable className="mt-0.5 font-geist text-secondary text-ink-2">{value || 'Not provided'}</Text>
     </View>
   );
 }

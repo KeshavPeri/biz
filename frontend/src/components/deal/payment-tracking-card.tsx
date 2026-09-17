@@ -211,8 +211,8 @@ export function PaymentTrackingCard({
         <View>
           <View className="flex-row items-start justify-between gap-3">
             <View className="min-w-0 flex-1">
-              <Text className="font-geist-semibold text-[14px] text-ink">Payment tracking</Text>
-              <Text className="mt-0.5 font-geist text-[11px] leading-[16px] text-ink-3">
+              <Text className="font-geist-semibold text-subtitle text-ink">Payment tracking</Text>
+              <Text className="mt-0.5 font-geist text-micro text-ink-3">
                 Records off-platform activity. Inflo does not transfer or verify funds.
               </Text>
             </View>
@@ -221,12 +221,12 @@ export function PaymentTrackingCard({
 
         {isDisputed || state.state === 'disputed' ? (
           <View className="rounded-xl bg-status-critical-tint px-3 py-2.5">
-            <Text className="font-geist-semibold text-[11.5px] text-status-critical">Dispute in progress — payment tracking is paused.</Text>
-            <Text className="mt-1 font-geist text-[10.5px] leading-[15px] text-ink-2">Current evidence remains visible and read-only.</Text>
+            <Text className="font-geist-semibold text-secondary text-status-critical">Dispute in progress — payment tracking is paused.</Text>
+            <Text className="mt-1 font-geist text-micro text-ink-2">Current evidence remains visible and read-only.</Text>
           </View>
         ) : state.stage === 'closed' ? (
           <View className="rounded-xl bg-surface-recess px-3 py-2.5">
-            <Text className="font-geist-medium text-[11px] text-ink-2">This payment record is read-only because the deal is closed.</Text>
+            <Text className="font-geist-medium text-micro text-ink-2">This payment record is read-only because the deal is closed.</Text>
           </View>
         ) : null}
 
@@ -246,8 +246,8 @@ export function PaymentTrackingCard({
         ) : (
           <View className="gap-2">
             <View className="flex-row items-center justify-between border-t border-hairline pt-3">
-              <Text className="font-geist-semibold text-[12px] text-ink">Payment schedule</Text>
-              <Text className="font-geist text-[10.5px] text-ink-3">Server order · {state.milestones.length} items</Text>
+              <Text className="font-geist-semibold text-secondary text-ink">Payment schedule</Text>
+              <Text className="font-geist text-micro tabular-nums text-ink-3">Server order · {state.milestones.length} items</Text>
             </View>
             {state.milestones.map((milestone) => (
               <MilestoneRow
@@ -270,7 +270,7 @@ export function PaymentTrackingCard({
 
         {error ? (
           <View className="gap-2 rounded-xl bg-status-critical-tint px-3 py-2.5">
-            <Text className="font-geist-medium text-[11px] leading-[16px] text-status-critical">{error}</Text>
+            <Text className="font-geist-medium text-micro text-status-critical">{error}</Text>
             <RetryButton label="Refresh payment tracking" onPress={onRetry} />
           </View>
         ) : null}
@@ -302,21 +302,21 @@ function AggregateSummary({ state }: { state: PaymentTrackingAvailable }) {
     <View className="gap-2 rounded-xl bg-surface-recess p-3">
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
-          <Text className="font-geist text-[10.5px] text-ink-3">Agreed amount</Text>
-          <Text className="mt-0.5 font-geist-semibold text-[17px] tabular-nums text-ink">
+          <Text className="font-geist text-micro text-ink-3">Agreed amount</Text>
+          <Text className="mt-0.5 font-geist-semibold text-title tabular-nums text-ink">
             {formatExactMoney(state.amount, state.currency)}
           </Text>
         </View>
         <View className="items-end">
-          <Text className="font-geist text-[10.5px] text-ink-3">Structure</Text>
-          <Text className="mt-0.5 font-geist-semibold text-[11.5px] text-ink">{structureLabel(state.structure)}</Text>
+          <Text className="font-geist text-micro text-ink-3">Structure</Text>
+          <Text className="mt-0.5 font-geist-semibold text-secondary tabular-nums text-ink">{structureLabel(state.structure)}</Text>
         </View>
       </View>
       <View className="border-t border-hairline pt-2">
         <WinSpring trigger={state.state === 'paid_full'}>
           <StatusLine state={state.state} />
         </WinSpring>
-        <Text className="mt-1 font-geist text-[10.5px] text-ink-3">
+        <Text className="mt-1 font-geist text-micro tabular-nums text-ink-3">
           Reported {formatDateTime(state.reported_at)} · payment version {state.version}
         </Text>
       </View>
@@ -374,11 +374,11 @@ function MilestoneRow({
     <View className="gap-2 rounded-xl border border-hairline bg-app p-3">
       <View className="flex-row items-start gap-3">
         <View className="h-7 w-7 items-center justify-center rounded-full bg-ink">
-          <Text className="font-geist-semibold text-[10.5px] tabular-nums text-white">{milestone.sequence}</Text>
+          <Text className="font-geist-semibold text-micro tabular-nums text-white">{milestone.sequence}</Text>
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="font-geist-semibold text-[12px] leading-[17px] text-ink">{milestone.trigger}</Text>
-          <Text className="mt-0.5 font-geist-medium text-[12px] tabular-nums text-ink-2">
+          <Text className="font-geist-semibold text-secondary text-ink">{milestone.trigger}</Text>
+          <Text className="mt-0.5 font-geist-medium text-secondary tabular-nums text-ink-2">
             {formatExactMoney(milestone.amount, currency)}
           </Text>
         </View>
@@ -387,13 +387,12 @@ function MilestoneRow({
         <StatusLine state={milestone.state} />
       </WinSpring>
       <View className="gap-1 border-t border-hairline pt-2">
-        <LedgerFact label="Due" value={formatDateOnly(milestone.due_date)} compact />
-        <LedgerFact label="Reported" value={`${formatDateTime(milestone.reported_at)} · version ${milestone.version}`} compact />
+        <LedgerFact label="Due" value={formatDateOnly(milestone.due_date)} />
+        <LedgerFact label="Reported" value={`${formatDateTime(milestone.reported_at)} · version ${milestone.version}`} />
         <LedgerFact
           label="Receipt"
           value={milestone.receipt_confirmed ? `Confirmed ${formatDateTime(milestone.receipt_confirmed_at)}` : 'Not confirmed for this version'}
           positive={milestone.receipt_confirmed}
-          compact
         />
       </View>
       {mayUpdate || mayConfirm ? (
@@ -426,23 +425,22 @@ function StatusLine({ state }: { state: PaymentState }) {
   return (
     <View className={`self-start flex-row items-center gap-2 rounded-lg px-2 py-1.5 ${critical ? 'bg-status-critical-tint' : good ? 'bg-status-good-tint' : warning ? 'bg-cane-1' : 'bg-surface-card'}`}>
       <View className={`h-2 w-2 rounded-full ${critical ? 'bg-status-critical' : good ? 'bg-status-good' : warning ? 'bg-cane-5' : 'bg-status-neutral'}`} />
-      <Text className={`font-geist-semibold text-[10.5px] ${critical ? 'text-status-critical' : good ? 'text-status-good-label' : 'text-ink-2'}`}>
+      <Text className={`font-geist-semibold text-micro ${critical ? 'text-status-critical' : good ? 'text-status-good-label' : 'text-ink-2'}`}>
         {PAYMENT_STATE_LABELS[state]}
       </Text>
     </View>
   );
 }
 
-function LedgerFact({ label, value, positive = false, compact = false }: {
+function LedgerFact({ label, value, positive = false }: {
   label: string;
   value: string;
   positive?: boolean;
-  compact?: boolean;
 }) {
   return (
     <View className="flex-row items-start justify-between gap-3">
-      <Text className={`font-geist text-ink-3 ${compact ? 'text-[10px]' : 'text-[10.5px]'}`}>{label}</Text>
-      <Text className={`min-w-0 flex-1 text-right font-geist-medium text-ink-2 ${compact ? 'text-[10px]' : 'text-[10.5px]'} ${positive ? 'text-status-good-label' : ''}`}>
+      <Text className="font-geist text-micro text-ink-3">{label}</Text>
+      <Text className={`min-w-0 flex-1 text-right font-geist-medium text-micro tabular-nums text-ink-2 ${positive ? 'text-status-good-label' : ''}`}>
         {value}
       </Text>
     </View>
@@ -490,8 +488,8 @@ function TrackerNotice({ title, message, actionLabel, onAction }: {
 }) {
   return (
     <View className="gap-2 rounded-2xl border border-hairline bg-surface-card p-3">
-      <Text className="font-geist-semibold text-[14px] text-ink">{title}</Text>
-      <Text className="font-geist text-[11px] leading-[16px] text-ink-2">{message}</Text>
+      <Text className="font-geist-semibold text-subtitle text-ink">{title}</Text>
+      <Text className="font-geist text-micro text-ink-2">{message}</Text>
       {actionLabel && onAction ? <RetryButton label={actionLabel} onPress={onAction} /> : null}
     </View>
   );

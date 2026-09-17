@@ -40,15 +40,15 @@ export function CreativeBriefCard({
     <View className="gap-3 rounded-2xl border border-hairline bg-surface-card p-3">
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
-          <Text className="font-geist-semibold text-[14px] text-ink">Campaign brief</Text>
-          <Text className="mt-0.5 font-geist text-[11px] text-ink-3">
+          <Text className="font-geist-semibold text-subtitle text-ink">Campaign brief</Text>
+          <Text className="mt-0.5 font-geist text-micro text-ink-3">
             {state.latest
               ? `Latest v${state.latest.version} · ${state.latest.acknowledged_by_creator ? 'acknowledged' : 'awaiting creator acknowledgement'}`
               : 'No brief has been shared yet'}
           </Text>
         </View>
         {state.latest ? (
-          <Text className="font-geist-semibold text-[11px] text-ink-2">v{state.latest.version}</Text>
+          <Text className="font-geist-semibold text-micro text-ink-2">v{state.latest.version}</Text>
         ) : null}
       </View>
 
@@ -62,7 +62,7 @@ export function CreativeBriefCard({
               onPress={() => setSelectedId(brief.id)}
               className={`rounded-full border px-3 py-1.5 ${selected?.id === brief.id ? 'border-ink bg-ink' : 'border-hairline bg-app'}`}
             >
-              <Text className={`font-geist-semibold text-[11px] ${selected?.id === brief.id ? 'text-white' : 'text-ink-2'}`}>
+              <Text className={`font-geist-semibold text-micro ${selected?.id === brief.id ? 'text-white' : 'text-ink-2'}`}>
                 v{brief.version}{brief.id === state.latest?.id ? ' · latest' : ''}
               </Text>
             </Pressable>
@@ -72,7 +72,7 @@ export function CreativeBriefCard({
 
       {selected ? <BriefVersionView brief={selected} latest={selected.id === state.latest?.id} /> : (
         <View className="rounded-xl bg-surface-recess px-3 py-3">
-          <Text className="font-geist text-[12px] leading-[17px] text-ink-3">
+          <Text className="font-geist text-secondary text-ink-3">
             The brand can share the structured objective and creative guidance here.
           </Text>
         </View>
@@ -102,7 +102,7 @@ export function CreativeBriefCard({
         />
       ) : null}
 
-      {error ? <Text className="font-geist text-[12px] text-status-critical">{error}</Text> : null}
+      {error ? <Text className="font-geist text-secondary text-status-critical">{error}</Text> : null}
     </View>
   );
 }
@@ -112,14 +112,14 @@ function BriefVersionView({ brief, latest }: { brief: CreativeBriefVersion; late
     <View className="gap-3 rounded-xl bg-surface-recess p-3">
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
-          <Text className="font-geist-semibold text-[11.5px] text-ink">
+          <Text className="font-geist-semibold text-secondary text-ink">
             Shared by {brief.created_by_display_name}
           </Text>
-          <Text className="font-geist text-[10px] text-ink-3">
+          <Text className="font-geist text-micro text-ink-3">
             v{brief.version} · {formatDate(brief.created_at)}{latest ? ' · latest' : ' · history'}
           </Text>
         </View>
-        <Text className={`font-geist-semibold text-[10.5px] ${brief.acknowledged_by_creator ? 'text-status-good-label' : 'text-ink-3'}`}>
+        <Text className={`font-geist-semibold text-micro ${brief.acknowledged_by_creator ? 'text-status-good-label' : 'text-ink-3'}`}>
           {brief.acknowledged_by_creator ? 'Acknowledged' : 'Unacknowledged'}
         </Text>
       </View>
@@ -137,8 +137,8 @@ function BriefField({ label, value }: { label: string; value: string }) {
   if (!value) return null;
   return (
     <View className="border-t border-hairline pt-2">
-      <Text className="font-geist-semibold text-[10.5px] uppercase tracking-wide text-ink-3">{label}</Text>
-      <Text selectable className="mt-0.5 font-geist text-[12px] leading-[17px] text-ink-2">{value}</Text>
+      <Text className="font-geist-medium text-micro text-ink-3">{label}</Text>
+      <Text selectable className="mt-0.5 font-geist text-secondary text-ink-2">{value}</Text>
     </View>
   );
 }
@@ -181,7 +181,7 @@ function BriefEditor({
 
   return (
     <View className="gap-2 rounded-xl border border-hairline bg-app p-3">
-      <Text className="font-geist-semibold text-[12px] text-ink">
+      <Text className="font-geist-semibold text-secondary text-ink">
         {expectedVersion === 0 ? 'Share brief' : `Create v${expectedVersion + 1} from v${expectedVersion}`}
       </Text>
       <EditorField label="Objective *" value={objective} onChangeText={setObjective} maxLength={500} />
@@ -218,14 +218,14 @@ function EditorField({
 }) {
   return (
     <View className="gap-1">
-      <Text className="font-geist-medium text-[10.5px] text-ink-3">{label}</Text>
+      <Text className="font-geist-medium text-micro text-ink-3">{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         maxLength={maxLength}
         multiline={multiline}
         placeholderTextColor="#847F78"
-        className={`rounded-xl border border-hairline bg-surface-card px-3 py-2 font-geist text-[12px] text-ink ${multiline ? 'min-h-[58px]' : ''}`}
+        className={`rounded-xl border border-hairline bg-surface-card px-3 py-2 font-geist text-secondary text-ink ${multiline ? 'min-h-[58px]' : ''}`}
       />
     </View>
   );

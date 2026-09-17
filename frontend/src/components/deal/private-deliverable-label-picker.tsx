@@ -30,10 +30,10 @@ export function PrivateDeliverableLabelPicker({
     <>
       <View className="flex-row items-center justify-between gap-3 border-t border-hairline pt-2">
         <View className="min-w-0 flex-1">
-          <Text className="font-geist-medium text-[10.5px] uppercase tracking-wide text-ink-3">
+          <Text className="font-geist-medium text-micro text-ink-3">
             Private label
           </Text>
-          <Text className="mt-0.5 font-geist-medium text-[11.5px] text-ink-2">
+          <Text className="mt-0.5 font-geist-medium text-secondary text-ink-2">
             {value ?? 'None'}
           </Text>
         </View>
