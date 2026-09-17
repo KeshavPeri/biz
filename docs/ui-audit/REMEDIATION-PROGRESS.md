@@ -11,7 +11,7 @@ Status values: todo · in progress · done · blocked (reason).
 | 1 | PR-02 Root layout, tab crossfade, gesture root | done | bfb9d2b | |
 | 2 | PR-03 useMotion + PressableScale | done | 09023b7 | also B4-34 role cards |
 | 2 | PR-04 Rebuild ui/button + GlassFlush | done | 52058f5 | callers remapped lg→md, xl→lg (same heights); ButtonIcon dropped (unused) |
-| 2 | PR-05 Migrate hand-rolled buttons | todo | | |
+| 2 | PR-05 Migrate hand-rolled buttons | done | 0902816 | all labelled action buttons in deal/* (not just the named helpers); rows/chips/star pickers left for later PRs |
 | 3 | PR-06 Liquid Glass nav + useTabBarInset | todo | | decision 4 |
 | 3 | PR-07 EditSheet rebuild | todo | | decision 2 |
 | 4 | PR-12 Skeleton | todo | | |
