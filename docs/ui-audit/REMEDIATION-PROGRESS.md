@@ -14,7 +14,7 @@ Status values: todo · in progress · done · blocked (reason).
 | 2 | PR-05 Migrate hand-rolled buttons | done | 0902816 | all labelled action buttons in deal/* (not just the named helpers); rows/chips/star pickers left for later PRs |
 | 3 | PR-06 Liquid Glass nav + useTabBarInset | done | 89e5419 | decision 4; Chat dot bound to real unread (ink, like the inbox badge) |
 | 3 | PR-07 EditSheet rebuild | done | 8837d1e | decision 2; `sheet: 24` in tailwind only — docs/design-tokens.md is read-only on disk, line still to add (see session log) |
-| 4 | PR-12 Skeleton | in progress | | |
+| 4 | PR-12 Skeleton | done | a2724c8 | Skeleton.CardGrid columns fixed at 2 in discover-screen (accountType unknown while loading, so isBrand can't gate columns yet) |
 | 4 | PR-13 StageAdvance | todo | | |
 | 4 | PR-14 WinSpring | todo | | decision 6 |
 | 4 | PR-16 ListItemFade | todo | | |
