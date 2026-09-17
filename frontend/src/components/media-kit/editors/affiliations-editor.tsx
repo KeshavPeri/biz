@@ -183,7 +183,7 @@ export function AffiliationsEditor({
           </Button>
         ) : null}
         <Button action="primary" size="md" className="flex-1" isDisabled={!canSave || busy} onPress={save}>
-          {busy ? <ButtonSpinner color="#FBFAF6" /> : null}
+          {busy ? <ButtonSpinner /> : null}
           <ButtonText>{draft.id ? 'Save' : 'Add'}</ButtonText>
         </Button>
       </View>

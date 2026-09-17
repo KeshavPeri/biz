@@ -101,7 +101,7 @@ export default function VerifyOtpScreen() {
           isDisabled={code.length !== CODE_LENGTH || verifying}
           onPress={() => verify(code)}
         >
-          {verifying ? <ButtonSpinner color="#FFFFFF" /> : null}
+          {verifying ? <ButtonSpinner /> : null}
           <ButtonText>Verify</ButtonText>
         </Button>
       }

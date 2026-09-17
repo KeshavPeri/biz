@@ -1,5 +1,6 @@
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import type { CloseConfirmation, CloseStatus } from '@/lib/deals';
 
 export function CloseStatusCard({
@@ -51,17 +52,10 @@ export function CloseStatusCard({
       </View>
 
       {state.allowed_actions.can_confirm ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Confirm close"
-          disabled={acting}
-          onPress={onConfirm}
-          className={`min-h-11 items-center justify-center rounded-2xl px-3 py-2.5 ${acting ? 'bg-avatar' : 'bg-ink'}`}
-        >
-          <Text className="font-geist-semibold text-[12px] text-white">
-            {acting ? 'Confirming…' : 'Confirm close'}
-          </Text>
-        </Pressable>
+        <Button action="primary" accessibilityLabel="Confirm close" isDisabled={acting} onPress={onConfirm}>
+          {acting ? <ButtonSpinner /> : null}
+          <ButtonText>{acting ? 'Confirming…' : 'Confirm close'}</ButtonText>
+        </Button>
       ) : !complete && state.payment_complete && !disputeBlocked ? (
         <Text className="font-geist-medium text-[11px] leading-[16px] text-ink-2">
           Waiting for the other side to confirm.
@@ -71,9 +65,9 @@ export function CloseStatusCard({
       {error ? (
         <View className="gap-2 rounded-xl bg-status-critical-tint px-3 py-2.5">
           <Text accessibilityRole="alert" className="font-geist text-[11px] leading-[16px] text-status-critical">{error}</Text>
-          <Pressable accessibilityRole="button" onPress={onRetry} className="min-h-10 items-center justify-center rounded-xl border border-hairline bg-surface-card px-3 py-2">
-            <Text className="font-geist-semibold text-[11px] text-ink">Refresh close status</Text>
-          </Pressable>
+          <Button action="secondary" onPress={onRetry}>
+            <ButtonText>Refresh close status</ButtonText>
+          </Button>
         </View>
       ) : null}
     </View>
@@ -111,9 +105,9 @@ function Notice({ message, actionLabel, onAction }: { message: string; actionLab
       <Text className="font-geist-semibold text-[13px] text-ink">Deal close</Text>
       <Text className="font-geist text-[11px] leading-[16px] text-ink-2">{message}</Text>
       {actionLabel && onAction ? (
-        <Pressable accessibilityRole="button" onPress={onAction} className="min-h-10 items-center justify-center rounded-xl border border-hairline px-3 py-2">
-          <Text className="font-geist-semibold text-[11px] text-ink">{actionLabel}</Text>
-        </Pressable>
+        <Button action="secondary" onPress={onAction}>
+          <ButtonText>{actionLabel}</ButtonText>
+        </Button>
       ) : null}
     </View>
   );

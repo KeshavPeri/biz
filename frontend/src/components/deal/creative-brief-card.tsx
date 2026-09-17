@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
+import { Button, ButtonText } from '@/components/ui/button';
 import type { CreativeBriefContent, CreativeBriefState, CreativeBriefVersion } from '@/lib/deals';
 
 const EMPTY_CONTENT: CreativeBriefContent = {
@@ -190,8 +191,9 @@ function BriefEditor({
       <EditorField label="Hashtags · one per line" value={hashtags} onChangeText={setHashtags} maxLength={2019} multiline />
       <EditorField label="Caption guidance" value={captionGuidance} onChangeText={setCaptionGuidance} maxLength={2000} multiline />
       <View className="flex-row gap-2">
-        <SecondaryButton label="Cancel" disabled={acting} onPress={onCancel} />
+        <SecondaryButton className="flex-1" label="Cancel" disabled={acting} onPress={onCancel} />
         <ActionButton
+          className="flex-1"
           label={acting ? 'Saving…' : expectedVersion === 0 ? 'Share v1' : `Save v${expectedVersion + 1}`}
           disabled={acting || invalid}
           onPress={() => onSubmit(expectedVersion, content)}
@@ -229,31 +231,19 @@ function EditorField({
   );
 }
 
-function ActionButton({ label, disabled, onPress }: { label: string; disabled: boolean; onPress: () => void }) {
+function ActionButton({ label, disabled, onPress, className }: { label: string; disabled: boolean; onPress: () => void; className?: string }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      disabled={disabled}
-      onPress={onPress}
-      className={`flex-1 items-center rounded-full bg-ink px-3 py-2.5 ${disabled ? 'opacity-50' : ''}`}
-    >
-      <Text className="font-geist-semibold text-[12px] text-white">{label}</Text>
-    </Pressable>
+    <Button action="primary" accessibilityLabel={label} isDisabled={disabled} onPress={onPress} className={className}>
+      <ButtonText>{label}</ButtonText>
+    </Button>
   );
 }
 
-function SecondaryButton({ label, disabled, onPress }: { label: string; disabled: boolean; onPress: () => void }) {
+function SecondaryButton({ label, disabled, onPress, className }: { label: string; disabled: boolean; onPress: () => void; className?: string }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      disabled={disabled}
-      onPress={onPress}
-      className={`flex-1 items-center rounded-full border border-hairline bg-app px-3 py-2.5 ${disabled ? 'opacity-50' : ''}`}
-    >
-      <Text className="font-geist-semibold text-[12px] text-ink-2">{label}</Text>
-    </Pressable>
+    <Button action="secondary" accessibilityLabel={label} isDisabled={disabled} onPress={onPress} className={className}>
+      <ButtonText>{label}</ButtonText>
+    </Button>
   );
 }
 

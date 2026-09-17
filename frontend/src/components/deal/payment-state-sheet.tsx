@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import type {
   PaymentState,
@@ -94,25 +95,25 @@ export function PaymentStateSheet({
       title={mode === 'receipt' ? 'Confirm received' : reviewingConsequence ? `Confirm ${selectedLabel}` : 'Record payment status'}
       subtitle={`${target.label} · ${target.amountLabel} · displayed version ${target.version}`}
       footer={(
-        <Pressable
-          accessibilityRole="button"
+        <Button
+          action="primary"
+          size="lg"
           accessibilityLabel={mode === 'receipt'
             ? `Confirm received for ${target.label}`
             : `${reviewingConsequence ? 'Confirm and record' : 'Record'} ${selectedLabel ?? 'selected payment status'} for ${target.label}`}
-          disabled={busy || (mode === 'record' && selected == null)}
+          isDisabled={busy || (mode === 'record' && selected == null)}
           onPress={() => void finish()}
-          className={`min-h-12 items-center justify-center rounded-2xl bg-ink px-4 py-3 ${busy || (mode === 'record' && selected == null) ? 'opacity-40' : ''}`}
         >
-          {busy ? <ActivityIndicator color="#FFFFFF" /> : (
-            <Text className="font-geist-semibold text-[13px] text-white">
+          {busy ? <ButtonSpinner /> : (
+            <ButtonText>
               {mode === 'receipt'
                 ? 'Confirm received'
                 : reviewingConsequence
                   ? `Record ${selectedLabel}`
                   : 'Record selected status'}
-            </Text>
+            </ButtonText>
           )}
-        </Pressable>
+        </Button>
       )}
     >
       {mode === 'receipt' ? (
@@ -137,15 +138,14 @@ export function PaymentStateSheet({
               This records a high-consequence tracking label only. It does not move, refund, verify, or recover money.
             </Text>
           </View>
-          <Pressable
-            accessibilityRole="button"
+          <Button
+            action="secondary"
             accessibilityLabel="Go back to payment status choices"
-            disabled={busy}
+            isDisabled={busy}
             onPress={() => setReviewingConsequence(false)}
-            className="min-h-11 items-center justify-center rounded-2xl border border-hairline bg-surface-card px-3 py-2.5"
           >
-            <Text className="font-geist-semibold text-[12px] text-ink">Review status choices</Text>
-          </Pressable>
+            <ButtonText>Review status choices</ButtonText>
+          </Button>
           {error ? <ActionError message={error} /> : null}
         </View>
       ) : (

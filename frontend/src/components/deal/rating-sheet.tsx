@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 
 type Result = { ok: true } | { ok: false; message: string };
@@ -70,9 +71,9 @@ export function RatingSheet({
       title="Leave a final rating"
       subtitle="Choose 1–5 stars. Your side can submit only once."
       footer={(
-        <Pressable accessibilityRole="button" accessibilityLabel="Review and submit final rating" disabled={!valid || busy} onPress={confirm} className={`min-h-12 items-center justify-center rounded-2xl bg-ink px-4 py-3 ${!valid || busy ? 'opacity-40' : ''}`}>
-          {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text className="font-geist-semibold text-[13px] text-white">Submit final rating</Text>}
-        </Pressable>
+        <Button action="primary" size="lg" accessibilityLabel="Review and submit final rating" isDisabled={!valid || busy} onPress={confirm}>
+          {busy ? <ButtonSpinner /> : <ButtonText>Submit final rating</ButtonText>}
+        </Button>
       )}
     >
       <View className="gap-4">

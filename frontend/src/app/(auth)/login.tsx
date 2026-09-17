@@ -66,7 +66,7 @@ export default function LoginScreen() {
             isDisabled={!ready}
             onPress={handleLogin}
           >
-            {submitting ? <ButtonSpinner color="#FFFFFF" /> : null}
+            {submitting ? <ButtonSpinner /> : null}
             <ButtonText>Log in</ButtonText>
           </Button>
           <Pressable

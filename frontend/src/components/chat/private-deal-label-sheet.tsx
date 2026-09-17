@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
 import TagIcon from '@/assets/icons/tag.svg';
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import {
   MAX_PRIVATE_DEAL_LABELS,
@@ -49,7 +50,7 @@ export function PrivateDealLabelSheet({
   const availableSuggestions = suggestions.filter((label) => !labels.some((row) => row.label === label));
   const canAdd = !busy && !loading && labels.length < MAX_PRIVATE_DEAL_LABELS;
   return <EditSheet visible={visible} onClose={() => { if (!busy) onClose(); }} title="Private labels" subtitle={`Only you can see these organizers for ${dealName}.`} footer={(
-    <View className="flex-row gap-2"><Pressable onPress={onClose} disabled={busy} className="min-h-11 flex-1 items-center justify-center rounded-xl border border-hairline"><Text className="font-geist-semibold text-[12px] text-ink">Done</Text></Pressable><Pressable onPress={() => { void add(draft); }} disabled={!canAdd || !draft} className={`min-h-11 flex-1 items-center justify-center rounded-xl bg-ink ${!canAdd || !draft ? 'opacity-40' : ''}`}>{busy ? <ActivityIndicator color="#FFFFFF" /> : <Text className="font-geist-semibold text-[12px] text-white">Add label</Text>}</Pressable></View>
+    <View className="flex-row gap-2"><Button action="ghost" onPress={onClose} isDisabled={busy} className="flex-1"><ButtonText>Done</ButtonText></Button><Button action="primary" onPress={() => { void add(draft); }} isDisabled={!canAdd || !draft} className="flex-1">{busy ? <ButtonSpinner /> : <ButtonText>Add label</ButtonText>}</Button></View>
   )}>
     <View className="gap-3">
       <View className="flex-row items-center gap-2"><TagIcon width={18} height={18} color="#847F78" /><TextInput value={draft} onChangeText={(value) => { setDraft(value); setError(null); }} editable={canAdd} maxLength={64} accessibilityLabel="New private label" placeholder="Add a label" placeholderTextColor="#847F78" className="min-h-11 flex-1 rounded-xl border border-hairline bg-surface-card px-3 font-geist text-[13px] text-ink" /></View>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import type { DisputeEvidenceReference } from '@/lib/deals';
 
@@ -72,17 +73,17 @@ export function DisputeSheet({
 
   const footer = confirming ? (
     <View className="gap-2">
-      <Pressable accessibilityRole="button" accessibilityLabel="Confirm and raise payment dispute" disabled={busy} onPress={() => void submit()} className={`min-h-12 items-center justify-center rounded-2xl bg-ink px-4 py-3 ${busy ? 'opacity-40' : ''}`}>
-        {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text className="font-geist-semibold text-[13px] text-white">Raise dispute</Text>}
-      </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="Go back to dispute details" disabled={busy} onPress={() => setConfirming(false)} className="min-h-11 items-center justify-center rounded-2xl border border-hairline bg-surface-card px-3 py-2.5">
-        <Text className="font-geist-semibold text-[12px] text-ink">Review details</Text>
-      </Pressable>
+      <Button action="primary" size="lg" accessibilityLabel="Confirm and raise payment dispute" isDisabled={busy} onPress={() => void submit()}>
+        {busy ? <ButtonSpinner /> : <ButtonText>Raise dispute</ButtonText>}
+      </Button>
+      <Button action="secondary" accessibilityLabel="Go back to dispute details" isDisabled={busy} onPress={() => setConfirming(false)}>
+        <ButtonText>Review details</ButtonText>
+      </Button>
     </View>
   ) : (
-    <Pressable accessibilityRole="button" accessibilityLabel="Continue to dispute confirmation" disabled={!valid} onPress={continueToConfirmation} className={`min-h-12 items-center justify-center rounded-2xl bg-ink px-4 py-3 ${valid ? '' : 'opacity-40'}`}>
-      <Text className="font-geist-semibold text-[13px] text-white">Continue</Text>
-    </Pressable>
+    <Button action="primary" size="lg" accessibilityLabel="Continue to dispute confirmation" isDisabled={!valid} onPress={continueToConfirmation}>
+      <ButtonText>Continue</ButtonText>
+    </Button>
   );
 
   return (

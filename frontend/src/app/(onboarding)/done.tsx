@@ -179,7 +179,7 @@ export default function DoneScreen() {
           isDisabled={submitting}
           onPress={finish}
         >
-          {submitting ? <ButtonSpinner color="#FFFFFF" /> : null}
+          {submitting ? <ButtonSpinner /> : null}
           <ButtonText>{isCreator ? 'Start discovering' : 'Go to dashboard'}</ButtonText>
         </Button>
       </View>

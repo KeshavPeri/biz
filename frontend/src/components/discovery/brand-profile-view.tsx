@@ -1,5 +1,6 @@
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { Button, ButtonText } from '@/components/ui/button';
 import { type BrandProfile } from '@/lib/media-kit';
 
 import CheckIcon from '@/assets/icons/check.svg';
@@ -98,18 +99,14 @@ export function BrandProfileView({ data, onConnect }: { data: BrandProfile; onCo
       {/* Connect CTA — enabled when onConnect is supplied (B2-004). */}
       <View className="mt-6">
         {onConnect ? (
-          <Pressable
-            className="items-center justify-center rounded-button bg-ink py-3.5"
-            onPress={onConnect}
-            accessibilityRole="button"
-          >
-            <Text className="font-geist-semibold text-body text-white">Start a deal</Text>
-          </Pressable>
+          <Button action="primary" size="lg" onPress={onConnect}>
+            <ButtonText>Start a deal</ButtonText>
+          </Button>
         ) : (
           <>
-            <View className="items-center justify-center rounded-button bg-cane-3 py-3.5 opacity-60">
-              <Text className="font-geist-semibold text-body text-ink-2">Start a deal (coming soon)</Text>
-            </View>
+            <Button action="primary" size="lg" isDisabled>
+              <ButtonText>Start a deal (coming soon)</ButtonText>
+            </Button>
             <Text className="mt-1.5 text-center font-geist text-[11px] text-ink-3">
               Connecting with brands lands with the deal engine.
             </Text>

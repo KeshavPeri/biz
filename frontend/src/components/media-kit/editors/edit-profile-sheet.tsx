@@ -96,7 +96,7 @@ function CreatorForm({
       subtitle="This is what brands filter and land on."
       footer={
         <Button action="primary" size="lg" className="w-full" isDisabled={!canSave || saving} onPress={save}>
-          {saving ? <ButtonSpinner color="#FBFAF6" /> : null}
+          {saving ? <ButtonSpinner /> : null}
           <ButtonText>Save</ButtonText>
         </Button>
       }
@@ -186,7 +186,7 @@ function BrandForm({
       subtitle="How creators see your company in Discovery."
       footer={
         <Button action="primary" size="lg" className="w-full" isDisabled={!canSave || saving} onPress={save}>
-          {saving ? <ButtonSpinner color="#FBFAF6" /> : null}
+          {saving ? <ButtonSpinner /> : null}
           <ButtonText>Save</ButtonText>
         </Button>
       }

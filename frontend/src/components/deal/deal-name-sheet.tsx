@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import { DealNameContextFence } from '@/lib/deal-name-context-fence';
 import { renameDeal, type DealNameResult, type DealThread } from '@/lib/deals';
@@ -100,12 +101,12 @@ export function DealNameSheet({
       subtitle="Everyone in this deal will see the same name after refresh."
       footer={(
         <View className="flex-row gap-2">
-          <Pressable accessibilityRole="button" accessibilityLabel="Cancel deal name edit" disabled={busy} onPress={onClose} className={`min-h-11 flex-1 items-center justify-center rounded-xl border border-hairline ${busy ? 'opacity-40' : ''}`}>
-            <Text className="font-geist-semibold text-[12px] text-ink">Cancel</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Save deal name" accessibilityState={{ disabled, busy }} disabled={disabled} onPress={() => { void save(); }} className={`min-h-11 flex-1 items-center justify-center rounded-xl bg-ink ${disabled ? 'opacity-40' : ''}`}>
-            {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text className="font-geist-semibold text-[12px] text-white">Save name</Text>}
-          </Pressable>
+          <Button action="secondary" accessibilityLabel="Cancel deal name edit" isDisabled={busy} onPress={onClose} className="flex-1">
+            <ButtonText>Cancel</ButtonText>
+          </Button>
+          <Button action="primary" accessibilityLabel="Save deal name" accessibilityState={{ disabled, busy }} isDisabled={disabled} onPress={() => { void save(); }} className="flex-1">
+            {busy ? <ButtonSpinner /> : <ButtonText>Save name</ButtonText>}
+          </Button>
         </View>
       )}
     >

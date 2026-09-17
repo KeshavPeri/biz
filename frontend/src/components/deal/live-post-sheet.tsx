@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import type { CanonicalDeliverable } from '@/lib/deals';
 
@@ -58,19 +59,17 @@ export function LivePostSheet({
         ? `Explain the issue with the exact current proof (v${currentVersion}).`
         : `${deliverable.platform} · the server checks the public link and returns a safe text preview.`}
       footer={(
-        <Pressable
+        <Button
+          action="primary"
+          size="lg"
           onPress={confirm}
-          disabled={busy || invalid}
-          accessibilityRole="button"
+          isDisabled={busy || invalid}
           accessibilityLabel={mode === 'flag' ? 'Flag this live post version' : 'Submit live post URL'}
-          className={`items-center rounded-full bg-ink py-3 ${busy || invalid ? 'opacity-40' : ''}`}
         >
-          {busy ? <ActivityIndicator color="#FFFFFF" /> : (
-            <Text className="font-geist-semibold text-white">
-              {mode === 'flag' ? 'Flag this version' : 'Verify and submit'}
-            </Text>
+          {busy ? <ButtonSpinner /> : (
+            <ButtonText>{mode === 'flag' ? 'Flag this version' : 'Verify and submit'}</ButtonText>
           )}
-        </Pressable>
+        </Button>
       )}
     >
       <View className="gap-3">

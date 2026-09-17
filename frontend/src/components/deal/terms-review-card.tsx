@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 
+import { Button, ButtonText } from '@/components/ui/button';
 import type { TermsReviewState } from '@/lib/deals';
 
 type Summary = NonNullable<TermsReviewState['summary']>;
@@ -144,15 +145,15 @@ function ActionButton({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <Button
+      action={kind === 'primary' ? 'primary' : 'secondary'}
       onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
+      isDisabled={disabled}
       accessibilityLabel={label}
-      className={`flex-1 items-center rounded-full py-2.5 ${kind === 'primary' ? 'bg-ink' : 'border border-hairline bg-app'} ${disabled ? 'opacity-50' : ''}`}
+      className="flex-1 px-3"
     >
-      <Text className={`font-geist-semibold text-[13px] ${kind === 'primary' ? 'text-white' : 'text-ink-2'}`}>{label}</Text>
-    </Pressable>
+      <ButtonText>{label}</ButtonText>
+    </Button>
   );
 }
 

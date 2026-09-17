@@ -233,7 +233,7 @@ export function RateCardEditor({
           isDisabled={!canAdd || busy}
           onPress={saveDraft}
         >
-          {busy ? <ButtonSpinner color="#FBFAF6" /> : null}
+          {busy ? <ButtonSpinner /> : null}
           <ButtonText>{draft.id ? 'Save rate' : 'Add rate'}</ButtonText>
         </Button>
       </View>

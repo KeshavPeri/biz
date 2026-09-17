@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { Alert, Linking, Pressable, Text, View } from 'react-native';
+import { Alert, Linking, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as Crypto from 'expo-crypto';
+import { Button, ButtonText } from '@/components/ui/button';
 import { ContractSignSheet } from '@/components/deal/contract-sign-sheet';
 import { ContractAlignmentCard } from '@/components/deal/contract-alignment-card';
 import { TermsReviewCard } from '@/components/deal/terms-review-card';
@@ -1212,8 +1213,9 @@ export function StickyActionBar({
                 </View>
               ) : null}
               <ButtonRow>
-                <GhostButton label="Decline" onPress={() => run(() => declineDeal(thread.dealId))} disabled={acting} />
+                <GhostButton className="flex-1 px-3" label="Decline" onPress={() => run(() => declineDeal(thread.dealId))} disabled={acting} />
                 <PrimaryButton
+                  className="flex-1 px-3"
                   label={exclusivityWarning ? 'Accept anyway' : 'Accept'}
                   onPress={() => onAccept(exclusivityWarning != null)}
                   disabled={acting}
@@ -1473,8 +1475,8 @@ function ContractCard({
           {approval.comment ? <Text className="mt-1 font-geist text-[11px] text-ink-2">{approval.comment}</Text> : null}
           {approval.can_decide ? (
             <View className="mt-2 flex-row gap-2">
-              <GhostButton label="Reject" onPress={() => onDecision(approval.request_id, 'reject')} disabled={acting} />
-              <PrimaryButton label="Approve signing" onPress={() => onDecision(approval.request_id, 'approve')} disabled={acting} />
+              <GhostButton className="flex-1 px-3" label="Reject" onPress={() => onDecision(approval.request_id, 'reject')} disabled={acting} />
+              <PrimaryButton className="flex-1 px-3" label="Approve signing" onPress={() => onDecision(approval.request_id, 'approve')} disabled={acting} />
             </View>
           ) : null}
         </View>
@@ -1583,8 +1585,8 @@ function SummaryGate({
       return (
         <Actions label="Summary requested — confirm" error={error}>
           <ButtonRow>
-            <GhostButton label="Not yet" onPress={() => onAction(() => deferTermsSummaryRequest(dealId))} disabled={acting} />
-            <PrimaryButton label="Confirm request" onPress={() => onAction(() => confirmTermsSummaryRequest(dealId))} disabled={acting} />
+            <GhostButton className="flex-1 px-3" label="Not yet" onPress={() => onAction(() => deferTermsSummaryRequest(dealId))} disabled={acting} />
+            <PrimaryButton className="flex-1 px-3" label="Confirm request" onPress={() => onAction(() => confirmTermsSummaryRequest(dealId))} disabled={acting} />
           </ButtonRow>
         </Actions>
       );
@@ -1624,38 +1626,29 @@ function Waiting({ text }: { text: string }) {
   );
 }
 
-function PrimaryButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled: boolean }) {
+type ActionButtonProps = { label: string; onPress: () => void; disabled: boolean; className?: string };
+
+// Thin wrappers over ui/button so every deal-room action shares one tier system.
+function PrimaryButton({ label, onPress, disabled, className }: ActionButtonProps) {
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      className={`flex-1 items-center justify-center rounded-full bg-ink py-2.5 ${disabled ? 'opacity-50' : ''}`}
-    >
-      <Text className="font-geist-semibold text-[14px] text-white">{label}</Text>
-    </Pressable>
+    <Button action="primary" onPress={onPress} isDisabled={disabled} accessibilityLabel={label} className={className}>
+      <ButtonText>{label}</ButtonText>
+    </Button>
   );
 }
 
-function GhostButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled: boolean }) {
+function GhostButton({ label, onPress, disabled, className }: ActionButtonProps) {
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      className={`flex-1 items-center justify-center rounded-full border border-hairline bg-surface-card py-2.5 ${disabled ? 'opacity-50' : ''}`}
-    >
-      <Text className="font-geist-semibold text-[14px] text-ink-2">{label}</Text>
-    </Pressable>
+    <Button action="secondary" onPress={onPress} isDisabled={disabled} accessibilityLabel={label} className={className}>
+      <ButtonText>{label}</ButtonText>
+    </Button>
   );
 }
 
-function InlineButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled: boolean }) {
+function InlineButton({ label, onPress, disabled }: ActionButtonProps) {
   return (
-    <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={label} className={`mt-1 self-start rounded-full bg-cane-2 px-2.5 py-1 ${disabled ? 'opacity-50' : ''}`}>
-      <Text className="font-geist-semibold text-[11px] text-ink">{label}</Text>
-    </Pressable>
+    <Button action="secondary" onPress={onPress} isDisabled={disabled} accessibilityLabel={label} className="mt-1 self-start">
+      <ButtonText>{label}</ButtonText>
+    </Button>
   );
 }

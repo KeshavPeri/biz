@@ -1,5 +1,6 @@
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 
+import { Button, ButtonText } from '@/components/ui/button';
 import type { ChatArchiveStatus, PostCloseEntryFeed, PostCloseRatings } from '@/lib/deals';
 
 export function PostCloseCard({
@@ -134,9 +135,9 @@ function Section({ title, description, children }: { title: string; description:
 
 function InlineButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled: boolean }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress} className={`min-h-10 items-center justify-center rounded-xl border border-hairline bg-surface-card px-3 py-2 ${disabled ? 'opacity-40' : ''}`}>
-      <Text className="font-geist-semibold text-[11px] text-ink">{label}</Text>
-    </Pressable>
+    <Button action="secondary" accessibilityLabel={label} isDisabled={disabled} onPress={onPress}>
+      <ButtonText>{label}</ButtonText>
+    </Button>
   );
 }
 

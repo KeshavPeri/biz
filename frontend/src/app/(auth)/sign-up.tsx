@@ -81,7 +81,7 @@ export default function SignUpScreen() {
             isDisabled={!ready}
             onPress={handleSignUp}
           >
-            {submitting ? <ButtonSpinner color="#FFFFFF" /> : null}
+            {submitting ? <ButtonSpinner /> : null}
             <ButtonText>Create account</ButtonText>
           </Button>
           <Pressable

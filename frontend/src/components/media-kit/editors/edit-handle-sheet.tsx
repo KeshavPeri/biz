@@ -79,7 +79,7 @@ export function EditHandleSheet({
           isDisabled={saving || handleText.trim().length === 0}
           onPress={save}
         >
-          {saving ? <ButtonSpinner color="#FBFAF6" /> : null}
+          {saving ? <ButtonSpinner /> : null}
           <ButtonText>Save</ButtonText>
         </Button>
       }

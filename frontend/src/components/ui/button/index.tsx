@@ -91,10 +91,10 @@ const Button = React.forwardRef<React.ElementRef<typeof UIButton>, IButtonProps>
     return (
       <UIButton
         ref={ref}
+        accessibilityRole="button"
         {...props}
         isDisabled={isDisabled}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !!isDisabled }}
+        accessibilityState={{ ...props.accessibilityState, disabled: !!isDisabled }}
         className={`${ROOT_BASE} ${ROOT_SIZE[size]} ${tone} ${className ?? ''}`}
         context={context}
       >

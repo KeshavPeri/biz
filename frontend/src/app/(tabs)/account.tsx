@@ -32,7 +32,7 @@ export default function AccountScreen() {
             isDisabled={signingOut}
             onPress={handleLogout}
           >
-            {signingOut ? <ButtonSpinner color="#1C1B18" /> : null}
+            {signingOut ? <ButtonSpinner /> : null}
             <ButtonText>Log out</ButtonText>
           </Button>
         </View>

@@ -81,7 +81,7 @@ export function ConnectSheet({
             isDisabled={phase === 'sending'}
             onPress={submit}
           >
-            {phase === 'sending' ? <ButtonSpinner color="#FBFAF6" /> : null}
+            {phase === 'sending' ? <ButtonSpinner /> : null}
             <ButtonText>Connect</ButtonText>
           </Button>
         )
