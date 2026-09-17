@@ -764,6 +764,13 @@ up exactly where the last one left off, with zero context lost.
   solid disabled spec, ink focus ring) + shared `GlassFlush`; PR-05 every labelled deal-room
   button plus brand-profile and label-sheet CTAs moved onto it. tsc/lint/web-export/node-tests
   green. Next: batch 3 (Liquid Glass nav + `EditSheet`).
+- **2026-09-17 — Batch 3 (`ui/batch-3`):** PR-06 nav bar on native Liquid Glass (`expo-glass-effect`,
+  iOS 26) with a blur + warm overlay + specular edge fallback, always-mounted fading active pill,
+  fixed tab label, Chat dot now shows only when there are unread messages, `useTabBarInset()` replaces
+  guessed bottom padding on the tab screens; PR-07 `EditSheet` rebuilt (fade scrim + slide panel with
+  exit animation, drag-to-dismiss, keyboard avoidance, safe-area bottom, `rounded-t-sheet` 24 token).
+  tsc/lint/web-export/node-tests green. `docs/design-tokens.md` is read-only on disk, so the `sheet: 24`
+  line is still to add there (see NEEDS MY INPUT). Next: batch 4 (skeletons, stage advance, win spring).
 
 ## NEXT UP  *(ordered)*
 
@@ -778,6 +785,11 @@ up exactly where the last one left off, with zero context lost.
 *Claude: when you hit a STOP-and-flag situation (destructive ops, anything paid, live/prod,
 real secrets, big architectural change, irreversible + low confidence), describe it here and
 do not proceed. I'll resolve these at the start of my next session.*
+
+- **2026-09-17 — UI batch 3: `docs/design-tokens.md` is read-only (`r--------`).** Decision 2 says to
+  log the new `sheet: 24` radius there. Claude did not change the file's permissions. To finish, add to
+  Part 2 → Radii: `radii: { card:14, panel:12, button:16, input:16, pill:999, sheet:24 }` and the note
+  "`sheet` = bottom-sheet top corners only (UI decision 2)". It's already live in `tailwind.config.js`.
 
 - **2026-07-13 — RESOLVED: Supabase project resumed; live anon connection VERIFIED.** The paused
   dev project was resumed; `govozzmbcynoeijlqmxp.supabase.co` now resolves (Cloudflare

@@ -14,6 +14,7 @@ import {
   type CreatorCardData,
 } from '@/lib/discovery';
 import { platformLabel } from '@/lib/media-kit-enums';
+import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
 import { useAuthStore } from '@/store/auth-store';
 
 const cap = (s: string) => (s.length ? s[0].toUpperCase() + s.slice(1) : s);
@@ -29,6 +30,7 @@ const uniqSorted = (xs: (string | null | undefined)[]) =>
  */
 export function DiscoverScreen() {
   const session = useAuthStore((s) => s.session);
+  const tabBarInset = useTabBarInset();
   const [accountType, setAccountType] = useState<'creator' | 'brand' | null>(null);
   const [creators, setCreators] = useState<CreatorCardData[]>([]);
   const [brands, setBrands] = useState<BrandCardData[]>([]);
@@ -117,7 +119,12 @@ export function DiscoverScreen() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="px-4 pb-32 pt-3">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerClassName="px-4 pt-3"
+        contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
+        scrollIndicatorInsets={{ bottom: tabBarInset }}
+      >
         {isBrand ? (
           <>
             <FilterChips label="Niche" options={creatorNiches} selected={niche} onSelect={setNiche} />

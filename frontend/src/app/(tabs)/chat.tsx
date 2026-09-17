@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 
 import { DealPreviewCard } from '@/components/chat/deal-preview-card';
 import { PrivateDealLabelSheet } from '@/components/chat/private-deal-label-sheet';
+import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
 import { fetchMyDealPreviews, type DealPreview } from '@/lib/deals';
 import {
   addPrivateDealLabel, fetchPrivateDealLabels, removePrivateDealLabel,
@@ -23,6 +24,7 @@ import { useAuthStore } from '@/store/auth-store';
 export default function ChatScreen() {
   const session = useAuthStore((s) => s.session);
   const userId = session?.user.id ?? null;
+  const tabBarInset = useTabBarInset();
 
   const [deals, setDeals] = useState<DealPreview[]>([]);
   const [dealsOwnerId, setDealsOwnerId] = useState<string | null>(null);
@@ -133,7 +135,9 @@ export default function ChatScreen() {
         <FlatList
           data={filteredDeals}
           keyExtractor={(d) => d.dealId}
-          contentContainerClassName="gap-3 px-4 pb-24 pt-1"
+          contentContainerClassName="gap-3 px-4 pt-1"
+          contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
+          scrollIndicatorInsets={{ bottom: tabBarInset }}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={<LabelFilters values={labelValues} selected={selectedLabel} onSelect={setSelectedLabel} />}
           ListEmptyComponent={selectedLabel ? <LabelEmptyState onClear={() => setSelectedLabel(null)} /> : null}
