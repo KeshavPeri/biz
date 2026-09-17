@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
-import { Chip } from '@/components/ui/chip';
+import { ChipGroup } from '@/components/ui/chip-group';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import { TextField } from '@/components/ui/text-field';
 import { Toggle } from '@/components/ui/toggle';
@@ -114,7 +114,7 @@ export function RateCardEditor({
       title="Rate card"
       subtitle="Prices are shown only to verified brands. Indicative — every deal is negotiated in chat."
       footer={
-        <Button action="primary" size="lg" className="w-full" onPress={onClose}>
+        <Button action="secondary" size="lg" className="w-full" onPress={onClose}>
           <ButtonText>Done</ButtonText>
         </Button>
       }
@@ -258,18 +258,14 @@ function SelectRow({
   onSelect: (value: string) => void;
 }) {
   return (
-    <View className="mb-4">
-      <Text className="mb-[7px] font-geist-semibold text-secondary text-ink-2">{label}</Text>
-      <View className="flex-row flex-wrap gap-[9px]">
-        {options.map((opt) => (
-          <Chip
-            key={opt.value}
-            label={opt.label}
-            selected={value === opt.value}
-            onPress={() => onSelect(opt.value)}
-          />
-        ))}
-      </View>
-    </View>
+    <ChipGroup
+      label={label}
+      options={options.map((option) => option.label)}
+      selected={[options.find((option) => option.value === value)?.label ?? '']}
+      onToggle={(labelValue) => {
+        const option = options.find((candidate) => candidate.label === labelValue);
+        if (option) onSelect(option.value);
+      }}
+    />
   );
 }

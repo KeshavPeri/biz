@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  ScrollView,
   useWindowDimensions,
   View,
-  ScrollView,
-  type NativeSyntheticEvent,
-  type NativeScrollEvent,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StorageImage } from '@/components/media-kit/storage-image';
 
@@ -17,6 +18,8 @@ import { StorageImage } from '@/components/media-kit/storage-image';
  */
 export function PhotoCarousel({ paths, height }: { paths: string[]; height: number }) {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
   const [index, setIndex] = useState(0);
 
   if (paths.length === 0) return null;
@@ -26,9 +29,16 @@ export function PhotoCarousel({ paths, height }: { paths: string[]; height: numb
     if (next !== index) setIndex(next);
   };
 
+  const movePager = (next: number) => {
+    const clamped = Math.max(0, Math.min(paths.length - 1, next));
+    setIndex(clamped);
+    scrollRef.current?.scrollTo({ x: clamped * width, animated: true });
+  };
+
   return (
     <View style={{ height }}>
       <ScrollView
+        ref={scrollRef}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -44,7 +54,19 @@ export function PhotoCarousel({ paths, height }: { paths: string[]; height: numb
       </ScrollView>
 
       {paths.length > 1 ? (
-        <View className="absolute inset-x-0 bottom-2 flex-row items-center justify-center gap-1.5">
+        <View
+          className="absolute inset-x-0 flex-row items-center justify-center gap-1.5"
+          style={{ top: Math.max(insets.top + 8, 16) }}
+          accessible
+          accessibilityRole="adjustable"
+          accessibilityLabel="Photo pager"
+          accessibilityValue={{ text: `Photo ${index + 1} of ${paths.length}` }}
+          accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+          onAccessibilityAction={(event) => {
+            if (event.nativeEvent.actionName === 'increment') movePager(index + 1);
+            if (event.nativeEvent.actionName === 'decrement') movePager(index - 1);
+          }}
+        >
           {paths.map((path, i) => (
             <View
               key={path}

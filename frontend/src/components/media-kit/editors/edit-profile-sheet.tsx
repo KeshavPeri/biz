@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Text } from 'react-native';
 
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
-import { Chip } from '@/components/ui/chip';
+import { ChipGroup } from '@/components/ui/chip-group';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import { TextField } from '@/components/ui/text-field';
 import {
@@ -61,6 +61,17 @@ function CreatorForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!visible) return;
+    setDisplayName(data.displayName);
+    setCity(data.city ?? '');
+    setBio(data.bio ?? '');
+    setContentCategory(data.contentCategory ?? '');
+    setNiches(data.niches);
+    setLanguages(data.contentLanguages);
+    setError(null);
+  }, [data, visible]);
+
   // Case-insensitive so re-picking a seeded niche (stored lowercase) replaces it
   // rather than adding a duplicate-with-different-casing.
   const toggle = (list: string[], set: (v: string[]) => void, value: string, max?: number) => {
@@ -71,6 +82,24 @@ function CreatorForm({
   };
 
   const canSave = displayName.trim().length > 0 && niches.length > 0 && languages.length > 0;
+  const isDirty =
+    displayName !== data.displayName ||
+    city !== (data.city ?? '') ||
+    bio !== (data.bio ?? '') ||
+    contentCategory !== (data.contentCategory ?? '') ||
+    JSON.stringify(niches) !== JSON.stringify(data.niches) ||
+    JSON.stringify(languages) !== JSON.stringify(data.contentLanguages);
+
+  const requestClose = () => {
+    if (!isDirty) {
+      onClose();
+      return;
+    }
+    Alert.alert('Discard changes?', 'Your unsaved profile edits will be lost.', [
+      { text: 'Keep editing', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: onClose },
+    ]);
+  };
 
   const save = async () => {
     setSaving(true);
@@ -91,7 +120,7 @@ function CreatorForm({
   return (
     <EditSheet
       visible={visible}
-      onClose={onClose}
+      onClose={requestClose}
       title="Edit profile"
       subtitle="This is what brands filter and land on."
       footer={
@@ -113,7 +142,7 @@ function CreatorForm({
 
       <ChipGroup
         label="Niches"
-        hint={`pick up to ${MAX_NICHES}`}
+        hint={<Text className="font-geist text-secondary text-ink-3">pick up to {MAX_NICHES}</Text>}
         options={NICHES}
         selected={niches}
         onToggle={(v) => toggle(niches, setNiches, v, MAX_NICHES)}
@@ -204,38 +233,5 @@ function BrandForm({
       <TextField label="HQ city" value={hqCity} onChangeText={setHqCity} autoCapitalize="words" />
       {error ? <Text className="font-geist text-secondary text-status-critical">{error}</Text> : null}
     </EditSheet>
-  );
-}
-
-function ChipGroup({
-  label,
-  hint,
-  options,
-  selected,
-  onToggle,
-}: {
-  label: string;
-  hint?: string;
-  options: string[];
-  selected: string[];
-  onToggle: (value: string) => void;
-}) {
-  return (
-    <View className="mb-4">
-      <View className="mb-[7px] flex-row items-center justify-between">
-        <Text className="font-geist-semibold text-secondary text-ink-2">{label}</Text>
-        {hint ? <Text className="font-geist text-secondary text-ink-3">{hint}</Text> : null}
-      </View>
-      <View className="flex-row flex-wrap gap-[9px]">
-        {options.map((opt) => (
-          <Chip
-            key={opt}
-            label={opt}
-            selected={selected.some((s) => s.toLowerCase() === opt.toLowerCase())}
-            onPress={() => onToggle(opt)}
-          />
-        ))}
-      </View>
-    </View>
   );
 }
