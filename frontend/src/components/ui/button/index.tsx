@@ -1,17 +1,12 @@
 'use client';
 import React from 'react';
 import { createButton } from '@gluestack-ui/core/button/creator';
-import {
-  tva,
-  withStyleContext,
-  useStyleContext,
-  type VariantProps,
-} from '@gluestack-ui/utils/nativewind-utils';
-import { cssInterop } from 'nativewind';
+import { UIIcon } from '@gluestack-ui/core/icon/creator';
+import { withStyleContext, useStyleContext } from '@gluestack-ui/utils/nativewind-utils';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { PrimitiveIcon, UIIcon } from '@gluestack-ui/core/icon/creator';
 
 import { PressableScale } from '@/components/motion/pressable-scale';
+import { GlassFlush } from '@/components/ui/glass-flush';
 
 const SCOPE = 'BUTTON';
 
@@ -19,275 +14,129 @@ const SCOPE = 'BUTTON';
 const Root = withStyleContext(PressableScale, SCOPE);
 
 const UIButton = createButton({
-  Root: Root,
+  Root,
   Text,
   Group: View,
   Spinner: ActivityIndicator,
   Icon: UIIcon,
 });
 
-cssInterop(PrimitiveIcon, {
-  className: {
-    target: 'style',
-    nativeStyleToProp: {
-      height: true,
-      width: true,
-      fill: true,
-      color: 'classNameColor',
-      stroke: true,
-    },
-  },
-});
+/**
+ * Inflo button tiers (design-tokens.md §Buttons). Red and green are never button
+ * fills, so there is no positive/negative tier; destructive routine actions use
+ * `ghost` + a confirm step.
+ *  - primary   ink fill, white label, no shadow
+ *  - secondary glassFlush, ink label, flush (no outer shadow)
+ *  - tertiary  soft neutral fill, ink label (rare)
+ *  - ghost     transparent, ink-2 label
+ */
+export type ButtonAction = 'primary' | 'secondary' | 'tertiary' | 'ghost';
+/** md = 44pt (the floor), lg = 48pt. */
+export type ButtonSize = 'md' | 'lg';
 
-const buttonStyle = tva({
-  // Inflo 6.7: button radius = 16 (rounded-button token), not gluestack's default `rounded` (4px).
-  base: 'group/button rounded-button bg-primary-500 flex-row items-center justify-center data-[focus-visible=true]:web:outline-none data-[focus-visible=true]:web:ring-2 data-[disabled=true]:opacity-40 gap-2',
-  variants: {
-    action: {
-      primary:
-        'bg-primary-500 data-[hover=true]:bg-primary-600 data-[active=true]:bg-primary-700 border-primary-300 data-[hover=true]:border-primary-400 data-[active=true]:border-primary-500 data-[focus-visible=true]:web:ring-indicator-info',
-      secondary:
-        'bg-secondary-500 border-secondary-300 data-[hover=true]:bg-secondary-600 data-[hover=true]:border-secondary-400 data-[active=true]:bg-secondary-700 data-[active=true]:border-secondary-700 data-[focus-visible=true]:web:ring-indicator-info',
-      default:
-        'bg-transparent data-[hover=true]:bg-background-50 data-[active=true]:bg-transparent',
-    },
-    variant: {
-      outline:
-        'bg-transparent border data-[hover=true]:bg-background-50 data-[active=true]:bg-transparent',
-      solid: '',
-    },
+type ButtonContext = { action: ButtonAction; size: ButtonSize; isDisabled: boolean };
 
-    size: {
-      xs: 'px-3.5 h-8',
-      sm: 'px-4 h-9',
-      md: 'px-5 h-10',
-      lg: 'px-6 h-11',
-      xl: 'px-7 h-12',
-    },
-  },
-  compoundVariants: [
-    {
-      action: 'primary',
-      variant: 'outline',
-      class:
-        'bg-transparent data-[hover=true]:bg-background-50 data-[active=true]:bg-transparent',
-    },
-    {
-      action: 'secondary',
-      variant: 'outline',
-      class:
-        'bg-transparent data-[hover=true]:bg-background-50 data-[active=true]:bg-transparent',
-    },
-  ],
-});
+// Plain class maps rather than tva: tailwind-merge treats the custom type-role
+// sizes (text-body) as colours and would drop one of the pair.
+const ROOT_BASE =
+  'flex-row items-center justify-center gap-2 rounded-button ' +
+  'data-[focus-visible=true]:web:outline-none data-[focus-visible=true]:web:ring-2 ' +
+  'data-[focus-visible=true]:web:ring-ink/40 data-[focus-visible=true]:web:ring-offset-2 ' +
+  'data-[focus-visible=true]:web:ring-offset-app';
 
-const buttonTextStyle = tva({
-  // Inflo 6.7: button labels use Geist (font-geist-semibold = Geist_600SemiBold).
-  base: 'text-typography-0 font-geist-semibold web:select-none',
-  parentVariants: {
-    action: {
-      primary:
-        'text-primary-600 data-[hover=true]:text-primary-600 data-[active=true]:text-primary-700',
-      secondary:
-        'text-typography-500 data-[hover=true]:text-typography-600 data-[active=true]:text-typography-700',
-    },
-    variant: {
-      outline: '',
-      solid:
-        'text-typography-0 data-[hover=true]:text-typography-0 data-[active=true]:text-typography-0',
-    },
-    size: {
-      xs: 'text-xs',
-      sm: 'text-sm',
-      md: 'text-base',
-      lg: 'text-lg',
-      xl: 'text-xl',
-    },
-  },
-  parentCompoundVariants: [
-    {
-      variant: 'solid',
-      action: 'primary',
-      class:
-        'text-typography-0 data-[hover=true]:text-typography-0 data-[active=true]:text-typography-0',
-    },
-    {
-      variant: 'solid',
-      action: 'secondary',
-      class:
-        'text-typography-800 data-[hover=true]:text-typography-800 data-[active=true]:text-typography-800',
-    },
-    {
-      variant: 'outline',
-      action: 'primary',
-      class:
-        'text-primary-500 data-[hover=true]:text-primary-500 data-[active=true]:text-primary-500',
-    },
-    {
-      variant: 'outline',
-      action: 'secondary',
-      class:
-        'text-typography-500 data-[hover=true]:text-primary-600 data-[active=true]:text-typography-700',
-    },
-  ],
-});
+const ROOT_ACTION: Record<ButtonAction, string> = {
+  primary: 'bg-ink',
+  secondary: 'overflow-hidden border border-[rgba(28,27,24,0.07)] bg-surface-card',
+  tertiary: 'bg-[#EDEAE3]',
+  ghost: 'bg-transparent',
+};
 
-const buttonIconStyle = tva({
-  base: 'fill-none',
-  parentVariants: {
-    variant: {
-      outline: '',
-      solid:
-        'text-typography-0 data-[hover=true]:text-typography-0 data-[active=true]:text-typography-0',
-    },
-    size: {
-      xs: 'h-3.5 w-3.5',
-      sm: 'h-4 w-4',
-      md: 'h-[18px] w-[18px]',
-      lg: 'h-[18px] w-[18px]',
-      xl: 'h-5 w-5',
-    },
-    action: {
-      primary:
-        'text-primary-600 data-[hover=true]:text-primary-600 data-[active=true]:text-primary-700',
-      secondary:
-        'text-typography-500 data-[hover=true]:text-typography-600 data-[active=true]:text-typography-700',
-    },
-  },
-  parentCompoundVariants: [
-    {
-      variant: 'solid',
-      action: 'primary',
-      class:
-        'text-typography-0 data-[hover=true]:text-typography-0 data-[active=true]:text-typography-0',
-    },
-    {
-      variant: 'solid',
-      action: 'secondary',
-      class:
-        'text-typography-800 data-[hover=true]:text-typography-800 data-[active=true]:text-typography-800',
-    },
-  ],
-});
+// Disabled spec: #ECEAE3 fill, #B6B0A6 label — a solid fill, not a faded one.
+const ROOT_DISABLED: Record<ButtonAction, string> = {
+  primary: 'bg-[#ECEAE3]',
+  secondary: 'overflow-hidden border border-transparent bg-[#ECEAE3]',
+  tertiary: 'bg-[#ECEAE3]',
+  ghost: 'bg-transparent',
+};
 
-type IButtonProps = Omit<
-  React.ComponentPropsWithoutRef<typeof UIButton>,
-  'context'
-> &
-  VariantProps<typeof buttonStyle> & { className?: string };
+const ROOT_SIZE: Record<ButtonSize, string> = {
+  md: 'h-11 px-5',
+  lg: 'h-12 px-6',
+};
 
-const Button = React.forwardRef<
-  React.ElementRef<typeof UIButton>,
-  IButtonProps
->(
-  (
-    { className, variant = 'solid', size = 'md', action = 'primary', ...props },
-    ref
-  ) => {
+const TEXT_ACTION: Record<ButtonAction, string> = {
+  primary: 'text-white',
+  secondary: 'text-ink',
+  tertiary: 'text-ink',
+  ghost: 'text-ink-2',
+};
+
+const TEXT_SIZE: Record<ButtonSize, string> = {
+  md: 'text-body',
+  lg: 'text-subtitle',
+};
+
+const DISABLED_LABEL = '#B6B0A6';
+
+type IButtonProps = Omit<React.ComponentPropsWithoutRef<typeof UIButton>, 'context'> & {
+  action?: ButtonAction;
+  size?: ButtonSize;
+  className?: string;
+};
+
+const Button = React.forwardRef<React.ElementRef<typeof UIButton>, IButtonProps>(
+  ({ className, size = 'md', action = 'primary', isDisabled = false, children, ...props }, ref) => {
+    const context: ButtonContext = { action, size, isDisabled: !!isDisabled };
+    const tone = isDisabled ? ROOT_DISABLED[action] : ROOT_ACTION[action];
     return (
       <UIButton
         ref={ref}
         {...props}
-        className={buttonStyle({ variant, size, action, class: className })}
-        context={{ variant, size, action }}
+        isDisabled={isDisabled}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !!isDisabled }}
+        className={`${ROOT_BASE} ${ROOT_SIZE[size]} ${tone} ${className ?? ''}`}
+        context={context}
+      >
+        {action === 'secondary' && !isDisabled ? <GlassFlush /> : null}
+        {children as React.ReactNode}
+      </UIButton>
+    );
+  }
+);
+
+type IButtonTextProps = React.ComponentPropsWithoutRef<typeof UIButton.Text> & {
+  className?: string;
+};
+
+const ButtonText = React.forwardRef<React.ElementRef<typeof UIButton.Text>, IButtonTextProps>(
+  ({ className, style, ...props }, ref) => {
+    const { action, size, isDisabled } = useStyleContext(SCOPE) as ButtonContext;
+    return (
+      <UIButton.Text
+        ref={ref}
+        numberOfLines={1}
+        // Subtitle-role cap (125%) so labels scale without breaking the 44/48pt row.
+        maxFontSizeMultiplier={1.25}
+        {...props}
+        className={`font-geist-semibold web:select-none ${TEXT_SIZE[size]} ${TEXT_ACTION[action]} ${className ?? ''}`}
+        style={[isDisabled ? { color: DISABLED_LABEL } : null, style]}
       />
     );
   }
 );
 
-type IButtonTextProps = React.ComponentPropsWithoutRef<typeof UIButton.Text> &
-  VariantProps<typeof buttonTextStyle> & { className?: string };
+type IButtonSpinnerProps = React.ComponentPropsWithoutRef<typeof ActivityIndicator>;
 
-const ButtonText = React.forwardRef<
-  React.ElementRef<typeof UIButton.Text>,
-  IButtonTextProps
->(({ className, variant, size, action, ...props }, ref) => {
-  const {
-    variant: parentVariant,
-    size: parentSize,
-    action: parentAction,
-  } = useStyleContext(SCOPE);
-
-  return (
-    <UIButton.Text
-      ref={ref}
-      {...props}
-      className={buttonTextStyle({
-        parentVariants: {
-          variant: parentVariant,
-          size: parentSize,
-          action: parentAction,
-        },
-        variant,
-        size,
-        action,
-        class: className,
-      })}
-    />
-  );
-});
-
-const ButtonSpinner = UIButton.Spinner;
-
-type IButtonIcon = React.ComponentPropsWithoutRef<typeof UIButton.Icon> &
-  VariantProps<typeof buttonIconStyle> & {
-    className?: string | undefined;
-    as?: React.ElementType;
-    height?: number;
-    width?: number;
-  };
-
-const ButtonIcon = React.forwardRef<
-  React.ElementRef<typeof UIButton.Icon>,
-  IButtonIcon
->(({ className, size, ...props }, ref) => {
-  const {
-    variant: parentVariant,
-    size: parentSize,
-    action: parentAction,
-  } = useStyleContext(SCOPE);
-
-  if (typeof size === 'number') {
-    return (
-      <UIButton.Icon
-        ref={ref}
-        {...props}
-        className={buttonIconStyle({ class: className })}
-        size={size}
-      />
-    );
-  } else if (
-    (props.height !== undefined || props.width !== undefined) &&
-    size === undefined
-  ) {
-    return (
-      <UIButton.Icon
-        ref={ref}
-        {...props}
-        className={buttonIconStyle({ class: className })}
-      />
-    );
-  }
-  return (
-    <UIButton.Icon
-      {...props}
-      className={buttonIconStyle({
-        parentVariants: {
-          size: parentSize,
-          variant: parentVariant,
-          action: parentAction,
-        },
-        size,
-        class: className,
-      })}
-      ref={ref}
-    />
-  );
-});
+/** Spinner tinted to the tier's label colour unless a colour is passed. */
+const ButtonSpinner = (props: IButtonSpinnerProps) => {
+  const { action, isDisabled } = useStyleContext(SCOPE) as ButtonContext;
+  const color = isDisabled ? DISABLED_LABEL : action === 'primary' ? '#FFFFFF' : '#1C1B18';
+  return <ActivityIndicator color={color} {...props} />;
+};
 
 Button.displayName = 'Button';
 ButtonText.displayName = 'ButtonText';
 ButtonSpinner.displayName = 'ButtonSpinner';
-ButtonIcon.displayName = 'ButtonIcon';
 
-export { Button, ButtonText, ButtonSpinner, ButtonIcon };
+export { Button, ButtonText, ButtonSpinner };

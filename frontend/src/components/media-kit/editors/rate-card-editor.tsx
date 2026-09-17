@@ -114,7 +114,7 @@ export function RateCardEditor({
       title="Rate card"
       subtitle="Prices are shown only to verified brands. Indicative — every deal is negotiated in chat."
       footer={
-        <Button action="primary" size="xl" className="w-full" onPress={onClose}>
+        <Button action="primary" size="lg" className="w-full" onPress={onClose}>
           <ButtonText>Done</ButtonText>
         </Button>
       }
@@ -219,8 +219,7 @@ export function RateCardEditor({
         {draft.id ? (
           <Button
             action="secondary"
-            variant="outline"
-            size="lg"
+            size="md"
             className="flex-1"
             onPress={() => setDraft(EMPTY_DRAFT)}
           >
@@ -229,7 +228,7 @@ export function RateCardEditor({
         ) : null}
         <Button
           action="primary"
-          size="lg"
+          size="md"
           className="flex-1"
           isDisabled={!canAdd || busy}
           onPress={saveDraft}

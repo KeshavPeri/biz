@@ -123,7 +123,7 @@ export function PhotosEditor({
       title="Photos"
       subtitle={`Up to ${MAX_PHOTOS}. The first photo is your primary — it's your avatar across Inflo.`}
       footer={
-        <Button action="primary" size="xl" className="w-full" onPress={onClose}>
+        <Button action="primary" size="lg" className="w-full" onPress={onClose}>
           <ButtonText>Done</ButtonText>
         </Button>
       }
@@ -190,8 +190,7 @@ export function PhotosEditor({
 
       <Button
         action="secondary"
-        variant="outline"
-        size="lg"
+        size="md"
         className="w-full"
         isDisabled={busy || paths.length >= MAX_PHOTOS}
         onPress={addPhoto}

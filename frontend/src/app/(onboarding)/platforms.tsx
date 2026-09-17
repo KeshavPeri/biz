@@ -69,7 +69,7 @@ export default function PlatformsScreen() {
       footer={
         <Button
           action="primary"
-          size="xl"
+          size="lg"
           className="w-full"
           isDisabled={connectedCount === 0}
           onPress={() => router.push('/(onboarding)/signature')}

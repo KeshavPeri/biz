@@ -85,7 +85,7 @@ export function AffiliationsEditor({
       title="Credentials"
       subtitle="Shows, awards, press and podcast features. Self-declared."
       footer={
-        <Button action="primary" size="xl" className="w-full" onPress={onClose}>
+        <Button action="primary" size="lg" className="w-full" onPress={onClose}>
           <ButtonText>Done</ButtonText>
         </Button>
       }
@@ -175,15 +175,14 @@ export function AffiliationsEditor({
         {draft.id ? (
           <Button
             action="secondary"
-            variant="outline"
-            size="lg"
+            size="md"
             className="flex-1"
             onPress={() => setDraft(EMPTY_DRAFT)}
           >
             <ButtonText>Cancel edit</ButtonText>
           </Button>
         ) : null}
-        <Button action="primary" size="lg" className="flex-1" isDisabled={!canSave || busy} onPress={save}>
+        <Button action="primary" size="md" className="flex-1" isDisabled={!canSave || busy} onPress={save}>
           {busy ? <ButtonSpinner color="#FBFAF6" /> : null}
           <ButtonText>{draft.id ? 'Save' : 'Add'}</ButtonText>
         </Button>

@@ -174,7 +174,7 @@ export default function DoneScreen() {
         ) : null}
         <Button
           action="primary"
-          size="xl"
+          size="lg"
           className="w-full"
           isDisabled={submitting}
           onPress={finish}

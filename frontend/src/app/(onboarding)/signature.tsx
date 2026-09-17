@@ -46,7 +46,7 @@ export default function SignatureScreen() {
       footer={
         <Button
           action="primary"
-          size="xl"
+          size="lg"
           className="w-full"
           isDisabled={!hasSignature}
           onPress={save}

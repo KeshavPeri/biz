@@ -55,7 +55,7 @@ export default function PreferencesScreen() {
       footer={
         <Button
           action="primary"
-          size="xl"
+          size="lg"
           className="w-full"
           onPress={() => router.push('/(onboarding)/done')}
         >

@@ -95,7 +95,7 @@ function CreatorForm({
       title="Edit profile"
       subtitle="This is what brands filter and land on."
       footer={
-        <Button action="primary" size="xl" className="w-full" isDisabled={!canSave || saving} onPress={save}>
+        <Button action="primary" size="lg" className="w-full" isDisabled={!canSave || saving} onPress={save}>
           {saving ? <ButtonSpinner color="#FBFAF6" /> : null}
           <ButtonText>Save</ButtonText>
         </Button>
@@ -185,7 +185,7 @@ function BrandForm({
       title="Edit brand profile"
       subtitle="How creators see your company in Discovery."
       footer={
-        <Button action="primary" size="xl" className="w-full" isDisabled={!canSave || saving} onPress={save}>
+        <Button action="primary" size="lg" className="w-full" isDisabled={!canSave || saving} onPress={save}>
           {saving ? <ButtonSpinner color="#FBFAF6" /> : null}
           <ButtonText>Save</ButtonText>
         </Button>

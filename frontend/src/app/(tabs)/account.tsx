@@ -28,8 +28,7 @@ export default function AccountScreen() {
         <View className="mt-8">
           <Button
             action="secondary"
-            variant="outline"
-            size="lg"
+            size="md"
             isDisabled={signingOut}
             onPress={handleLogout}
           >

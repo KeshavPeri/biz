@@ -96,7 +96,7 @@ export default function VerifyOtpScreen() {
       footer={
         <Button
           action="primary"
-          size="xl"
+          size="lg"
           className="w-full"
           isDisabled={code.length !== CODE_LENGTH || verifying}
           onPress={() => verify(code)}
