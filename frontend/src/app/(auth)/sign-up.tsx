@@ -76,12 +76,12 @@ export default function SignUpScreen() {
           ) : null}
           <Button
             action="primary"
-            size="xl"
+            size="lg"
             className="w-full"
             isDisabled={!ready}
             onPress={handleSignUp}
           >
-            {submitting ? <ButtonSpinner color="#FFFFFF" /> : null}
+            {submitting ? <ButtonSpinner /> : null}
             <ButtonText>Create account</ButtonText>
           </Button>
           <Pressable

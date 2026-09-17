@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import {
   createParticipantRequest,
@@ -150,7 +151,7 @@ export function ParticipantSheet({
         {error ? (
           <View className="gap-2">
             <Text accessibilityRole="alert" className="font-geist text-[12px] text-status-critical">{error}</Text>
-            {!state ? <Pressable accessibilityRole="button" onPress={() => { void load(); }} className="self-start rounded-xl border border-hairline px-3 py-2"><Text className="font-geist-medium text-[12px] text-ink">Try again</Text></Pressable> : null}
+            {!state ? <Button action="secondary" onPress={() => { void load(); }} className="self-start"><ButtonText>Try again</ButtonText></Button> : null}
           </View>
         ) : null}
 
@@ -177,8 +178,8 @@ export function ParticipantSheet({
             ))}
             {state.pending_request.can_decide ? (
               <View className="flex-row gap-2 pt-1">
-                <Pressable accessibilityRole="button" accessibilityLabel="Reject participant request" disabled={busy} onPress={() => { void decide('rejected'); }} className={`min-h-11 flex-1 items-center justify-center rounded-xl border border-hairline ${busy ? 'opacity-40' : ''}`}><Text className="font-geist-semibold text-[12px] text-status-critical">Reject</Text></Pressable>
-                <Pressable accessibilityRole="button" accessibilityLabel="Approve participant request" disabled={busy} onPress={() => { void decide('approved'); }} className={`min-h-11 flex-1 items-center justify-center rounded-xl bg-ink ${busy ? 'opacity-40' : ''}`}>{busy ? <ActivityIndicator color="#FFFFFF" /> : <Text className="font-geist-semibold text-[12px] text-white">Approve</Text>}</Pressable>
+                <Button action="secondary" accessibilityLabel="Reject participant request" isDisabled={busy} onPress={() => { void decide('rejected'); }} className="flex-1"><ButtonText>Reject</ButtonText></Button>
+                <Button action="primary" accessibilityLabel="Approve participant request" isDisabled={busy} onPress={() => { void decide('approved'); }} className="flex-1">{busy ? <ButtonSpinner /> : <ButtonText>Approve</ButtonText>}</Button>
               </View>
             ) : <Text className="font-geist text-[11px] text-ink-3">Waiting for the remaining participants.</Text>}
           </View>
@@ -200,7 +201,7 @@ export function ParticipantSheet({
                   ))}
                 </View>
                 <TextInput value={reason} onChangeText={(value) => { setReason(value); setError(null); requestId.current = null; }} maxLength={500} multiline editable={!busy} accessibilityLabel="Reason for adding teammate" placeholder="Why should they join this deal?" placeholderTextColor="#847F78" className="min-h-24 rounded-xl border border-hairline px-3 py-2.5 font-geist text-[13px] text-ink" />
-                <Pressable accessibilityRole="button" accessibilityLabel="Send participant request" disabled={!reason.trim() || !role || busy} onPress={() => { void submit(); }} className={`min-h-11 items-center justify-center rounded-xl bg-ink ${!reason.trim() || !role || busy ? 'opacity-40' : ''}`}>{busy ? <ActivityIndicator color="#FFFFFF" /> : <Text className="font-geist-semibold text-[12px] text-white">Send request</Text>}</Pressable>
+                <Button action="primary" accessibilityLabel="Send participant request" isDisabled={!reason.trim() || !role || busy} onPress={() => { void submit(); }}>{busy ? <ButtonSpinner /> : <ButtonText>Send request</ButtonText>}</Button>
               </>
             ) : null}
           </View>

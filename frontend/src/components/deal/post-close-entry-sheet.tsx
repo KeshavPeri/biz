@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 
 type Result = { ok: true } | { ok: false; message: string };
@@ -59,9 +60,9 @@ export function PostCloseEntrySheet({
       title={isPrivate ? 'Add a private note' : 'Add a shared comment'}
       subtitle={isPrivate ? 'Only you can retrieve this note.' : 'Current deal participants can read this follow-up.'}
       footer={(
-        <Pressable accessibilityRole="button" accessibilityLabel={isPrivate ? 'Save private note' : 'Post shared comment'} disabled={!valid || busy} onPress={() => void submit()} className={`min-h-12 items-center justify-center rounded-2xl bg-ink px-4 py-3 ${!valid || busy ? 'opacity-40' : ''}`}>
-          {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text className="font-geist-semibold text-[13px] text-white">{isPrivate ? 'Save private note' : 'Post shared comment'}</Text>}
-        </Pressable>
+        <Button action="primary" size="lg" accessibilityLabel={isPrivate ? 'Save private note' : 'Post shared comment'} isDisabled={!valid || busy} onPress={() => void submit()}>
+          {busy ? <ButtonSpinner /> : <ButtonText>{isPrivate ? 'Save private note' : 'Post shared comment'}</ButtonText>}
+        </Button>
       )}
     >
       <View className="gap-3">

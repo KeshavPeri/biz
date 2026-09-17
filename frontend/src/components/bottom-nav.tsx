@@ -1,11 +1,11 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
-import * as Haptics from 'expo-haptics';
 import React from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SvgProps } from 'react-native-svg';
 
+import { PressableScale } from '@/components/motion/pressable-scale';
 import { GlassSurface } from '@/components/ui/glass-surface';
 
 // Pre-approved icon set (frontend/assets/icons) imported as RN components via
@@ -76,9 +76,6 @@ export function BottomNav({ state, navigation }: BottomTabBarProps) {
           const { Icon } = tab;
 
           const onPress = () => {
-            if (Platform.OS === 'ios') {
-              Haptics.selectionAsync();
-            }
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
@@ -90,7 +87,8 @@ export function BottomNav({ state, navigation }: BottomTabBarProps) {
           };
 
           return (
-            <Pressable
+            // Selection haptic fires on press-in (PressableScale) so it lands with the touch.
+            <PressableScale
               key={route.key}
               onPress={onPress}
               accessibilityRole="button"
@@ -123,7 +121,7 @@ export function BottomNav({ state, navigation }: BottomTabBarProps) {
               >
                 {tab.label}
               </Text>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>

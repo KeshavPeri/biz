@@ -28,12 +28,11 @@ export default function AccountScreen() {
         <View className="mt-8">
           <Button
             action="secondary"
-            variant="outline"
-            size="lg"
+            size="md"
             isDisabled={signingOut}
             onPress={handleLogout}
           >
-            {signingOut ? <ButtonSpinner color="#1C1B18" /> : null}
+            {signingOut ? <ButtonSpinner /> : null}
             <ButtonText>Log out</ButtonText>
           </Button>
         </View>

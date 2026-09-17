@@ -74,12 +74,12 @@ export function EditHandleSheet({
       footer={
         <Button
           action="primary"
-          size="xl"
+          size="lg"
           className="w-full"
           isDisabled={saving || handleText.trim().length === 0}
           onPress={save}
         >
-          {saving ? <ButtonSpinner color="#FBFAF6" /> : null}
+          {saving ? <ButtonSpinner /> : null}
           <ButtonText>Save</ButtonText>
         </Button>
       }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 
 type Result = { ok: true } | { ok: false; message: string };
@@ -62,16 +63,9 @@ export function ContentSubmissionSheet({
       title={`Submit round ${roundNumber} of ${roundMax}`}
       subtitle="The submitted file becomes part of the shared, append-only review history."
       footer={
-        <Pressable
-          onPress={confirm}
-          disabled={!asset || busy}
-          accessibilityRole="button"
-          className={`items-center rounded-full bg-ink py-3 ${!asset || busy ? 'opacity-40' : ''}`}
-        >
-          {busy ? <ActivityIndicator color="#FFFFFF" /> : (
-            <Text className="font-geist-semibold text-white">Submit for review</Text>
-          )}
-        </Pressable>
+        <Button action="primary" size="lg" onPress={confirm} isDisabled={!asset || busy}>
+          {busy ? <ButtonSpinner /> : <ButtonText>Submit for review</ButtonText>}
+        </Button>
       }
     >
       <View className="gap-3">
@@ -146,16 +140,9 @@ export function RevisionRequestSheet({
       title={`Request changes to round ${roundNumber}`}
       subtitle="Explain exactly what the creator should revise. This decision cannot be edited later."
       footer={
-        <Pressable
-          onPress={confirm}
-          disabled={busy || comment.trim().length < 3}
-          accessibilityRole="button"
-          className={`items-center rounded-full bg-ink py-3 ${busy || comment.trim().length < 3 ? 'opacity-40' : ''}`}
-        >
-          {busy ? <ActivityIndicator color="#FFFFFF" /> : (
-            <Text className="font-geist-semibold text-white">Request revision</Text>
-          )}
-        </Pressable>
+        <Button action="primary" size="lg" onPress={confirm} isDisabled={busy || comment.trim().length < 3}>
+          {busy ? <ButtonSpinner /> : <ButtonText>Request revision</ButtonText>}
+        </Button>
       }
     >
       <TextInput
@@ -217,16 +204,9 @@ export function ContentApprovalRejectSheet({
       title={`Reject approval for round ${roundNumber}`}
       subtitle="Explain why the maker's approval was not confirmed. The creator's submission remains awaiting brand review."
       footer={
-        <Pressable
-          onPress={confirm}
-          disabled={busy || comment.trim().length < 3}
-          accessibilityRole="button"
-          className={`items-center rounded-full bg-ink py-3 ${busy || comment.trim().length < 3 ? 'opacity-40' : ''}`}
-        >
-          {busy ? <ActivityIndicator color="#FFFFFF" /> : (
-            <Text className="font-geist-semibold text-white">Reject approval</Text>
-          )}
-        </Pressable>
+        <Button action="primary" size="lg" onPress={confirm} isDisabled={busy || comment.trim().length < 3}>
+          {busy ? <ButtonSpinner /> : <ButtonText>Reject approval</ButtonText>}
+        </Button>
       }
     >
       <TextInput

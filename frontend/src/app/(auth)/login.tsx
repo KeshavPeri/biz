@@ -61,12 +61,12 @@ export default function LoginScreen() {
           ) : null}
           <Button
             action="primary"
-            size="xl"
+            size="lg"
             className="w-full"
             isDisabled={!ready}
             onPress={handleLogin}
           >
-            {submitting ? <ButtonSpinner color="#FFFFFF" /> : null}
+            {submitting ? <ButtonSpinner /> : null}
             <ButtonText>Log in</ButtonText>
           </Button>
           <Pressable

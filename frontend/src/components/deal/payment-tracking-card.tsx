@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { Button, ButtonText } from '@/components/ui/button';
 import { PAYMENT_STATE_LABELS, PaymentStateSheet } from '@/components/deal/payment-state-sheet';
 import type {
   PaymentState,
@@ -331,7 +332,7 @@ function SingleActions({
 }) {
   if (readOnly || (!state.allowed_actions.can_update_state && !state.allowed_actions.can_confirm_receipt)) return null;
   return (
-    <View className="flex-row gap-2 border-t border-hairline pt-3">
+    <View className="gap-2 border-t border-hairline pt-3">
       {state.allowed_actions.can_update_state ? (
         <ActionButton
           label="Record payment status"
@@ -389,7 +390,7 @@ function MilestoneRow({
         />
       </View>
       {mayUpdate || mayConfirm ? (
-        <View className="flex-row gap-2 border-t border-hairline pt-2">
+        <View className="gap-2 border-t border-hairline pt-2">
           {mayUpdate ? (
             <ActionButton
               label="Record status"
@@ -448,27 +449,17 @@ function ActionButton({ label, accessibilityLabel, onPress, secondary = false }:
   secondary?: boolean;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
-      className={`min-h-11 flex-1 items-center justify-center rounded-2xl px-3 py-2.5 ${secondary ? 'border border-hairline bg-surface-card' : 'bg-ink'}`}
-    >
-      <Text className={`text-center font-geist-semibold text-[11.5px] ${secondary ? 'text-ink' : 'text-white'}`}>{label}</Text>
-    </Pressable>
+    <Button action={secondary ? 'secondary' : 'primary'} accessibilityLabel={accessibilityLabel} onPress={onPress}>
+      <ButtonText>{label}</ButtonText>
+    </Button>
   );
 }
 
 function RetryButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      className="min-h-10 self-start justify-center rounded-2xl border border-hairline bg-surface-card px-3 py-2"
-    >
-      <Text className="font-geist-semibold text-[11px] text-ink">Retry</Text>
-    </Pressable>
+    <Button action="secondary" accessibilityLabel={label} onPress={onPress} className="self-start">
+      <ButtonText>Retry</ButtonText>
+    </Button>
   );
 }
 

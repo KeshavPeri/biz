@@ -1,5 +1,6 @@
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { Button, ButtonText } from '@/components/ui/button';
 import type { ContractAlignmentState } from '@/lib/deals';
 
 function displayValue(value: unknown): string {
@@ -83,14 +84,8 @@ export function ContractAlignmentCard({
 
 function Action({ label, onPress, disabled }: { label: string; onPress: () => void; disabled: boolean }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      disabled={disabled}
-      className={`mt-2 self-start rounded-full bg-ink px-3 py-1.5 ${disabled ? 'opacity-50' : ''}`}
-    >
-      <Text className="font-geist-semibold text-[11px] text-white">{label}</Text>
-    </Pressable>
+    <Button action="primary" accessibilityLabel={label} onPress={onPress} isDisabled={disabled} className="mt-2 self-start">
+      <ButtonText>{label}</ButtonText>
+    </Button>
   );
 }

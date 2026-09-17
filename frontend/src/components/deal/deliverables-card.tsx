@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { Button, ButtonText } from '@/components/ui/button';
 import { PrivateDeliverableLabelPicker } from '@/components/deal/private-deliverable-label-picker';
 import type {
   CanonicalDeliverable,
@@ -186,16 +187,15 @@ function DeliverableRow({
             </View>
           ) : null}
           {priorPosts.length || deliverable.post_state.history_truncated ? (
-            <Pressable
-              accessibilityRole="button"
+            <Button
+              action="ghost"
               accessibilityLabel={historyExpanded ? 'Hide prior live post versions' : 'Show prior live post versions'}
               onPress={() => setHistoryExpanded((value) => !value)}
-              className="items-center rounded-full border border-hairline bg-surface-card py-2"
             >
-              <Text className="font-geist-semibold text-[11px] text-ink-2">
+              <ButtonText>
                 {historyExpanded ? 'Hide prior versions' : `Show prior versions${priorPosts.length ? ` (${priorPosts.length})` : ''}`}
-              </Text>
-            </Pressable>
+              </ButtonText>
+            </Button>
           ) : null}
           {historyExpanded ? (
             <View className="gap-2">
@@ -231,14 +231,9 @@ function DeliverableRow({
                     {submissionLabel(submission.lifecycle)} · {formatBytes(submission.size_bytes)}
                   </Text>
                 </View>
-                <Pressable
-                  onPress={() => onDownload(submission.id)}
-                  disabled={acting}
-                  accessibilityRole="button"
-                  className="rounded-full border border-hairline px-2.5 py-1"
-                >
-                  <Text className="font-geist-semibold text-[10.5px] text-ink-2">Open</Text>
-                </Pressable>
+                <Button action="secondary" onPress={() => onDownload(submission.id)} isDisabled={acting} className="px-4">
+                  <ButtonText>Open</ButtonText>
+                </Button>
               </View>
               {submission.comment ? (
                 <Text className="mt-2 border-t border-hairline pt-2 font-geist text-[11px] text-ink-2">
@@ -276,79 +271,52 @@ function DeliverableRow({
           ) : null}
           {deliverable.content_approval.can_decide ? (
             <View className="mt-2 flex-row gap-2">
-              <Pressable
-                onPress={() => onApprovalDecision('reject')}
-                disabled={acting}
-                accessibilityRole="button"
-                className="flex-1 items-center rounded-full border border-hairline bg-surface-card py-2"
-              >
-                <Text className="font-geist-semibold text-[11.5px] text-ink">Reject</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => onApprovalDecision('approve')}
-                disabled={acting}
-                accessibilityRole="button"
-                className="flex-1 items-center rounded-full bg-ink py-2"
-              >
-                <Text className="font-geist-semibold text-[11.5px] text-white">Confirm approval</Text>
-              </Pressable>
+              <Button action="secondary" onPress={() => onApprovalDecision('reject')} isDisabled={acting} className="flex-1 px-3">
+                <ButtonText>Reject</ButtonText>
+              </Button>
+              <Button action="primary" onPress={() => onApprovalDecision('approve')} isDisabled={acting} className="flex-1 px-3">
+                <ButtonText>Confirm approval</ButtonText>
+              </Button>
             </View>
           ) : null}
         </View>
       ) : null}
       {deliverable.available_actions.can_submit_content ? (
-        <Pressable
-          onPress={onSubmit}
-          disabled={acting}
-          accessibilityRole="button"
-          className={`items-center rounded-full bg-ink py-2.5 ${acting ? 'opacity-50' : ''}`}
-        >
-          <Text className="font-geist-semibold text-[12px] text-white">
+        <Button action="primary" onPress={onSubmit} isDisabled={acting}>
+          <ButtonText>
             {deliverable.revision_current === 0 ? 'Submit content' : `Submit round ${deliverable.revision_current + 1}`}
-          </Text>
-        </Pressable>
+          </ButtonText>
+        </Button>
       ) : null}
       {deliverable.available_actions.can_request_revision ? (
-        <Pressable
-          onPress={onRequestRevision}
-          disabled={acting}
-          accessibilityRole="button"
-          className={`items-center rounded-full border border-hairline bg-surface-card py-2.5 ${acting ? 'opacity-50' : ''}`}
-        >
-          <Text className="font-geist-semibold text-[12px] text-ink">Request revision</Text>
-        </Pressable>
+        <Button action="secondary" onPress={onRequestRevision} isDisabled={acting}>
+          <ButtonText>Request revision</ButtonText>
+        </Button>
       ) : null}
       {deliverable.available_actions.can_approve_content ? (
-        <Pressable
-          onPress={onApprove}
-          disabled={acting}
-          accessibilityRole="button"
-          className={`items-center rounded-full bg-ink py-2.5 ${acting ? 'opacity-50' : ''}`}
-        >
-          <Text className="font-geist-semibold text-[12px] text-white">Approve content</Text>
-        </Pressable>
+        <Button action="primary" onPress={onApprove} isDisabled={acting}>
+          <ButtonText>Approve content</ButtonText>
+        </Button>
       ) : null}
       {deliverable.post_state.future_actions.can_submit_or_replace ? (
-        <Pressable
+        <Button
+          action="primary"
           onPress={onLivePost}
-          disabled={acting}
-          accessibilityRole="button"
+          isDisabled={acting}
           accessibilityLabel={`${currentPost ? 'Replace' : 'Submit'} live URL for ${deliverable.display_name}`}
-          className={`items-center rounded-full bg-ink py-2.5 ${acting ? 'opacity-50' : ''}`}
         >
-          <Text className="font-geist-semibold text-[12px] text-white">{currentPost ? 'Replace live URL' : 'Submit live URL'}</Text>
-        </Pressable>
+          <ButtonText>{currentPost ? 'Replace live URL' : 'Submit live URL'}</ButtonText>
+        </Button>
       ) : null}
       {deliverable.post_state.future_actions.can_flag && currentPost ? (
-        <Pressable
+        <Button
+          action="secondary"
           onPress={onFlagPost}
-          disabled={acting}
-          accessibilityRole="button"
+          isDisabled={acting}
           accessibilityLabel={`Flag live URL for ${deliverable.display_name}`}
-          className={`items-center rounded-full border border-hairline bg-surface-card py-2.5 ${acting ? 'opacity-50' : ''}`}
         >
-          <Text className="font-geist-semibold text-[12px] text-ink">Flag issue</Text>
-        </Pressable>
+          <ButtonText>Flag issue</ButtonText>
+        </Button>
       ) : null}
       {deliverable.status === 'submitted' && !deliverable.available_actions.can_approve_content && !deliverable.content_approval ? (
         <Text className="font-geist text-[10.5px] text-ink-3">
@@ -389,14 +357,15 @@ function PostEvidence({ evidence, current, onOpenVerifiedPost }: {
         <Text className="font-geist text-[10px] text-ink-3">Confirmed by {evidence.confirmed_by_name} · {formatTimestamp(evidence.confirmed_at)}</Text>
       ) : null}
       {current ? (
-        <Pressable
+        <Button
+          action="secondary"
           accessibilityRole="link"
           accessibilityLabel={`Open verified post version ${evidence.version}`}
           onPress={() => onOpenVerifiedPost(evidence.final_url)}
-          className="mt-1 self-start rounded-full border border-hairline px-2.5 py-1.5"
+          className="mt-1 self-start"
         >
-          <Text className="font-geist-semibold text-[10.5px] text-ink-2">Open verified post</Text>
-        </Pressable>
+          <ButtonText>Open verified post</ButtonText>
+        </Button>
       ) : null}
     </View>
   );

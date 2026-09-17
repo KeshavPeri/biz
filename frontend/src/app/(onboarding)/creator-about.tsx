@@ -49,7 +49,7 @@ export default function CreatorAboutScreen() {
       footer={
         <Button
           action="primary"
-          size="xl"
+          size="lg"
           className="w-full"
           isDisabled={!ready}
           onPress={() => router.push('/(onboarding)/platforms')}

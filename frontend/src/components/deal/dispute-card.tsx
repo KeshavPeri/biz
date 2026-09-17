@@ -1,5 +1,6 @@
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { Button, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import type { DisputeItem, DisputeProjection } from '@/lib/deals';
 
@@ -39,14 +40,11 @@ export function DisputeCard({
           </View>
           {loading ? <Text className="font-geist-medium text-[10px] text-ink-3">Refreshing…</Text> : null}
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="View current payment dispute"
-          onPress={onView}
-          className="min-h-11 items-center justify-center rounded-2xl border border-status-critical bg-app px-3 py-2.5"
-        >
-          <Text className="font-geist-semibold text-[12px] text-status-critical">View dispute</Text>
-        </Pressable>
+        <Button action="secondary" accessibilityLabel="View current payment dispute" onPress={onView}>
+          {/* Dispute is real harm: a small red dot carries it, never a red outline or fill. */}
+          <View className="h-2 w-2 rounded-full bg-status-critical" />
+          <ButtonText>View dispute</ButtonText>
+        </Button>
         {feedback ? <Text accessibilityRole="alert" className="font-geist text-[11px] leading-[16px] text-ink-2">{feedback}</Text> : null}
         {error ? <Retry message={error} onRetry={onRetry} /> : null}
       </View>
@@ -62,14 +60,9 @@ export function DisputeCard({
       <Text className="font-geist text-[11px] leading-[16px] text-ink-2">
         Raise a dispute to pause Payment while platform operations reviews it. This does not resolve the issue or move money.
       </Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Raise a payment dispute"
-        onPress={onRaise}
-        className="min-h-11 items-center justify-center rounded-2xl border border-ink bg-surface-card px-3 py-2.5"
-      >
-        <Text className="font-geist-semibold text-[12px] text-ink">Raise dispute</Text>
-      </Pressable>
+      <Button action="secondary" accessibilityLabel="Raise a payment dispute" onPress={onRaise}>
+        <ButtonText>Raise dispute</ButtonText>
+      </Button>
       {error ? <Retry message={error} onRetry={onRetry} /> : null}
     </View>
   );
@@ -81,9 +74,9 @@ function Notice({ title, message, actionLabel, onAction }: { title: string; mess
       <Text className="font-geist-semibold text-[13px] text-ink">{title}</Text>
       <Text className="font-geist text-[11px] leading-[16px] text-ink-2">{message}</Text>
       {actionLabel && onAction ? (
-        <Pressable accessibilityRole="button" accessibilityLabel={actionLabel} onPress={onAction} className="min-h-11 items-center justify-center rounded-2xl border border-hairline px-3 py-2.5">
-          <Text className="font-geist-semibold text-[12px] text-ink">Retry</Text>
-        </Pressable>
+        <Button action="secondary" accessibilityLabel={actionLabel} onPress={onAction}>
+          <ButtonText>Retry</ButtonText>
+        </Button>
       ) : null}
     </View>
   );
@@ -93,9 +86,9 @@ function Retry({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <View className="gap-2 rounded-xl bg-app px-3 py-2.5">
       <Text className="font-geist-medium text-[11px] leading-[16px] text-status-critical">{message}</Text>
-      <Pressable accessibilityRole="button" accessibilityLabel="Retry dispute record" onPress={onRetry} className="min-h-10 items-center justify-center rounded-xl border border-hairline bg-surface-card px-3 py-2">
-        <Text className="font-geist-semibold text-[11px] text-ink">Retry</Text>
-      </Pressable>
+      <Button action="secondary" accessibilityLabel="Retry dispute record" onPress={onRetry}>
+        <ButtonText>Retry</ButtonText>
+      </Button>
     </View>
   );
 }

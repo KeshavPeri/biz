@@ -70,18 +70,18 @@ export function ConnectSheet({
       }
       footer={
         phase === 'done' ? (
-          <Button action="primary" size="xl" className="w-full" onPress={onClose}>
+          <Button action="primary" size="lg" className="w-full" onPress={onClose}>
             <ButtonText>Done</ButtonText>
           </Button>
         ) : (
           <Button
             action="primary"
-            size="xl"
+            size="lg"
             className="w-full"
             isDisabled={phase === 'sending'}
             onPress={submit}
           >
-            {phase === 'sending' ? <ButtonSpinner color="#FBFAF6" /> : null}
+            {phase === 'sending' ? <ButtonSpinner /> : null}
             <ButtonText>Connect</ButtonText>
           </Button>
         )

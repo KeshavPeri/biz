@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 
+import { Button, ButtonText } from '@/components/ui/button';
 import type {
   BrandPaymentDetailsInput,
   CreatorPaymentDetailsInput,
@@ -151,8 +152,8 @@ function Editor({ title, error, saving, invalid, onCancel, onSave, children }: {
       {children}
       {error ? <Text className="font-geist-medium text-[11px] text-status-critical">{error}</Text> : null}
       <View className="flex-row gap-2">
-        <SmallButton label="Cancel" secondary disabled={saving} onPress={onCancel} />
-        <SmallButton label={saving ? 'Saving…' : 'Save'} disabled={saving || invalid} onPress={onSave} />
+        <SmallButton className="flex-1" label="Cancel" secondary disabled={saving} onPress={onCancel} />
+        <SmallButton className="flex-1" label={saving ? 'Saving…' : 'Save'} disabled={saving || invalid} onPress={onSave} />
       </View>
     </View>
   );
@@ -204,19 +205,19 @@ function EditButton({ label, onPress }: { label: string; onPress: () => void }) 
   return <SmallButton label={label} onPress={onPress} disabled={false} />;
 }
 
-function SmallButton({ label, disabled, onPress, secondary = false }: {
-  label: string; disabled: boolean; onPress: () => void; secondary?: boolean;
+function SmallButton({ label, disabled, onPress, secondary = false, className }: {
+  label: string; disabled: boolean; onPress: () => void; secondary?: boolean; className?: string;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
+    <Button
+      action={secondary ? 'secondary' : 'primary'}
       accessibilityLabel={label}
-      disabled={disabled}
+      isDisabled={disabled}
       onPress={onPress}
-      className={`flex-1 items-center rounded-full px-3 py-2.5 ${secondary ? 'border border-hairline bg-surface-card' : 'bg-ink'} ${disabled ? 'opacity-40' : ''}`}
+      className={className}
     >
-      <Text className={`font-geist-semibold text-[11.5px] ${secondary ? 'text-ink' : 'text-white'}`}>{label}</Text>
-    </Pressable>
+      <ButtonText>{label}</ButtonText>
+    </Button>
   );
 }
 

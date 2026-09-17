@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { Button, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import {
   PRIVATE_DELIVERABLE_LABELS,
@@ -36,17 +37,15 @@ export function PrivateDeliverableLabelPicker({
             {value ?? 'None'}
           </Text>
         </View>
-        <Pressable
+        <Button
+          action="secondary"
           onPress={() => setOpen(true)}
-          disabled={acting}
-          accessibilityRole="button"
+          isDisabled={acting}
           accessibilityLabel={`Change private label for ${deliverableName}`}
-          className={`rounded-full border border-hairline bg-surface-card px-3 py-1.5 ${acting ? 'opacity-50' : ''}`}
+          className="px-4"
         >
-          <Text className="font-geist-semibold text-[10.5px] text-ink-2">
-            {value ? 'Change' : 'Add label'}
-          </Text>
-        </Pressable>
+          <ButtonText>{value ? 'Change' : 'Add label'}</ButtonText>
+        </Button>
       </View>
       <EditSheet
         visible={open}

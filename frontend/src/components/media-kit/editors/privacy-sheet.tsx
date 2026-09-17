@@ -68,8 +68,8 @@ export function PrivacySheet({
       title="Privacy"
       subtitle="You control what a browsing brand can see."
       footer={
-        <Button action="primary" size="xl" className="w-full" isDisabled={saving} onPress={save}>
-          {saving ? <ButtonSpinner color="#FBFAF6" /> : null}
+        <Button action="primary" size="lg" className="w-full" isDisabled={saving} onPress={save}>
+          {saving ? <ButtonSpinner /> : null}
           <ButtonText>Save</ButtonText>
         </Button>
       }

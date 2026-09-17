@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import { SignaturePad } from '@/components/ui/signature-pad';
 import {
@@ -125,15 +126,9 @@ export function ContractSignSheet({
       title="Review and sign contract"
       subtitle="Confirming records your signing method and time. Brand maker actions may be held for checker approval."
       footer={
-        <Pressable
-          onPress={confirm}
-          disabled={busy}
-          accessibilityRole="button"
-          accessibilityLabel="Confirm signature"
-          className={`items-center rounded-full bg-ink py-3 ${busy ? 'opacity-50' : ''}`}
-        >
-          {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text className="font-geist-semibold text-white">Confirm signature</Text>}
-        </Pressable>
+        <Button action="primary" size="lg" onPress={confirm} isDisabled={busy} accessibilityLabel="Confirm signature">
+          {busy ? <ButtonSpinner /> : <ButtonText>Confirm signature</ButtonText>}
+        </Button>
       }
     >
       <View className="gap-2">
@@ -169,16 +164,9 @@ export function ContractSignSheet({
             placeholderTextColor="#847F78"
             className="min-h-20 rounded-xl border border-hairline bg-surface-card p-3 font-geist text-ink"
           />
-          <Pressable
-            onPress={choosePdf}
-            disabled={busy}
-            accessibilityRole="button"
-            className="items-center rounded-full border border-hairline bg-surface-card py-2.5"
-          >
-            <Text className="font-geist-semibold text-[13px] text-ink">
-              {uploaded ? 'Replace signed PDF' : 'Choose signed PDF'}
-            </Text>
-          </Pressable>
+          <Button action="secondary" onPress={choosePdf} isDisabled={busy}>
+            <ButtonText>{uploaded ? 'Replace signed PDF' : 'Choose signed PDF'}</ButtonText>
+          </Button>
           {uploaded ? (
             <View className="rounded-xl bg-status-good-tint px-3 py-2">
               <Text className="font-geist-medium text-[12px] text-status-good-label" numberOfLines={2}>
