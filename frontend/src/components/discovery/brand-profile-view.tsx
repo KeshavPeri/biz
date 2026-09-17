@@ -59,22 +59,22 @@ export function BrandProfileView({ data, onConnect }: { data: BrandProfile; onCo
       {/* Trust strip */}
       <View className="mt-5 flex-row rounded-card border border-hairline-card bg-surface-card shadow-l1">
         <View className="flex-1 items-center px-2 py-3.5">
-          <Text className="font-geist-bold text-[18px] text-ink">
+          <Text className="font-geist-bold text-[18px] tabular-nums text-ink">
             {data.trustRating !== null ? `★ ${data.trustRating.toFixed(1)}` : '—'}
           </Text>
-          <Text className="mt-0.5 font-geist-medium text-[10.5px] text-ink-3">Trust rating</Text>
+          <Text className="mt-0.5 font-geist-medium text-micro text-ink-3">Trust rating</Text>
         </View>
         <View className="flex-1 items-center border-l border-hairline px-2 py-3.5">
-          <Text className="font-geist-bold text-[18px] text-ink">
+          <Text className="font-geist-bold text-[18px] tabular-nums text-ink">
             {data.dealCompletionRate !== null ? `${Math.round(data.dealCompletionRate * 100)}%` : '—'}
           </Text>
-          <Text className="mt-0.5 font-geist-medium text-[10.5px] text-ink-3">Deals completed</Text>
+          <Text className="mt-0.5 font-geist-medium text-micro text-ink-3">Deals completed</Text>
         </View>
         <View className="flex-1 items-center border-l border-hairline px-2 py-3.5">
           <Text className="font-geist-bold text-[18px] text-ink">
             {data.verified ? 'Yes' : 'No'}
           </Text>
-          <Text className="mt-0.5 font-geist-medium text-[10.5px] text-ink-3">Verified</Text>
+          <Text className="mt-0.5 font-geist-medium text-micro text-ink-3">Verified</Text>
         </View>
       </View>
 
@@ -107,7 +107,7 @@ export function BrandProfileView({ data, onConnect }: { data: BrandProfile; onCo
             <Button action="primary" size="lg" isDisabled>
               <ButtonText>Start a deal (coming soon)</ButtonText>
             </Button>
-            <Text className="mt-1.5 text-center font-geist text-[11px] text-ink-3">
+            <Text className="mt-1.5 text-center font-geist text-micro text-ink-3">
               Connecting with brands lands with the deal engine.
             </Text>
           </>

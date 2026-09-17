@@ -24,36 +24,36 @@ export function DealPreviewCard({ deal, labels, onPress, onEditLabels }: {
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Open deal ${deal.dealName}`}
-      className="rounded-card border border-hairline-card bg-surface-card p-3.5 shadow-l1 active:opacity-90"
+      className="rounded-card border border-hairline-card bg-surface-card p-4 shadow-l1 active:opacity-90"
     >
       {/* Row 1 — avatar · name + stage pill · unread badge */}
       <View className="flex-row items-center gap-2.5">
         <Avatar path={deal.otherAvatarPath} name={deal.otherNames[0] ?? deal.dealName} />
         <View className="min-w-0 flex-1">
-          <Text className="font-geist-semibold text-[15px] text-ink" numberOfLines={1}>
+          <Text className="font-geist-semibold text-body text-ink" numberOfLines={1}>
             {deal.dealName}
           </Text>
           <View className="mt-0.5 flex-row items-center gap-1.5">
             <View className={`rounded-pill px-2 py-0.5 ${pill.bg}`}>
-              <Text className={`font-geist-semibold text-[10.5px] ${pill.text}`}>{pill.label}</Text>
+              <Text className={`font-geist-semibold text-micro ${pill.text}`}>{pill.label}</Text>
             </View>
             {directionLabel ? (
-              <View className="rounded-[5px] border border-hairline px-1.5 py-px">
-                <Text className="font-geist-semibold text-[10px] text-ink-3">{directionLabel}</Text>
+              <View className="rounded-pill border border-hairline px-2 py-0.5">
+                <Text className="font-geist-semibold text-micro text-ink-3">{directionLabel}</Text>
               </View>
             ) : null}
           </View>
         </View>
         {deal.unreadCount > 0 ? (
-          <View className="h-[19px] min-w-[19px] items-center justify-center rounded-pill bg-ink px-1.5">
-            <Text className="font-geist-semibold text-[11px] text-white">{deal.unreadCount}</Text>
+          <View className="h-5 min-w-[20px] items-center justify-center rounded-pill bg-ink px-1.5">
+            <Text className="font-geist-semibold text-micro tabular-nums text-white">{deal.unreadCount}</Text>
           </View>
         ) : null}
       </View>
 
       {/* Last-message preview */}
       {deal.lastMessage ? (
-        <Text className="mt-2 font-geist text-[13px] text-ink-2" numberOfLines={1}>
+        <Text className="mt-2 font-geist text-secondary text-ink-2" numberOfLines={1}>
           <Text className="font-geist-semibold text-ink">
             {deal.lastMessage.senderName.split(' ')[0]}:{' '}
           </Text>
@@ -64,10 +64,10 @@ export function DealPreviewCard({ deal, labels, onPress, onEditLabels }: {
       <View className="mt-2 flex-row items-center gap-1.5">
         {labels.slice(0, 2).map((label) => (
           <View key={label.id} className="rounded-pill bg-surface-recess px-2 py-0.5">
-            <Text className="font-geist-medium text-[10.5px] text-ink-2" numberOfLines={1}>{label.label}</Text>
+            <Text className="font-geist-medium text-micro text-ink-2" numberOfLines={1}>{label.label}</Text>
           </View>
         ))}
-        {labels.length > 2 ? <Text className="font-geist-semibold text-[10.5px] text-ink-3">+{labels.length - 2}</Text> : null}
+        {labels.length > 2 ? <Text className="font-geist-semibold text-micro tabular-nums text-ink-3">+{labels.length - 2}</Text> : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Edit private labels"
@@ -81,17 +81,17 @@ export function DealPreviewCard({ deal, labels, onPress, onEditLabels }: {
       <View className="mt-2 flex-row items-center justify-between gap-2">
         <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
           <View
-            className={`h-1.5 w-1.5 rounded-full ${deal.nextAction.active ? 'bg-status-good' : 'bg-[#C9C4BA]'}`}
+            className={`h-1.5 w-1.5 rounded-full ${deal.nextAction.active ? 'bg-status-good' : 'bg-cane-3'}`}
           />
           <Text
-            className={`font-geist-medium text-[12px] ${deal.nextAction.active ? 'text-ink' : 'text-ink-3'}`}
+            className={`font-geist-medium text-secondary ${deal.nextAction.active ? 'text-ink' : 'text-ink-3'}`}
             numberOfLines={1}
           >
             {deal.nextAction.text}
           </Text>
         </View>
         {deal.lastMessage ? (
-          <Text className="font-geist text-[11px] text-ink-3">
+          <Text className="font-geist text-micro tabular-nums text-ink-3">
             {formatRelativeTime(deal.lastMessage.createdAt)}
           </Text>
         ) : null}
@@ -107,7 +107,7 @@ function Avatar({ path, name }: { path: string | null; name: string }) {
   }
   return (
     <View className="h-[34px] w-[34px] items-center justify-center rounded-full bg-avatar">
-      <Text className="font-geist-semibold text-[12px] text-ink-2">{initials(name)}</Text>
+      <Text className="font-geist-semibold text-micro text-ink-2">{initials(name)}</Text>
     </View>
   );
 }

@@ -30,7 +30,7 @@ export function BrandCard({ brand, onPress }: { brand: BrandCardData; onPress: (
         className="h-11 w-11 items-center justify-center rounded-panel"
         style={{ backgroundColor: logoColor(brand.companyName) }}
       >
-        <Text className="font-geist-bold text-[14px] text-white">{initials}</Text>
+        <Text className="font-geist-bold text-secondary text-white">{initials}</Text>
       </View>
       <View className="flex-1">
         <View className="flex-row items-center gap-1.5">
@@ -43,7 +43,7 @@ export function BrandCard({ brand, onPress }: { brand: BrandCardData; onPress: (
             </View>
           ) : null}
         </View>
-        <Text className="mt-0.5 font-geist text-[11.5px] text-ink-3" numberOfLines={1}>
+        <Text className="mt-0.5 font-geist text-micro text-ink-3" numberOfLines={1}>
           {brand.industry ?? 'Brand'}
           {brand.hqCity ? ` · ${brand.hqCity}` : ''}
         </Text>
@@ -51,7 +51,7 @@ export function BrandCard({ brand, onPress }: { brand: BrandCardData; onPress: (
       {brand.trustRating !== null ? (
         <View className="items-end">
           <Text className="font-geist-bold text-body text-ink">★ {brand.trustRating.toFixed(1)}</Text>
-          <Text className="font-geist text-[10px] text-ink-3">rating</Text>
+          <Text className="font-geist text-micro text-ink-3">rating</Text>
         </View>
       ) : null}
     </Pressable>

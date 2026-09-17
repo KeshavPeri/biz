@@ -161,17 +161,17 @@ function LabelFilters({ values, selected, onSelect }: { values: string[]; select
   return <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pb-3"><FilterChip label="All" selected={!selected} onPress={() => onSelect(null)} />{values.map((label) => <FilterChip key={label} label={label} selected={selected === label} onPress={() => onSelect(label)} />)}</ScrollView>;
 }
 function FilterChip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} className={`rounded-pill border px-3 py-1.5 ${selected ? 'border-ink bg-ink' : 'border-hairline bg-surface-card'}`}><Text className={`font-geist-semibold text-[11px] ${selected ? 'text-white' : 'text-ink-2'}`}>{label}</Text></Pressable>;
+  return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} className={`rounded-pill border px-3 py-1.5 ${selected ? 'border-ink bg-ink' : 'border-hairline bg-surface-card'}`}><Text className={`font-geist-semibold text-micro ${selected ? 'text-white' : 'text-ink-2'}`}>{label}</Text></Pressable>;
 }
 function LabelEmptyState({ onClear }: { onClear: () => void }) {
-  return <View className="items-center px-8 py-12"><Text className="font-geist-semibold text-[14px] text-ink">No chats with this label</Text><Pressable accessibilityRole="button" onPress={onClear} className="mt-3 rounded-pill border border-hairline px-3 py-2"><Text className="font-geist-semibold text-[12px] text-ink">Show all chats</Text></Pressable></View>;
+  return <View className="items-center px-8 py-12"><Text className="font-geist-semibold text-subtitle text-ink">No chats with this label</Text><Pressable accessibilityRole="button" onPress={onClear} className="mt-3 rounded-pill border border-hairline px-3 py-2"><Text className="font-geist-semibold text-secondary text-ink">Show all chats</Text></Pressable></View>;
 }
 
 function EmptyState() {
   return (
     <View className="flex-1 items-center justify-center px-10">
       <Text className="mb-1 text-center font-geist-semibold text-body text-ink">No deals yet</Text>
-      <Text className="text-center font-geist text-[13px] text-ink-3">
+      <Text className="text-center font-geist text-secondary text-ink-3">
         Start one from Discover — your deal threads will show up here.
       </Text>
     </View>
