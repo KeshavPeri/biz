@@ -75,14 +75,14 @@ export default function PreferencesScreen() {
         value={outbound}
         onValueChange={(v) => setField('outbound', v)}
       />
-      {/* Cosmetic only — notification prefs are Phase 12. */}
-      <PrefRow
-        title="Deal notifications"
-        subtitle="Stage advances, payments and deadlines. Critical alerts always arrive."
-        value
-        onValueChange={() => {}}
-        disabled
-      />
+      {/* Static, not a control — real notification prefs land in Phase 12 (B4-49:
+          a permanently-disabled toggle reads as broken). */}
+      <View className="mb-3 flex-row items-center gap-3 rounded-card border border-hairline-card bg-surface-card p-4 shadow-l1">
+        <View className="h-1.5 w-1.5 rounded-full bg-cane-4" />
+        <Text className="flex-1 font-geist text-secondary text-ink-2">
+          Deal notifications are on. Tune them later in Account.
+        </Text>
+      </View>
     </AuthShell>
   );
 }

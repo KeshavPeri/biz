@@ -30,19 +30,19 @@ export function PrivacySheet({
   data: CreatorMediaKit;
 }) {
   const [privacy, setPrivacy] = useState<PrivacySettings>(data.privacy);
-  const [rateEnabled, setRateEnabled] = useState<boolean>(Boolean(data.rateCard?.is_enabled));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const rows: { key: keyof PrivacySettings; label: string; desc: string }[] = [
     { key: 'handles_visible', label: 'Show platform handles', desc: 'Let brands see your @handles.' },
     { key: 'contact_visible', label: 'Show contact', desc: 'Reveal contact details on your profile.' },
-    {
-      key: 'rate_card_visible',
-      label: 'Allow rate card',
-      desc: 'When on, verified brands may see your prices (if the card is enabled).',
-    },
   ];
+
+  // One switch decides whether prices are visible at all — it writes both the
+  // privacy flag and the rate_cards.is_enabled flag together (B5-47: these used
+  // to be two separate switches for the same outcome).
+  const rateCardVisible = privacy.rate_card_visible;
+  const setRateCardVisible = (v: boolean) => setPrivacy((p) => ({ ...p, rate_card_visible: v }));
 
   const save = async () => {
     setSaving(true);
@@ -53,9 +53,9 @@ export function PrivacySheet({
       return setError(res.message);
     }
     // Sync the rate-card enable flag too (create the card lazily if needed).
-    if (rateEnabled !== Boolean(data.rateCard?.is_enabled)) {
+    if (rateCardVisible !== Boolean(data.rateCard?.is_enabled)) {
       const cardId = data.rateCard?.id ?? (await ensureRateCard(data.creatorId));
-      if (cardId) await setRateCardEnabled(cardId, rateEnabled);
+      if (cardId) await setRateCardEnabled(cardId, rateCardVisible);
     }
     setSaving(false);
     onSaved();
@@ -93,12 +93,18 @@ export function PrivacySheet({
 
       <View className="mb-3 flex-row items-center gap-3.5 rounded-card border border-hairline-card bg-surface-card p-4 shadow-l1">
         <View className="flex-1">
-          <Text className="font-geist-semibold text-body text-ink">Enable rate card</Text>
+          <Text className="font-geist-semibold text-body text-ink">Show rate card to verified brands</Text>
           <Text className="mt-0.5 font-geist text-secondary leading-[18px] text-ink-2">
-            The master switch — off hides prices from everyone.
+            {rateCardVisible
+              ? 'Verified brands can see your prices.'
+              : 'Your prices are hidden from everyone.'}
           </Text>
         </View>
-        <Toggle value={rateEnabled} onValueChange={setRateEnabled} accessibilityLabel="Enable rate card" />
+        <Toggle
+          value={rateCardVisible}
+          onValueChange={setRateCardVisible}
+          accessibilityLabel="Show rate card to verified brands"
+        />
       </View>
 
       {error ? <Text className="font-geist text-secondary text-status-critical">{error}</Text> : null}
