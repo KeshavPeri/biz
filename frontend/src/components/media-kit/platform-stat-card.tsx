@@ -41,38 +41,38 @@ export function PlatformStatCard({
           className="h-7 w-7 items-center justify-center rounded-[9px]"
           style={{ backgroundColor: color }}
         >
-          <Text className="font-geist-bold text-[12px] text-white">
+          <Text className="font-geist-bold text-secondary text-white">
             {platformLabel(handle.platform)[0]}
           </Text>
         </View>
         <View className="flex-1">
-          <Text className="font-geist-medium text-[11px] text-ink-3" numberOfLines={1}>
+          <Text className="font-geist-medium text-micro text-ink-3" numberOfLines={1}>
             {handle.handle}
           </Text>
         </View>
         {handle.is_primary ? (
           <View className="rounded-pill bg-surface-recess px-2 py-0.5">
-            <Text className="font-geist-semibold text-[9px] uppercase tracking-wide text-ink-3">
+            <Text className="font-geist-semibold text-micro text-ink-2">
               Primary
             </Text>
           </View>
         ) : null}
       </View>
 
-      <Text className="font-geist-bold text-[21px] tracking-tight text-ink">
+      <Text className="font-geist-bold text-title tabular-nums text-ink">
         {formatCount(handle.follower_count)}{' '}
-        <Text className="font-geist-medium text-[11px] text-ink-3">followers</Text>
+        <Text className="font-geist-medium text-micro text-ink-3">followers</Text>
       </Text>
 
       <View className="mt-2 flex-row justify-between border-t border-hairline pt-2">
-        <Text className="font-geist text-[11px] text-ink-2">Eng. rate</Text>
-        <Text className="font-geist-semibold text-[11px] text-ink">
+        <Text className="font-geist text-secondary text-ink-2">Eng. rate</Text>
+        <Text className="font-geist-semibold text-secondary tabular-nums text-ink">
           {formatPercent(handle.engagement_rate)}
         </Text>
       </View>
       <View className="mt-1.5 flex-row justify-between">
-        <Text className="font-geist text-[11px] text-ink-2">Weekly reach</Text>
-        <Text className="font-geist-semibold text-[11px] text-ink">
+        <Text className="font-geist text-secondary text-ink-2">Weekly reach</Text>
+        <Text className="font-geist-semibold text-secondary tabular-nums text-ink">
           {formatCount(handle.weekly_reach)}
         </Text>
       </View>
@@ -82,14 +82,14 @@ export function PlatformStatCard({
           className={`h-1.5 w-1.5 rounded-full ${verified ? 'bg-status-good' : 'bg-cane-4'}`}
         />
         <Text
-          className={`font-geist-medium text-[10px] ${
-            verified ? 'text-status-good-label' : 'text-ink-3'
+          className={`font-geist-medium text-micro ${
+            verified ? 'text-status-good-label' : 'text-ink-2'
           }`}
         >
           {verified ? 'Verified' : 'Pending'}
         </Text>
         {onEdit ? (
-          <Text className="ml-auto font-geist-semibold text-[11px] text-ink">Edit ›</Text>
+          <Text className="ml-auto font-geist-semibold text-secondary text-ink">Edit ›</Text>
         ) : null}
       </View>
     </View>

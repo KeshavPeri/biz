@@ -90,7 +90,7 @@ export default function PlatformsScreen() {
               className="h-10 w-10 items-center justify-center rounded-panel"
               style={{ backgroundColor: color }}
             >
-              <Text className="font-geist-bold text-white" style={{ fontSize: 15 }}>
+              <Text className="font-geist-bold text-secondary text-white">
                 {name[0]}
               </Text>
             </View>
@@ -113,7 +113,7 @@ export default function PlatformsScreen() {
                 <ActivityIndicator size="small" color={TERTIARY} />
               ) : (
                 <Text
-                  className={`font-geist-semibold text-[12.5px] ${
+                  className={`font-geist-semibold text-secondary ${
                     connected ? 'text-ink-2' : 'text-white'
                   }`}
                 >

@@ -31,13 +31,13 @@ function RoleCard({ Icon, title, subtitle, onPress }: RoleCardProps) {
       className="mb-3 flex-row items-center gap-3.5 rounded-card border border-hairline-card bg-surface-card p-4 shadow-l1"
     >
       <View className="h-11 w-11 items-center justify-center rounded-[13px] bg-surface-recess shadow-recessInset">
-        <Icon width={21} height={21} color={INK} />
+        <Icon width={20} height={20} color={INK} />
       </View>
       <View className="flex-1">
         <Text className="font-geist-semibold text-subtitle text-ink">{title}</Text>
         <Text className="mt-0.5 font-geist text-secondary text-ink-2">{subtitle}</Text>
       </View>
-      <ChevronIcon width={18} height={18} color={TERTIARY} />
+      <ChevronIcon width={16} height={16} color={TERTIARY} />
     </PressableScale>
   );
 }
@@ -64,14 +64,14 @@ export default function RoleScreen() {
       >
         {/* Hero (mockup `.hero`). The mockup's teal radial glow is a web-only CSS
             gradient; we use the flat ink block here — a faithful, simpler read. */}
-        <View className="mb-6 overflow-hidden rounded-card bg-ink px-[26px] pb-8 pt-11">
-          <Text className="mb-3.5 text-[32px] font-geist-semibold tracking-[-0.6px] text-app">
+        <View className="mb-6 overflow-hidden rounded-card bg-ink p-6 pt-11">
+          <Text className="mb-3 font-geist-semibold text-display text-app">
             inflo
           </Text>
-          <Text className="mb-2.5 text-[26px] font-geist-bold leading-[31px] tracking-[-0.4px] text-app">
+          <Text className="mb-2 font-geist-bold text-display text-app">
             Deals, run properly.
           </Text>
-          <Text className="max-w-[290px] font-geist text-body leading-[22px] text-[rgba(251,250,246,0.72)]">
+          <Text className="max-w-full font-geist text-body text-app/70">
             The calm home for creator–brand deals — chat, contract, content and payment in one
             flow. No more WhatsApp + spreadsheets.
           </Text>

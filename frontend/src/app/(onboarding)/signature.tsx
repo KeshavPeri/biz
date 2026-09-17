@@ -137,7 +137,9 @@ export default function SignatureScreen() {
 
       {/* Security note (mockup `.signote`). */}
       <View className="mt-4 flex-row gap-[9px] rounded-panel bg-surface-recess p-3.5 shadow-recessInset">
-        <ShieldIcon width={15} height={15} color={ICON_TERTIARY} style={{ marginTop: 2 }} />
+        <View className="h-5 w-5 items-center justify-center">
+          <ShieldIcon width={16} height={16} color={ICON_TERTIARY} />
+        </View>
         <Text className="flex-1 font-geist text-secondary leading-[18px] text-ink-2">
           Stored securely and kept private to you. Each future use is confirmed by you, then
           timestamped and logged in that deal’s audit trail.
