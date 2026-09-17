@@ -45,15 +45,10 @@ const buttonStyle = tva({
         'bg-primary-500 data-[hover=true]:bg-primary-600 data-[active=true]:bg-primary-700 border-primary-300 data-[hover=true]:border-primary-400 data-[active=true]:border-primary-500 data-[focus-visible=true]:web:ring-indicator-info',
       secondary:
         'bg-secondary-500 border-secondary-300 data-[hover=true]:bg-secondary-600 data-[hover=true]:border-secondary-400 data-[active=true]:bg-secondary-700 data-[active=true]:border-secondary-700 data-[focus-visible=true]:web:ring-indicator-info',
-      positive:
-        'bg-success-500 border-success-300 data-[hover=true]:bg-success-600 data-[hover=true]:border-success-400 data-[active=true]:bg-success-700 data-[active=true]:border-success-500 data-[focus-visible=true]:web:ring-indicator-info',
-      negative:
-        'bg-error-500 border-error-300 data-[hover=true]:bg-error-600 data-[hover=true]:border-error-400 data-[active=true]:bg-error-700 data-[active=true]:border-error-500 data-[focus-visible=true]:web:ring-indicator-info',
       default:
         'bg-transparent data-[hover=true]:bg-background-50 data-[active=true]:bg-transparent',
     },
     variant: {
-      link: 'px-0',
       outline:
         'bg-transparent border data-[hover=true]:bg-background-50 data-[active=true]:bg-transparent',
       solid: '',
@@ -70,48 +65,12 @@ const buttonStyle = tva({
   compoundVariants: [
     {
       action: 'primary',
-      variant: 'link',
-      class:
-        'px-0 bg-transparent data-[hover=true]:bg-transparent data-[active=true]:bg-transparent',
-    },
-    {
-      action: 'secondary',
-      variant: 'link',
-      class:
-        'px-0 bg-transparent data-[hover=true]:bg-transparent data-[active=true]:bg-transparent',
-    },
-    {
-      action: 'positive',
-      variant: 'link',
-      class:
-        'px-0 bg-transparent data-[hover=true]:bg-transparent data-[active=true]:bg-transparent',
-    },
-    {
-      action: 'negative',
-      variant: 'link',
-      class:
-        'px-0 bg-transparent data-[hover=true]:bg-transparent data-[active=true]:bg-transparent',
-    },
-    {
-      action: 'primary',
       variant: 'outline',
       class:
         'bg-transparent data-[hover=true]:bg-background-50 data-[active=true]:bg-transparent',
     },
     {
       action: 'secondary',
-      variant: 'outline',
-      class:
-        'bg-transparent data-[hover=true]:bg-background-50 data-[active=true]:bg-transparent',
-    },
-    {
-      action: 'positive',
-      variant: 'outline',
-      class:
-        'bg-transparent data-[hover=true]:bg-background-50 data-[active=true]:bg-transparent',
-    },
-    {
-      action: 'negative',
       variant: 'outline',
       class:
         'bg-transparent data-[hover=true]:bg-background-50 data-[active=true]:bg-transparent',
@@ -128,13 +87,8 @@ const buttonTextStyle = tva({
         'text-primary-600 data-[hover=true]:text-primary-600 data-[active=true]:text-primary-700',
       secondary:
         'text-typography-500 data-[hover=true]:text-typography-600 data-[active=true]:text-typography-700',
-      positive:
-        'text-success-600 data-[hover=true]:text-success-600 data-[active=true]:text-success-700',
-      negative:
-        'text-error-600 data-[hover=true]:text-error-600 data-[active=true]:text-error-700',
     },
     variant: {
-      link: 'data-[hover=true]:underline data-[active=true]:underline',
       outline: '',
       solid:
         'text-typography-0 data-[hover=true]:text-typography-0 data-[active=true]:text-typography-0',
@@ -161,18 +115,6 @@ const buttonTextStyle = tva({
         'text-typography-800 data-[hover=true]:text-typography-800 data-[active=true]:text-typography-800',
     },
     {
-      variant: 'solid',
-      action: 'positive',
-      class:
-        'text-typography-0 data-[hover=true]:text-typography-0 data-[active=true]:text-typography-0',
-    },
-    {
-      variant: 'solid',
-      action: 'negative',
-      class:
-        'text-typography-0 data-[hover=true]:text-typography-0 data-[active=true]:text-typography-0',
-    },
-    {
       variant: 'outline',
       action: 'primary',
       class:
@@ -184,18 +126,6 @@ const buttonTextStyle = tva({
       class:
         'text-typography-500 data-[hover=true]:text-primary-600 data-[active=true]:text-typography-700',
     },
-    {
-      variant: 'outline',
-      action: 'positive',
-      class:
-        'text-primary-500 data-[hover=true]:text-primary-500 data-[active=true]:text-primary-500',
-    },
-    {
-      variant: 'outline',
-      action: 'negative',
-      class:
-        'text-primary-500 data-[hover=true]:text-primary-500 data-[active=true]:text-primary-500',
-    },
   ],
 });
 
@@ -203,7 +133,6 @@ const buttonIconStyle = tva({
   base: 'fill-none',
   parentVariants: {
     variant: {
-      link: 'data-[hover=true]:underline data-[active=true]:underline',
       outline: '',
       solid:
         'text-typography-0 data-[hover=true]:text-typography-0 data-[active=true]:text-typography-0',
@@ -220,11 +149,6 @@ const buttonIconStyle = tva({
         'text-primary-600 data-[hover=true]:text-primary-600 data-[active=true]:text-primary-700',
       secondary:
         'text-typography-500 data-[hover=true]:text-typography-600 data-[active=true]:text-typography-700',
-      positive:
-        'text-success-600 data-[hover=true]:text-success-600 data-[active=true]:text-success-700',
-
-      negative:
-        'text-error-600 data-[hover=true]:text-error-600 data-[active=true]:text-error-700',
     },
   },
   parentCompoundVariants: [
@@ -240,44 +164,7 @@ const buttonIconStyle = tva({
       class:
         'text-typography-800 data-[hover=true]:text-typography-800 data-[active=true]:text-typography-800',
     },
-    {
-      variant: 'solid',
-      action: 'positive',
-      class:
-        'text-typography-0 data-[hover=true]:text-typography-0 data-[active=true]:text-typography-0',
-    },
-    {
-      variant: 'solid',
-      action: 'negative',
-      class:
-        'text-typography-0 data-[hover=true]:text-typography-0 data-[active=true]:text-typography-0',
-    },
   ],
-});
-
-const buttonGroupStyle = tva({
-  base: '',
-  variants: {
-    space: {
-      'xs': 'gap-1',
-      'sm': 'gap-2',
-      'md': 'gap-3',
-      'lg': 'gap-4',
-      'xl': 'gap-5',
-      '2xl': 'gap-6',
-      '3xl': 'gap-7',
-      '4xl': 'gap-8',
-    },
-    isAttached: {
-      true: 'gap-0',
-    },
-    flexDirection: {
-      'row': 'flex-row',
-      'column': 'flex-col',
-      'row-reverse': 'flex-row-reverse',
-      'column-reverse': 'flex-col-reverse',
-    },
-  },
 });
 
 type IButtonProps = Omit<
@@ -395,42 +282,9 @@ const ButtonIcon = React.forwardRef<
   );
 });
 
-type IButtonGroupProps = React.ComponentPropsWithoutRef<typeof UIButton.Group> &
-  VariantProps<typeof buttonGroupStyle>;
-
-const ButtonGroup = React.forwardRef<
-  React.ElementRef<typeof UIButton.Group>,
-  IButtonGroupProps
->(
-  (
-    {
-      className,
-      space = 'md',
-      isAttached = false,
-      flexDirection = 'column',
-      ...props
-    },
-    ref
-  ) => {
-    return (
-      <UIButton.Group
-        className={buttonGroupStyle({
-          class: className,
-          space,
-          isAttached,
-          flexDirection,
-        })}
-        {...props}
-        ref={ref}
-      />
-    );
-  }
-);
-
 Button.displayName = 'Button';
 ButtonText.displayName = 'ButtonText';
 ButtonSpinner.displayName = 'ButtonSpinner';
 ButtonIcon.displayName = 'ButtonIcon';
-ButtonGroup.displayName = 'ButtonGroup';
 
-export { Button, ButtonText, ButtonSpinner, ButtonIcon, ButtonGroup };
+export { Button, ButtonText, ButtonSpinner, ButtonIcon };

@@ -252,7 +252,6 @@ module.exports = {
         'geist-medium': ['Geist_500Medium'],
         'geist-semibold': ['Geist_600SemiBold'],
         'geist-bold': ['Geist_700Bold'],
-        'geist-mono': ['GeistMono_400Regular'],
         jakarta: ['var(--font-plus-jakarta-sans)'],
         roboto: ['var(--font-roboto)'],
         code: ['var(--font-source-code-pro)'],

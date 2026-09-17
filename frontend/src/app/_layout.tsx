@@ -14,7 +14,6 @@ import { Geist_400Regular } from '@expo-google-fonts/geist/400Regular';
 import { Geist_500Medium } from '@expo-google-fonts/geist/500Medium';
 import { Geist_600SemiBold } from '@expo-google-fonts/geist/600SemiBold';
 import { Geist_700Bold } from '@expo-google-fonts/geist/700Bold';
-import { GeistMono_400Regular } from '@expo-google-fonts/geist-mono/400Regular';
 // Marck Script — the ONE deliberate exception to Geist, used only for the
 // typed-signature preview (task 7.9 follow-up). A script font reads as a real
 // signature; it balances "personal handwritten" with "business document"
@@ -51,7 +50,6 @@ export default function RootLayout() {
     Geist_500Medium,
     Geist_600SemiBold,
     Geist_700Bold,
-    GeistMono_400Regular,
     MarckScript_400Regular,
   });
 
@@ -79,7 +77,6 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Protected guard={!!session && onboarded === true}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             {/* Discovery detail routes — siblings above the tabs, so Discover stays
                 mounted underneath and its filters survive the round trip. */}
             <Stack.Screen name="creator/[id]" options={{ headerShown: false }} />

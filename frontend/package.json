@@ -4,10 +4,8 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo-google-fonts/geist": "^0.4.2",
-    "@expo-google-fonts/geist-mono": "^0.4.2",
     "@expo-google-fonts/marck-script": "^0.4.1",
     "@expo/html-elements": "^0.10.1",
-    "@expo/vector-icons": "^15.0.3",
     "@gluestack-ui/core": "^3.0.24",
     "@gluestack-ui/utils": "^3.0.21",
     "@legendapp/motion": "^2.5.3",
@@ -33,7 +31,6 @@
     "expo-secure-store": "~15.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
-    "expo-symbols": "~1.0.8",
     "expo-system-ui": "~6.0.9",
     "expo-web-browser": "~15.0.11",
     "nativewind": "^4.2.5",
