@@ -67,12 +67,12 @@ export function PostCloseEntrySheet({
     >
       <View className="gap-3">
         <View className={`rounded-xl px-3 py-3 ${isPrivate ? 'bg-surface-recess' : 'bg-avatar'}`}>
-          <Text className="font-geist-semibold text-[12px] text-ink">Visibility: {isPrivate ? 'Only me' : 'All current participants'}</Text>
-          <Text className="mt-1 font-geist text-[10.5px] leading-[15px] text-ink-2">{isPrivate ? 'No one else is notified, and this note is excluded from the chat archive.' : 'Others receive a generic notification without the comment text.'}</Text>
+          <Text className="font-geist-semibold text-secondary text-ink">Visibility: {isPrivate ? 'Only me' : 'All current participants'}</Text>
+          <Text className="mt-1 font-geist text-micro text-ink-2">{isPrivate ? 'No one else is notified, and this note is excluded from the chat archive.' : 'Others receive a generic notification without the comment text.'}</Text>
         </View>
-        <TextInput value={body} onChangeText={(value) => { setBody(value); setError(null); }} editable={!busy} multiline maxLength={2000} accessibilityLabel={`${isPrivate ? 'Private note' : 'Shared comment'}, 1 to 2,000 characters`} placeholder={isPrivate ? 'Write a note for yourself…' : 'Add a follow-up for participants…'} placeholderTextColor="#847F78" className="min-h-28 rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-[13px] leading-[19px] text-ink" />
-        <Text className="text-right font-geist text-[10.5px] text-ink-3">{trimmed.length}/2,000</Text>
-        {error ? <Text accessibilityRole="alert" className="font-geist-medium text-[11px] leading-[16px] text-status-critical">{error}</Text> : null}
+        <TextInput value={body} onChangeText={(value) => { setBody(value); setError(null); }} editable={!busy} multiline maxLength={2000} accessibilityLabel={`${isPrivate ? 'Private note' : 'Shared comment'}, 1 to 2,000 characters`} placeholder={isPrivate ? 'Write a note for yourself…' : 'Add a follow-up for participants…'} placeholderTextColor="#847F78" className="min-h-28 rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-secondary text-ink" />
+        <Text className="text-right font-geist text-micro text-ink-3">{trimmed.length}/2,000</Text>
+        {error ? <Text accessibilityRole="alert" className="font-geist-medium text-micro text-status-critical">{error}</Text> : null}
       </View>
     </EditSheet>
   );

@@ -91,34 +91,34 @@ export function DisputeSheet({
       {confirming ? (
         <View className="gap-3">
           <View className="rounded-xl border border-status-critical bg-status-critical-tint px-3 py-3">
-            <Text className="font-geist-semibold text-[12px] text-status-critical">Payment tracking will pause</Text>
-            <Text className="mt-1 font-geist text-[11px] leading-[16px] text-ink-2">This does not resolve the dispute, restart payment, or move money.</Text>
+            <Text className="font-geist-semibold text-secondary text-status-critical">Payment tracking will pause</Text>
+            <Text className="mt-1 font-geist text-micro text-ink-2">This does not resolve the dispute, restart payment, or move money.</Text>
           </View>
-          <Text className="font-geist text-[11px] leading-[16px] text-ink-2">{trimmed}</Text>
-          <Text className="font-geist text-[10.5px] text-ink-3">{selected.length} evidence item{selected.length === 1 ? '' : 's'} selected</Text>
+          <Text className="font-geist text-micro text-ink-2">{trimmed}</Text>
+          <Text className="font-geist text-micro text-ink-3">{selected.length} evidence item{selected.length === 1 ? '' : 's'} selected</Text>
         </View>
       ) : (
         <View className="gap-3">
           <View>
-            <Text className="mb-1.5 font-geist-semibold text-[12px] text-ink">What happened?</Text>
-            <TextInput value={description} onChangeText={(value) => { setDescription(value); setError(null); }} editable={!busy} multiline maxLength={2000} autoCorrect onFocus={() => setError(null)} accessibilityLabel="Dispute description, 10 to 2,000 characters" placeholder="Describe the payment concern…" placeholderTextColor="#847F78" className="min-h-28 rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-[13px] leading-[19px] text-ink" />
-            <Text className={`mt-1 text-right font-geist text-[10.5px] ${valid ? 'text-ink-3' : 'text-status-critical'}`}>{trimmed.length}/2,000 · minimum 10</Text>
+            <Text className="mb-1.5 font-geist-semibold text-secondary text-ink">What happened?</Text>
+            <TextInput value={description} onChangeText={(value) => { setDescription(value); setError(null); }} editable={!busy} multiline maxLength={2000} autoCorrect onFocus={() => setError(null)} accessibilityLabel="Dispute description, 10 to 2,000 characters" placeholder="Describe the payment concern…" placeholderTextColor="#847F78" className="min-h-28 rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-secondary text-ink" />
+            <Text className={`mt-1 text-right font-geist text-micro ${valid ? 'text-ink-3' : 'text-status-critical'}`}>{trimmed.length}/2,000 · minimum 10</Text>
           </View>
           <View className="gap-1.5">
-            <Text className="font-geist-semibold text-[12px] text-ink">Optional evidence</Text>
-            <Text className="font-geist text-[10.5px] leading-[15px] text-ink-2">Select up to 10 messages or current live-post records already visible here.</Text>
+            <Text className="font-geist-semibold text-secondary text-ink">Optional evidence</Text>
+            <Text className="font-geist text-micro text-ink-2">Select up to 10 messages or current live-post records already visible here.</Text>
             {evidenceChoices.length ? evidenceChoices.map((choice) => {
               const active = selectedKeys.has(`${choice.kind}:${choice.id}`);
               return <Pressable key={`${choice.kind}:${choice.id}`} accessibilityRole="checkbox" accessibilityState={{ checked: active }} accessibilityLabel={`Evidence: ${choice.label}`} disabled={busy || (!active && selected.length >= 10)} onPress={() => toggle(choice)} className={`min-h-12 flex-row items-center gap-3 rounded-xl border px-3 py-2.5 ${active ? 'border-ink bg-surface-recess' : 'border-hairline bg-surface-card'}`}>
                 <View className={`h-4 w-4 rounded border ${active ? 'border-ink bg-ink' : 'border-cane-4 bg-surface-card'}`} />
-                <View className="min-w-0 flex-1"><Text className="font-geist-medium text-[11px] text-ink">{choice.label}</Text><Text numberOfLines={2} className="mt-0.5 font-geist text-[10.5px] leading-[14px] text-ink-2">{choice.snippet}</Text></View>
+                <View className="min-w-0 flex-1"><Text className="font-geist-medium text-micro text-ink">{choice.label}</Text><Text numberOfLines={2} className="mt-0.5 font-geist text-micro text-ink-2">{choice.snippet}</Text></View>
               </Pressable>;
-            }) : <Text className="rounded-xl bg-surface-recess px-3 py-2.5 font-geist text-[10.5px] leading-[15px] text-ink-2">No eligible evidence is currently loaded. You can still raise a dispute without it.</Text>}
-            <Text className="text-right font-geist text-[10.5px] text-ink-3">{selected.length}/10 selected</Text>
+            }) : <Text className="rounded-xl bg-surface-recess px-3 py-2.5 font-geist text-micro text-ink-2">No eligible evidence is currently loaded. You can still raise a dispute without it.</Text>}
+            <Text className="text-right font-geist text-micro text-ink-3">{selected.length}/10 selected</Text>
           </View>
         </View>
       )}
-      {error ? <Text accessibilityRole="alert" className="mt-3 font-geist-medium text-[11px] leading-[16px] text-status-critical">{error}</Text> : null}
+      {error ? <Text accessibilityRole="alert" className="mt-3 font-geist-medium text-micro text-status-critical">{error}</Text> : null}
     </EditSheet>
   );
 }

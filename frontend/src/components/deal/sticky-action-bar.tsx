@@ -1464,8 +1464,8 @@ function ContractCard({
     <View className="gap-2.5 rounded-2xl border border-hairline bg-surface-card p-3">
       <View className="flex-row items-center justify-between">
         <View>
-          <Text className="font-geist-semibold text-[14px] text-ink">Contract v{state.contract?.version}</Text>
-          <Text className="mt-0.5 font-geist text-[11px] text-ink-3">
+          <Text className="font-geist-semibold text-secondary text-ink">Contract v{state.contract?.version}</Text>
+          <Text className="mt-0.5 font-geist text-micro text-ink-3">
             {state.contract?.status === 'executed' ? 'Executed PDF ready' : 'Secure PDF · awaiting signatures'}
           </Text>
         </View>
@@ -1487,14 +1487,14 @@ function ContractCard({
 
       {approval ? (
         <View className={`rounded-xl px-3 py-2 ${approval.status === 'rejected' ? 'bg-status-critical-tint' : approval.status === 'approved' ? 'bg-status-good-tint' : 'bg-cane-1'}`}>
-          <Text className="font-geist-semibold text-[12px] text-ink">
+          <Text className="font-geist-semibold text-secondary text-ink">
             {approval.status === 'pending'
               ? `Maker signature held · waiting for ${approval.checker_name}`
               : approval.status === 'approved'
                 ? `Checker approved ${approval.maker_name}'s signature`
                 : `Checker rejected ${approval.maker_name}'s signature`}
           </Text>
-          {approval.comment ? <Text className="mt-1 font-geist text-[11px] text-ink-2">{approval.comment}</Text> : null}
+          {approval.comment ? <Text className="mt-1 font-geist text-micro text-ink-2">{approval.comment}</Text> : null}
           {approval.can_decide ? (
             <View className="mt-2 flex-row gap-2">
               <GhostButton className="flex-1 px-3" label="Reject" onPress={() => onDecision(approval.request_id, 'reject')} disabled={acting} />
@@ -1506,11 +1506,11 @@ function ContractCard({
 
       {maySign ? <PrimaryButton label="Review and sign" onPress={onSign} disabled={acting} /> : null}
       {!state.alignment.signing_enabled && state.alignment.status !== 'processing' && state.alignment.status !== 'not_started' ? (
-        <Text className="text-center font-geist text-[11px] text-ink-2">Review and signing stay disabled until alignment is clear or overridden.</Text>
+        <Text className="text-center font-geist text-micro text-ink-2">Review and signing stay disabled until alignment is clear or overridden.</Text>
       ) : null}
-      {mySideSigned ? <Text className="text-center font-geist-medium text-[12px] text-status-good-label">Your side is signed.</Text> : null}
+      {mySideSigned ? <Text className="text-center font-geist-medium text-secondary text-status-good-label">Your side is signed.</Text> : null}
       {approval?.status === 'rejected' && approval.maker_id === userId ? (
-        <Text className="text-center font-geist text-[11px] text-ink-2">Choose Review and sign to correct and retry.</Text>
+        <Text className="text-center font-geist text-micro text-ink-2">Choose Review and sign to correct and retry.</Text>
       ) : null}
     </View>
   );
@@ -1533,10 +1533,10 @@ function SignerRow({
   return (
     <View className="flex-row items-center justify-between gap-3">
       <View className="min-w-0 flex-1">
-        <Text className="font-geist-semibold text-[12px] text-ink">{label}</Text>
-        <Text className="font-geist text-[11px] text-ink-2" numberOfLines={1}>{detail}</Text>
+        <Text className="font-geist-semibold text-secondary text-ink">{label}</Text>
+        <Text className="font-geist text-micro text-ink-2" numberOfLines={1}>{detail}</Text>
       </View>
-      <Text className={`font-geist-semibold text-[11px] ${status === 'signed' ? 'text-status-good-label' : 'text-ink-3'}`}>
+      <Text className={`font-geist-semibold text-micro ${status === 'signed' ? 'text-status-good-label' : 'text-ink-3'}`}>
         {status === 'signed' ? 'Signed' : status === 'held' ? 'Held' : 'Pending'}
       </Text>
     </View>
@@ -1569,7 +1569,7 @@ function SummaryGate({
     return (
       <Actions label="Chatting — terms checklist" error={error}>
         <View className="rounded-2xl bg-surface-recess px-3.5 py-3">
-          <Text className="font-geist-medium text-[13px] text-ink-2">
+          <Text className="font-geist-medium text-secondary text-ink-2">
             {missing.length} field{missing.length === 1 ? '' : 's'} still needed before summary
           </Text>
           {missing.map((field) => {
@@ -1577,12 +1577,12 @@ function SummaryGate({
             const canConfirm = override?.state === 'awaiting_confirmation' && override.proposer_side !== summary.viewer_side;
             return (
               <View key={field.key} className="mt-2 border-t border-hairline pt-2">
-                <Text className="font-geist text-[12px] text-ink-2">• {field.label}{field.status === 'ambiguous' ? ' — clarify' : ''}</Text>
+                <Text className="font-geist text-secondary text-ink-2">• {field.label}{field.status === 'ambiguous' ? ' — clarify' : ''}</Text>
                 {summary.can_act ? (
                   canConfirm ? (
                     <InlineButton label="Confirm discussed" disabled={acting} onPress={() => onAction(() => confirmChecklistOverride(dealId, field.key))} />
                   ) : override?.state === 'awaiting_confirmation' ? (
-                    <Text className="mt-1 font-geist text-[11px] text-ink-3">Waiting for the other side to confirm it was discussed.</Text>
+                    <Text className="mt-1 font-geist text-micro text-ink-3">Waiting for the other side to confirm it was discussed.</Text>
                   ) : (
                     <InlineButton label="Mark as discussed" disabled={acting} onPress={() => onAction(() => proposeChecklistOverride(dealId, field.key))} />
                   )
@@ -1629,9 +1629,9 @@ function hoursUntil(iso: string): number {
 function Actions({ label, error, children }: { label: string; error: string | null; children: ReactNode }) {
   return (
     <View>
-      <Text className="mb-2 font-geist-semibold text-[10.5px] uppercase tracking-wider text-ink-3">{label}</Text>
+      <Text className="mb-2 font-geist-medium text-secondary text-ink-2">{label}</Text>
       {children}
-      {error ? <Text className="mt-2 font-geist text-[12px] text-status-critical">{error}</Text> : null}
+      {error ? <Text className="mt-2 font-geist text-secondary text-status-critical">{error}</Text> : null}
     </View>
   );
 }
@@ -1643,7 +1643,7 @@ function ButtonRow({ children }: { children: ReactNode }) {
 function Waiting({ text }: { text: string }) {
   return (
     <View className="rounded-2xl bg-surface-recess px-3.5 py-3">
-      <Text className="text-center font-geist-medium text-[13px] text-ink-2">{text}</Text>
+      <Text className="text-center font-geist-medium text-secondary text-ink-2">{text}</Text>
     </View>
   );
 }

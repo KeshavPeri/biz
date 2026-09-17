@@ -75,23 +75,23 @@ export function ContentSubmissionSheet({
           accessibilityRole="button"
           className="rounded-xl border border-hairline bg-surface-card px-3 py-3"
         >
-          <Text className="font-geist-semibold text-[13px] text-ink">
+          <Text className="font-geist-semibold text-secondary text-ink">
             {asset ? 'Choose a different file' : 'Choose draft file'}
           </Text>
-          <Text className="mt-1 font-geist text-[11px] text-ink-3">PDF, JPEG, PNG, WebP, MP4, or MOV · up to 100 MB</Text>
+          <Text className="mt-1 font-geist text-micro text-ink-3">PDF, JPEG, PNG, WebP, MP4, or MOV · up to 100 MB</Text>
         </Pressable>
         {asset ? (
           <View className="rounded-xl bg-surface-recess px-3 py-3">
-            <Text selectable className="font-geist-semibold text-[12px] text-ink">{asset.name}</Text>
-            <Text className="mt-1 font-geist text-[11px] text-ink-3">
+            <Text selectable className="font-geist-semibold text-secondary text-ink">{asset.name}</Text>
+            <Text className="mt-1 font-geist text-micro text-ink-3">
               {asset.mimeType ?? 'Type checked during upload'} · {formatBytes(asset.size)}
             </Text>
-            <Text className="mt-1 font-geist-medium text-[11px] text-ink-2">
+            <Text className="mt-1 font-geist-medium text-micro text-ink-2">
               {busy ? 'Uploading and verifying…' : 'Ready to upload'}
             </Text>
           </View>
         ) : null}
-        {error ? <Text className="font-geist-medium text-[12px] text-status-critical">{error}</Text> : null}
+        {error ? <Text className="font-geist-medium text-secondary text-status-critical">{error}</Text> : null}
       </View>
     </EditSheet>
   );
@@ -153,10 +153,10 @@ export function RevisionRequestSheet({
         maxLength={1000}
         placeholder="Describe the required changes…"
         placeholderTextColor="#7A7A7A"
-        className="min-h-32 rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-[13px] text-ink"
+        className="min-h-32 rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-secondary text-ink"
       />
-      <Text className="mt-1 text-right font-geist text-[10.5px] text-ink-3">{comment.length}/1000</Text>
-      {error ? <Text className="mt-2 font-geist-medium text-[12px] text-status-critical">{error}</Text> : null}
+      <Text className="mt-1 text-right font-geist text-micro text-ink-3">{comment.length}/1000</Text>
+      {error ? <Text className="mt-2 font-geist-medium text-secondary text-status-critical">{error}</Text> : null}
     </EditSheet>
   );
 }
@@ -217,10 +217,10 @@ export function ContentApprovalRejectSheet({
         maxLength={1000}
         placeholder="Explain the rejection…"
         placeholderTextColor="#7A7A7A"
-        className="min-h-32 rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-[13px] text-ink"
+        className="min-h-32 rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-secondary text-ink"
       />
-      <Text className="mt-1 text-right font-geist text-[10.5px] text-ink-3">{comment.length}/1000</Text>
-      {error ? <Text className="mt-2 font-geist-medium text-[12px] text-status-critical">{error}</Text> : null}
+      <Text className="mt-1 text-right font-geist text-micro text-ink-3">{comment.length}/1000</Text>
+      {error ? <Text className="mt-2 font-geist-medium text-secondary text-status-critical">{error}</Text> : null}
     </EditSheet>
   );
 }

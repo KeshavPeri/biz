@@ -119,10 +119,10 @@ export function PaymentStateSheet({
       {mode === 'receipt' ? (
         <View className="gap-3">
           <View className="rounded-xl bg-surface-recess px-3 py-3">
-            <Text className="font-geist-semibold text-[12px] text-ink">
+            <Text className="font-geist-semibold text-secondary text-ink">
               {PAYMENT_STATE_LABELS[target.state]} · {target.amountLabel}
             </Text>
-            <Text className="mt-1 font-geist text-[11px] leading-[16px] text-ink-2">
+            <Text className="mt-1 font-geist text-micro text-ink-2">
               Confirm only after you received this exact off-platform payment. Inflo does not transfer or verify funds.
             </Text>
           </View>
@@ -131,10 +131,10 @@ export function PaymentStateSheet({
       ) : reviewingConsequence && consequence ? (
         <View className="gap-3">
           <View className="rounded-xl bg-status-critical-tint px-3 py-3">
-            <Text className="font-geist-semibold text-[12px] text-status-critical">
+            <Text className="font-geist-semibold text-secondary text-status-critical">
               Record {selectedLabel} for {target.label}?
             </Text>
-            <Text className="mt-1 font-geist text-[11px] leading-[16px] text-ink-2">
+            <Text className="mt-1 font-geist text-micro text-ink-2">
               This records a high-consequence tracking label only. It does not move, refund, verify, or recover money.
             </Text>
           </View>
@@ -150,7 +150,7 @@ export function PaymentStateSheet({
         </View>
       ) : (
         <View className="gap-2">
-          <Text className="mb-1 font-geist text-[11px] leading-[16px] text-ink-2">
+          <Text className="mb-1 font-geist text-micro text-ink-2">
             Choose the status already reported off-platform. Inflo does not transfer or verify funds.
           </Text>
           {REPORTABLE_STATES.map((state) => {
@@ -166,9 +166,9 @@ export function PaymentStateSheet({
                 className={`min-h-12 flex-row items-center gap-3 rounded-xl border px-3 py-3 ${active ? 'border-ink bg-surface-recess' : 'border-hairline bg-surface-card'}`}
               >
                 <View className={`h-3 w-3 rounded-full border ${active ? 'border-ink bg-ink' : 'border-cane-4 bg-surface-card'}`} />
-                <Text className="flex-1 font-geist-medium text-[12px] text-ink">{PAYMENT_STATE_LABELS[state]}</Text>
+                <Text className="flex-1 font-geist-medium text-secondary text-ink">{PAYMENT_STATE_LABELS[state]}</Text>
                 {['bad_debt', 'refunded'].includes(state) ? (
-                  <Text className="font-geist-medium text-[10px] text-status-critical">Confirm twice</Text>
+                  <Text className="font-geist-medium text-micro text-status-critical">Confirm twice</Text>
                 ) : null}
               </Pressable>
             );
@@ -183,7 +183,7 @@ export function PaymentStateSheet({
 function ActionError({ message }: { message: string }) {
   return (
     <View className="rounded-xl bg-status-critical-tint px-3 py-2.5">
-      <Text className="font-geist-medium text-[11px] leading-[16px] text-status-critical">{message}</Text>
+      <Text className="font-geist-medium text-micro text-status-critical">{message}</Text>
     </View>
   );
 }

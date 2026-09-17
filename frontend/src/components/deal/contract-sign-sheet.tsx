@@ -144,7 +144,7 @@ export function ContractSignSheet({
         <WinSpring trigger={justSigned} style={{ marginBottom: 12 }}>
           <View className="flex-row items-center gap-2 rounded-panel bg-status-good-tint px-3 py-2.5">
             <CheckIcon width={16} height={16} color="#4F7A1E" />
-            <Text className="font-geist-medium text-[13px] text-status-good-label">Contract signed</Text>
+            <Text className="font-geist-medium text-secondary text-status-good-label">Contract signed</Text>
           </View>
         </WinSpring>
       ) : null}
@@ -160,7 +160,7 @@ export function ContractSignSheet({
             className={`rounded-xl border p-3 ${mode === item ? 'border-ink bg-surface-recess' : 'border-hairline bg-surface-card'}`}
           >
             <Text className="font-geist-semibold text-ink">{MODE_COPY[item].title}</Text>
-            <Text className="mt-1 font-geist text-[12px] text-ink-2">{MODE_COPY[item].description}</Text>
+            <Text className="mt-1 font-geist text-secondary text-ink-2">{MODE_COPY[item].description}</Text>
           </Pressable>
         ))}
       </View>
@@ -187,7 +187,7 @@ export function ContractSignSheet({
           </Button>
           {uploaded ? (
             <View className="rounded-xl bg-status-good-tint px-3 py-2">
-              <Text className="font-geist-medium text-[12px] text-status-good-label" numberOfLines={2}>
+              <Text className="font-geist-medium text-secondary text-status-good-label" numberOfLines={2}>
                 Uploaded privately · {uploaded.name}
               </Text>
             </View>
@@ -195,7 +195,7 @@ export function ContractSignSheet({
         </View>
       ) : null}
 
-      {error ? <Text className="mt-3 font-geist text-[12px] text-status-critical">{error}</Text> : null}
+      {error ? <Text className="mt-3 font-geist text-secondary text-status-critical">{error}</Text> : null}
     </EditSheet>
   );
 }

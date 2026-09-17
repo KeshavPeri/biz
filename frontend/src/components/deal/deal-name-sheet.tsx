@@ -122,8 +122,8 @@ export function DealNameSheet({
           placeholderTextColor="#847F78"
           className="min-h-11 rounded-xl border border-hairline bg-surface-card px-3 py-2.5 font-geist text-[15px] text-ink"
         />
-        <Text className="font-geist text-[11px] text-ink-2">1–160 characters after spacing is normalized.</Text>
-        {error ? <Text accessibilityRole="alert" className="font-geist text-[12px] text-status-critical">{error}</Text> : null}
+        <Text className="font-geist text-micro text-ink-2">1–160 characters after spacing is normalized.</Text>
+        {error ? <Text accessibilityRole="alert" className="font-geist text-secondary text-status-critical">{error}</Text> : null}
       </View>
     </EditSheet>
   );
