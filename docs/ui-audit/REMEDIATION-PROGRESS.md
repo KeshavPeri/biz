@@ -9,7 +9,7 @@ Status values: todo · in progress · done · blocked (reason).
 | 1 | PR-00 Trust fixes | done | ab5d530 | |
 | 1 | PR-01 Delete template code | done | ded94f2 | |
 | 1 | PR-02 Root layout, tab crossfade, gesture root | done | bfb9d2b | |
-| 2 | PR-03 useMotion + PressableScale | todo | | |
+| 2 | PR-03 useMotion + PressableScale | done | 09023b7 | also B4-34 role cards |
 | 2 | PR-04 Rebuild ui/button + GlassFlush | todo | | |
 | 2 | PR-05 Migrate hand-rolled buttons | todo | | |
 | 3 | PR-06 Liquid Glass nav + useTabBarInset | todo | | decision 4 |
@@ -34,8 +34,8 @@ Status values: todo · in progress · done · blocked (reason).
 ## Batch status
 | Batch | Status | Merged to main |
 |---|---|---|
-| 1 | done | pending merge |
-| 2 | todo | |
+| 1 | done | yes (PR #48) |
+| 2 | in progress | |
 | 3 | todo | |
 | 4 | todo | |
 | 5 | todo | |
