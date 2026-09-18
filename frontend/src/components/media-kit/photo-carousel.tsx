@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import {
+  type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   ScrollView,
@@ -17,7 +18,14 @@ import { StorageImage } from '@/components/media-kit/storage-image';
  * photos the caller renders its gradient fallback instead (this returns null).
  */
 export function PhotoCarousel({ paths, height }: { paths: string[]; height: number }) {
-  const { width } = useWindowDimensions();
+  const { width: windowWidth } = useWindowDimensions();
+  // Page width = the hero's MEASURED width. The window width is only a first-frame
+  // guess: on mobile Safari RN-web derives it from visualViewport × scale, which drifts
+  // from the layout width under page zoom (85% zoom → 332px pages in a 390px hero,
+  // leaving a white strip on the right).
+  const [measuredWidth, setMeasuredWidth] = useState(0);
+  const width = measuredWidth || windowWidth;
+  const onLayout = (e: LayoutChangeEvent) => setMeasuredWidth(e.nativeEvent.layout.width);
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [index, setIndex] = useState(0);
@@ -36,7 +44,7 @@ export function PhotoCarousel({ paths, height }: { paths: string[]; height: numb
   };
 
   return (
-    <View style={{ height }}>
+    <View style={{ height }} onLayout={onLayout}>
       <ScrollView
         ref={scrollRef}
         horizontal
