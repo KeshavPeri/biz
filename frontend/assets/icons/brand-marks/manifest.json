@@ -1,0 +1,17 @@
+{
+  "source": "SVG Repo",
+  "reviewed_on": "2026-09-18",
+  "use": "Development-only fictional sample-brand symbols. Each source was adapted into a consistent 24px outline implementation; no source asset is a company logo, trademark, or SVG Repo 'Logo License' asset.",
+  "assets": [
+    {"brand":"Zephyra Naturals","symbol":"leaf","source_page":"https://www.svgrepo.com/svg/74994/leaf","license":"CC0 1.0 Universal (CC0 1.0) Public Domain Dedication"},
+    {"brand":"Vridhi Foods","symbol":"wheat","source_page":"https://www.svgrepo.com/svg/124443/wheat","license":"CC0 1.0 Universal (CC0 1.0) Public Domain Dedication"},
+    {"brand":"Trailhaus Apparel","symbol":"mountain","source_page":"https://www.svgrepo.com/svg/201796/mountain","license":"CC0 1.0 Universal (CC0 1.0) Public Domain Dedication"},
+    {"brand":"PaisaPilot","symbol":"compass","source_page":"https://www.svgrepo.com/svg/246933/compass","license":"CC0 1.0 Universal (CC0 1.0) Public Domain Dedication"},
+    {"brand":"Lernova Edtech","symbol":"book open book","source_page":"https://www.svgrepo.com/svg/185227/book-open-book","license":"CC0 1.0 Universal (CC0 1.0) Public Domain Dedication"},
+    {"brand":"Wanderloop Travel","symbol":"map pin","source_page":"https://www.svgrepo.com/svg/228078/map-pin","license":"CC0 1.0 Universal (CC0 1.0) Public Domain Dedication"},
+    {"brand":"Baseline Fitness Co.","symbol":"dumbbell dumbbells","source_page":"https://www.svgrepo.com/svg/287713/dumbbell-dumbbells","license":"CC0 1.0 Universal (CC0 1.0) Public Domain Dedication"},
+    {"brand":"Ripplekart","symbol":"ripple","source_page":"https://www.svgrepo.com/svg/342172/ripple","license":"CC0 1.0 Universal (CC0 1.0) Public Domain Dedication"},
+    {"brand":"Momento Snacks","symbol":"cookie","source_page":"https://www.svgrepo.com/svg/173516/cookie","license":"CC0 1.0 Universal (CC0 1.0) Public Domain Dedication"},
+    {"brand":"Northstar Skincare","symbol":"star","source_page":"https://www.svgrepo.com/svg/222707/star","license":"CC0 1.0 Universal (CC0 1.0) Public Domain Dedication"}
+  ]
+}
