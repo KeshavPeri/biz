@@ -1263,6 +1263,24 @@ here in one line so I can review or reverse it later.*
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
 
+### 2026-09-18 — Creator-profile hero width + overlay fix (`fix/creator-hero-width`)
+
+- **White strip on the right:** `PhotoCarousel` sized pages from the window width. On mobile
+  Safari, RN-web derives that from `visualViewport.width × scale`, which drifts from the layout
+  width under page zoom. Simulating scale 0.85 reproduced it: 332px pages in a 390px hero. Pages
+  now use the hero's measured width (`onLayout`), with the window width only as a first-frame
+  guess.
+- **Overlay text below the photo, flush left:** the `MediaKitView` identity overlay set its
+  position and inset with `className` on Reanimated's `Animated.View`, which NativeWind drops. It
+  now uses a plain style.
+- **Checked in the browser pane at 390/320 wide:**
+  - one photo (Meera Pillai), three photos (Keshav Peri, including a page swipe) and no photos
+    (Devasri Turakhia)
+  - all under the simulated 0.85 scale
+  - the owner media kit (edit buttons and the scroll-linked identity fade intact)
+  - hero and photo equal width, text inset 20px, no horizontal overflow
+- tsc, eslint (changed files), web export pass. Native device not tested.
+
 ### 2026-09-18 — Floating glass dock, sliding tab indicator, toggle thumb fix
 
 - Frontend-only UI task on `ui/floating-glass-dock`; no backend, auth or tab-destination changes.

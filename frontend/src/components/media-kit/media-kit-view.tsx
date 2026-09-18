@@ -53,6 +53,16 @@ function rateCardRevealed(data: CreatorMediaKit, viewerMode: ViewerMode): boolea
   return Boolean(data.rateCard?.is_enabled) && data.privacy.rate_card_visible;
 }
 
+// Identity block pinned to the hero's bottom edge with the hero's 20pt inset (px-5 / pb-5).
+const IDENTITY_OVERLAY = {
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  bottom: 0,
+  paddingHorizontal: 20,
+  paddingBottom: 20,
+} as const;
+
 export function MediaKitView({
   data,
   viewerMode,
@@ -111,9 +121,10 @@ export function MediaKitView({
         ) : null}
 
         {/* Identity overlay. */}
+        {/* Plain style, not className: NativeWind doesn't convert className on Reanimated's
+            Animated.View, so the overlay lost its absolute position + inset and fell below the photo. */}
         <Animated.View
-          className="absolute inset-x-0 bottom-0 px-5 pb-5"
-          style={identityStyle}
+          style={[IDENTITY_OVERLAY, identityStyle]}
           entering={reduce ? undefined : FadeInDown.duration(t(240)).easing(EASE_OUT)}
         >
           {!hasPhotos ? (
