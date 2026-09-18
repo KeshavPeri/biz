@@ -152,7 +152,7 @@ export function RevisionRequestSheet({
         multiline
         maxLength={1000}
         placeholder="Describe the required changes…"
-        placeholderTextColor="#7A7A7A"
+        placeholderTextColor="#847F78"
         className="min-h-32 rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-secondary text-ink"
       />
       <Text className="mt-1 text-right font-geist text-micro text-ink-3">{comment.length}/1000</Text>
@@ -216,7 +216,7 @@ export function ContentApprovalRejectSheet({
         multiline
         maxLength={1000}
         placeholder="Explain the rejection…"
-        placeholderTextColor="#7A7A7A"
+        placeholderTextColor="#847F78"
         className="min-h-32 rounded-xl border border-hairline bg-surface-card px-3 py-3 font-geist text-secondary text-ink"
       />
       <Text className="mt-1 text-right font-geist text-micro text-ink-3">{comment.length}/1000</Text>

@@ -117,7 +117,8 @@ Semantic names → values. Structured for a NativeWind `theme.extend` + gluestac
 Defaults: screen padding `16`, card padding `16`, stack gap `12`, section gap `20`, text-line gap `4`.
 
 ## Radii
-`radii: { card:14, panel:12, button:16, input:16, pill:999 }`
+`radii: { card:14, panel:12, button:16, input:16, pill:999, tail:6 }`
+`tail: 6` is reserved for the chat bubble tail corner (UI decision 8); it is not a general component radius.
 Corner style = **circular** (do *not* apply corner-smoothing / squircle).
 
 ## Elevation (warm-tinted)

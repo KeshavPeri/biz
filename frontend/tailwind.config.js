@@ -230,13 +230,14 @@ module.exports = {
         },
       },
       // Inflo radii (task 6.7) — circular corners, NOT squircle. `rounded-card`,
-      // `rounded-button`, `rounded-input`, `rounded-panel`, `rounded-pill`, `rounded-t-sheet`.
+      // `rounded-button`, `rounded-input`, `rounded-panel`, `rounded-pill`, `rounded-br-tail`, `rounded-t-sheet`.
       borderRadius: {
         card: '14px',
         panel: '12px',
         button: '16px',
         input: '16px',
         pill: '9999px',
+        tail: '6px', // chat bubble tail only, UI decision 8
         sheet: '24px', // bottom-sheet top corners only (rounded-t-sheet), UI decision 2
       },
       // Inflo spacing note: Tailwind's DEFAULT scale already IS our 4px grid

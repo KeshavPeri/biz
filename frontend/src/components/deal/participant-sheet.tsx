@@ -198,7 +198,7 @@ export function ParticipantSheet({
             <Text className="font-geist-semibold text-secondary text-ink">Request a teammate</Text>
             <View className="gap-2">
               {state.candidates.map((item) => (
-                <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: candidate?.id === item.id }} onPress={() => selectCandidate(item)} className={`rounded-xl border px-3 py-2.5 ${candidate?.id === item.id ? 'border-ink bg-[#F3EFE7]' : 'border-hairline'}`}><Text className="font-geist-medium text-secondary text-ink">{item.display_name}</Text></Pressable>
+                <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: candidate?.id === item.id }} onPress={() => selectCandidate(item)} className={`rounded-xl border px-3 py-2.5 ${candidate?.id === item.id ? 'border-ink bg-surface-recess' : 'border-hairline'}`}><Text className="font-geist-medium text-secondary text-ink">{item.display_name}</Text></Pressable>
               ))}
             </View>
             {candidate ? (
