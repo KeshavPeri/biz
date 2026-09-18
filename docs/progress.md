@@ -16,6 +16,8 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
 
+- **Development Discovery imagery (2026-09-18):** isolated branch `codex/demo-photography` adds 15 reviewed, locally stored Pexels photos plus source/license/photographer/checksum manifest and a separately opt-in enrichment script. It refuses any environment other than explicit `APP_ENV=development`, verifies exactly the 15 expected `@seed.inflo.test` creator accounts before touching data, uses deterministic profile-scoped Storage upserts, and never calls the destructive discovery seed. With the approved ignored development environment present, its dry run and two identical apply runs succeeded against only those sample accounts. The ten fictional brands receive code-native marks in `LogoTile`; other brands retain initials and no brand schema/photo field was added.
+
 - **Phase 9 reconciliation (2026-09-16):** PR #47 for B3-007 is merged. Workplan
   9.1–9.19 is complete **for sequencing** by founder decision. The Bucket 3 RTM is
   29/32 Built; B3-037, B3-041 and B3-042 remain explicitly deferred to later phases.
