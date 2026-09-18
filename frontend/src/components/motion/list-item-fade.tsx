@@ -1,3 +1,4 @@
+import { cssInterop } from 'nativewind';
 import React from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
@@ -29,7 +30,7 @@ export function ListItemFade({ children, style, className }: {
   }
 
   return (
-    <Animated.View
+    <FadeBase
       style={style}
       className={className}
       entering={FadeIn.duration(t(180)).easing(EASE_OUT)}
@@ -37,6 +38,25 @@ export function ListItemFade({ children, style, className }: {
       layout={LinearTransition.duration(t(200))}
     >
       {children}
-    </Animated.View>
+    </FadeBase>
   );
 }
+
+type FadeBaseProps = React.ComponentProps<typeof Animated.View> & {
+  /** NativeWind's resolved className styles (see cssInterop below). */
+  classStyle?: StyleProp<ViewStyle>;
+  className?: string;
+};
+
+// NativeWind only converts className on registered components, and Reanimated's
+// Animated.View isn't one — a `w-[48.5%]` passed straight to it was silently
+// dropped (Discover's creator grid collapsed to content-width tiles). Resolve the
+// classes here and merge them ahead of the caller's style.
+const FadeBase = React.forwardRef<View, FadeBaseProps>(function FadeBase(
+  { classStyle, style, ...rest },
+  ref
+) {
+  return <Animated.View ref={ref} {...rest} style={[classStyle, style]} />;
+});
+
+cssInterop(FadeBase, { className: { target: 'classStyle' } });

@@ -873,6 +873,11 @@ up exactly where the last one left off, with zero context lost.
     - **Browser pane at 390/320 wide:** creator and brand Discover at rest, mid-scroll and pinned;
       typing in the pinned search; media-kit header at rest, mid-scroll, preview on and Exit.
     - **Unread dot:** now also seen with real data (brand account).
+  - **Brand Discover grid fix:** `ListItemFade` passed `className` straight to Reanimated's
+    `Animated.View`, so the creator tiles' `w-[48.5%]` was dropped (pre-existing since PR-16). Tiles
+    sized to content: 1–3 per row, uneven widths, stats running together. It now resolves className
+    via `cssInterop` (the same pattern as `PressableScale`). Browser pane: 2 even columns (174px at
+    390, 140px at 320), widths held through filter fade-in/out.
 
 ## NEXT UP  *(ordered)*
 
