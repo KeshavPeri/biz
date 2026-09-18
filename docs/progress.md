@@ -5,7 +5,7 @@ up exactly where the last one left off, with zero context lost.
 
 ## How to use this file
 
-- **Start of every session:** read this file *and* `CLAUDE.md` before doing anything.
+- **Start of every session:** read this file _and_ `CLAUDE.md` before doing anything.
 - **End of every session (or when context gets long):** update the live sections below,
   then it's safe to `/clear` and start fresh.
 - Keep it **tight and current** — this is working memory, not documentation. Overwrite
@@ -14,7 +14,25 @@ up exactly where the last one left off, with zero context lost.
 
 ---
 
-## CURRENT STATE  *(always keep this accurate — it's the snapshot)*
+## CURRENT STATE _(always keep this accurate — it's the snapshot)_
+
+- **Phone-on-LAN "Could not reach the server" fix (2026-09-18, branch `fix/lan-api-base-url`):**
+  two proven causes. (1) `EXPO_PUBLIC_API_URL` is baked in at export time and Metro's transform
+  cache kept an old `localhost:8000` value, so the phone called itself. `src/lib/api-base.ts` now
+  keeps the configured port but follows the host the app was loaded from **only when both are
+  local/private-LAN hosts**; a public (production) URL is used exactly as configured. No IP is
+  hard-coded. Check: `node frontend/scripts/check-api-base.cjs`. (2) Unhandled FastAPI errors
+  left as bare 500s without CORS headers, so browsers reported them as network failures.
+  `core/error_middleware.py` (inside CORS) returns a generic JSON 500 with CORS headers. Check:
+  `python backend/tests/test_error_cors.py`. **Assumption:** a dev whose API is on a different
+  LAN machine from the web server must use a non-private hostname (rare; noted here).
+- **NEEDS A CALL — live AI checklist (Gate A):** `docs/deal-engine.md` specifies a live 12-field
+  checklist the AI fills from chat, with "Mark as discussed" only as a both-party fallback.
+  `ai_service.get_minimum_field_statuses` is still the documented stub (all `not_discussed`), so
+  today every field must be marked by hand on both sides before "Request terms summary". The
+  post-Gate-A 22-field extraction exists. Wiring the live checklist is feature work for its own task.
+- **Demo data note:** the fictional seeded Creating-stage deal has no approved terms summary, so
+  "Agreed deliverables" correctly returns 409 "An approved terms summary is required".
 
 - **Development Discovery imagery (2026-09-18):** isolated branch `codex/demo-photography` adds 15 reviewed, locally stored Pexels photos plus source/license/photographer/checksum manifest and a separately opt-in enrichment script. It refuses any environment other than explicit `APP_ENV=development`, verifies exactly the 15 expected `@seed.inflo.test` creator accounts before touching data, uses deterministic profile-scoped Storage upserts, and never calls the destructive discovery seed. With the approved ignored development environment present, its dry run and two identical apply runs succeeded against only those sample accounts. The ten fictional brands receive code-native marks in `LogoTile`; other brands retain initials and no brand schema/photo field was added.
 
@@ -302,16 +320,16 @@ up exactly where the last one left off, with zero context lost.
     only)** until the successor Expo capture UI merges. B3-035 payment tracking, invoices,
     reminders and the remainder of Phase 9 remain pending.
   - **9.14-A MERGED (B3-033 backend):** migration `036_live_post_gate.sql` fails closed on unrecognized historical proof,
-  adds append-only per-deliverable URL versions plus a backend-owned current binding, and owns
-  atomic final-link Creating → Posted and exact-set Posted → Payment transitions. The verifier
-  normalizes platform domains and pins every public-only DNS-checked HTTPS hop; stores bounded text
-  preview only; and treats network/platform failure as retryable without changing state. Brand
-  admin/maker may flag an exact version in Posted, only the creator may replace that flagged link,
-  and participant reads preserve history without private-label or network-internal joins.
-  `backend/tests/test_url_verifier.py` uses controlled DNS/HTTP doubles and
-  `backend/tests/test_posting_gate.py` uses fictional development data with no public fetch.
-  External platform evidence remains `LIMITED` by design. Issue #22 is the reviewed Expo successor
-  candidate; B3-033/9.14 become complete when its draft PR merges.
+    adds append-only per-deliverable URL versions plus a backend-owned current binding, and owns
+    atomic final-link Creating → Posted and exact-set Posted → Payment transitions. The verifier
+    normalizes platform domains and pins every public-only DNS-checked HTTPS hop; stores bounded text
+    preview only; and treats network/platform failure as retryable without changing state. Brand
+    admin/maker may flag an exact version in Posted, only the creator may replace that flagged link,
+    and participant reads preserve history without private-label or network-internal joins.
+    `backend/tests/test_url_verifier.py` uses controlled DNS/HTTP doubles and
+    `backend/tests/test_posting_gate.py` uses fictional development data with no public fetch.
+    External platform evidence remains `LIMITED` by design. Issue #22 is the reviewed Expo successor
+    candidate; B3-033/9.14 become complete when its draft PR merges.
   - **9.13-E MERGED (B3-031 private labels):** migrations `034_private_deliverable_labels.sql` and
     `035_private_deliverable_label_lifecycle_lock.sql` add
     historical fail-closed inventory, five-value validation, creator/target proof, immutable label
@@ -533,7 +551,7 @@ up exactly where the last one left off, with zero context lost.
     hardcoded hex**; transition endpoints already proven by 9.8 (`test_stage_engine` 23/23) +
     `test_accept_decline` 18/18. Shipped in `39f9caa`.
     RTM: B3-013 + B3-014 = Built.
-- *(Earlier this phase:* **Cluster 1 DONE — 9.1–9.5**; **task 9.8 (engine) DONE**.*)*
+- _(Earlier this phase:_ **Cluster 1 DONE — 9.1–9.5**; **task 9.8 (engine) DONE**._)_
   - **9.8 DONE (Stage Transition Engine, B3-015) — the server-side state machine the product rides on.**
     New `backend/services/stage_engine.py`: a `(from_stage,to_stage)` **REGISTRY** is the single source
     of truth for legal moves (all 6 forward transitions from deal-engine.md's guard table + the two
@@ -559,7 +577,7 @@ up exactly where the last one left off, with zero context lost.
     accept_decline 18/18, connect 13/13, maker_checker 10/10, onboarding 8/8, discovery 7/7, media_kit
     10/10, storage 3/3, rls 4/4, auth_session 5/5, connection PASS. No frontend changes. **NOT committed** —
     user reads the diff + runs the security pass, then /ship. RTM: B3-015 = Built.
-- *(Earlier this phase:* **Cluster 1 DONE — tasks 9.1/9.2/9.3/9.4/9.5.***)*
+- _(Earlier this phase:_ **Cluster 1 DONE — tasks 9.1/9.2/9.3/9.4/9.5.**_)_
   - **9.4 DONE (Realtime delivery, B3-003):** new messages appear live in an open thread with no
     refetch. **Migration 017** adds `messages` to the `supabase_realtime` publication (it shipped
     empty — postgres_changes delivered nothing before). `subscribeToDealMessages` (lib/deals.ts)
@@ -605,7 +623,7 @@ up exactly where the last one left off, with zero context lost.
   - **Dev seed added:** 3 deals for Peri (Abc admin) ↔ Ananya Rao / Vikram Malhotra / Priya Nair via
     the real `connect_deal` service, plus a few messages; two had stage bumped (chatting/creating)
     directly for pill variety — see ASSUMPTIONS. Soft-deletable dev data.
-- *(Prior phase: Phase 8 — Discovery (Bucket 2, placeholder on mock data).)*
+- _(Prior phase: Phase 8 — Discovery (Bucket 2, placeholder on mock data).)_
   - **Task 8.1 DONE:** `backend/seeds/seed_discovery.py` seeds 15 fictional creators + 10 brands
     (idempotent). Data only.
   - **Cluster A part 1 DONE (editable creator media kit):** the "You" tab is now the creator's
@@ -643,8 +661,8 @@ up exactly where the last one left off, with zero context lost.
     **RTM: Bucket 2 = 13/13 — Phase 8 Discovery feature-complete.** Bucket 1 = 12/18.
   - **Next:** Phase 8 close-out gate (RTM/phone test), then Phase 9 (Deal Engine) — accept/decline,
     proposal/terms, AI parser, the deal room. Connect is the seam that feeds it.
-- *(Prior phase: Phase 7 — Identity & Trust (Bucket 1). Clusters A + B + C DONE — all build
-  work complete; only the close-out gates (7.12 phone test / 7.13 RTM / 7.14 phase gate) remain.)*
+- _(Prior phase: Phase 7 — Identity & Trust (Bucket 1). Clusters A + B + C DONE — all build
+  work complete; only the close-out gates (7.12 phone test / 7.13 RTM / 7.14 phase gate) remain.)_
   - **Cluster A (Auth core, 7.1–7.4)** — committed `feat: auth core` (`aa07748`) on 2026-07-13.
     Sign up → email OTP (6-digit) → login → persistent session, tested web + device.
   - **Cluster B (Roles & onboarding, 7.5–7.8, 7.11)** — built + tested; committed
@@ -671,7 +689,7 @@ up exactly where the last one left off, with zero context lost.
     (Phase 14). **⚠ Early Phase-9 dependencies:** B1-015 (brand needs ≥2 members for maker-checker)
     and B1-019 (brand signatory signature for contract signing) — build these first when Phase 9
     needs live maker-checker + contract signing.
-  - *(Prior: Phase 6 — Frontend Foundation COMPLETE, committed 6.8 on 2026-07-13. See history below.)*
+  - _(Prior: Phase 6 — Frontend Foundation COMPLETE, committed 6.8 on 2026-07-13. See history below.)_
 - **Current task:** Task 6.1 done (Expo app scaffolded; **Expo SDK 54** — downgraded twice,
   56→55→54, to match the test phones' Expo Go build — see downgrade notes below — Expo
   Router + TS). Icon library placed at `frontend/assets/icons/` (119 SVGs, line-style,
@@ -723,7 +741,7 @@ up exactly where the last one left off, with zero context lost.
 - **How to run the project:** Backend: `cd backend && .venv/bin/uvicorn main:app --reload --port 8000`,
   then `curl localhost:8000/health` and `curl localhost:8000/docs` (Swagger UI). **Must be run
   from inside `backend/`** — `main.py` and friends use absolute imports (`from api import
-  health`, `from core.config import settings`) that only resolve with `backend/` as the
+health`, `from core.config import settings`) that only resolve with `backend/` as the
   import root. Running `uvicorn backend.main:app` from the repo root fails with
   `ModuleNotFoundError: No module named 'api'`. RLS test:
   `backend/.venv/bin/python backend/tests/test_rls.py`. Frontend (Expo): scaffolded in
@@ -785,7 +803,7 @@ up exactly where the last one left off, with zero context lost.
   labels, discover results, submission history) without animating the first render of any list.
   tsc/lint/web-export/node-tests (15/15) green. Next: batch 5 (type-role sweep, deal/chat/discover/tabs).
 - **2026-09-17 — Batch 5 (`ui/batch-5`):** PR-08/PR-09 type-role sweep — every off-token
-  `text-[8–13.5px]` size and uppercase kicker label across deal/*, chat/*, discovery/*, and the
+  `text-[8–13.5px]` size and uppercase kicker label across deal/_, chat/_, discovery/*, and the
   chat tab replaced with the 6 role classes (Subtitle/Secondary/Micro), plus `tabular-nums` on
   money/date/version/count values. Fixed the private-label sheet's `text-status-bad` (not a real
   token, so the error rendered uncoloured) to `text-ink-2` per decision 11 (routine errors are
@@ -881,7 +899,7 @@ up exactly where the last one left off, with zero context lost.
     via `cssInterop` (the same pattern as `PressableScale`). Browser pane: 2 even columns (174px at
     390, 140px at 320), widths held through filter fade-in/out.
 
-## NEXT UP  *(ordered)*
+## NEXT UP _(ordered)_
 
 1. **Phase 11:** prepare the first bounded workplan 11.1 ticket when the founder requests it.
 2. **Founder manual follow-up:** revisit the deferred 9.18 two-persona/device lifecycle
@@ -889,11 +907,11 @@ up exactly where the last one left off, with zero context lost.
 3. **Later phases:** implement deferred B3-037/041/042 in their mapped Phase 11/12 work;
    retain the documented B3-016 and B3-017 limitations until their later work lands.
 
-## NEEDS MY INPUT  *(blockers + anything Claude flagged per the CLAUDE.md STOP list)*
+## NEEDS MY INPUT _(blockers + anything Claude flagged per the CLAUDE.md STOP list)_
 
-*Claude: when you hit a STOP-and-flag situation (destructive ops, anything paid, live/prod,
+_Claude: when you hit a STOP-and-flag situation (destructive ops, anything paid, live/prod,
 real secrets, big architectural change, irreversible + low confidence), describe it here and
-do not proceed. I'll resolve these at the start of my next session.*
+do not proceed. I'll resolve these at the start of my next session._
 
 - **2026-09-17 — UI batch 3: `docs/design-tokens.md` is read-only (`r--------`).** Decision 2 says to
   log the new `sheet: 24` radius there. Claude did not change the file's permissions. To finish, add to
@@ -904,7 +922,7 @@ do not proceed. I'll resolve these at the start of my next session.*
   dev project was resumed; `govozzmbcynoeijlqmxp.supabase.co` now resolves (Cloudflare
   104.18.38.10 / 172.64.149.246). Ran the real `testSupabaseConnection()` path against the live
   project with the anon (publishable) key → **`ok:true — Supabase connected (profiles rows visible:
-  0)`** (0 = empty table / anon RLS scope; no auth or permission error). Key confirmed
+0)`** (0 = empty table / anon RLS scope; no auth or permission error). Key confirmed
   `sb_publishable_…` = anon, **not** service_role. **The frontend Supabase wiring works end-to-end.**
   - ⚠️ **One local gotcha (Keshav's Mac only):** macOS `mDNSResponder` had cached the old NXDOMAIN,
     so `getaddrinfo` (what curl / Node / Metro / the browser use) still returned ENOTFOUND even
@@ -914,10 +932,10 @@ do not proceed. I'll resolve these at the start of my next session.*
     negative-cache TTL). This is a machine-cache issue, not code/keys/project — nothing to change in
     the repo.
 
-## ASSUMPTIONS & DECISIONS LOG  *(append-only — newest at top)*
+## ASSUMPTIONS & DECISIONS LOG _(append-only — newest at top)_
 
-*Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
-here in one line so I can review or reverse it later.*
+_Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
+here in one line so I can review or reverse it later._
 
 - 2026-09-18 — **Dock glass balance.**
   - Founder asked for glass between liquid and frosted, and a static ambient background.
@@ -1037,7 +1055,7 @@ here in one line so I can review or reverse it later.*
   `UPDATE ... WHERE stage = <expected>` and check the row count so concurrent transitions can't both
   pass. Low risk at Pending (single recipient); real concern for mutual/auto gates later.
 - 2026-07-15 — **Migration 017 applied to dev (Realtime).** `ALTER PUBLICATION supabase_realtime ADD
-  TABLE messages` — non-destructive, required for 9.4 (the publication shipped empty so postgres_changes
+TABLE messages` — non-destructive, required for 9.4 (the publication shipped empty so postgres_changes
   delivered nothing). Only `messages` added; `deals` deliberately left out (live stage updates are a
   later task). Applied via apply_migration.py + confirmed via SQL.
 - 2026-07-15 — **Realtime dedupe = id-guard + skip-own-sender.** The task asked for an id-exists guard;
@@ -1157,7 +1175,7 @@ here in one line so I can review or reverse it later.*
   014, applied to dev). Approved data-model amendment (Keshav) so a creator picks up to 3 niches per
   the mockup, consistent with `content_languages`; DB CHECK enforces ≤3. `docs/data-model.md` updated.
 - 2026-07-13 — **Brand first-admin bootstrap RLS** (migration 014): the existing
-  `brand_members_insert_admin` requires you to *already* be an admin — impossible for the very first
+  `brand_members_insert_admin` requires you to _already_ be an admin — impossible for the very first
   member. Added `brand_members_insert_self_bootstrap` (+ SECURITY DEFINER `brand_has_members()`):
   a user may self-insert an admin+active row **only while the brand has zero members**. Narrow —
   can't self-promote into an existing brand (verified by `test_onboarding.py` intruder case).
@@ -1171,7 +1189,7 @@ here in one line so I can review or reverse it later.*
   `return=minimal`). Documented in `test_onboarding.py`.
 - 2026-07-13 — **G2 email delivery RESOLVED (Cluster A): custom SMTP via Brevo (free tier) for dev.**
   Supabase's built-in email sender can no longer edit templates on new 2026 free projects — it only
-  sends the default *link-based* confirmation, but our OTP UX needs a *6-digit code*. So we wired
+  sends the default _link-based_ confirmation, but our OTP UX needs a _6-digit code_. So we wired
   Brevo as custom SMTP (Authentication → Emails → SMTP), which unlocks template editing. Keshav
   created the Brevo account + SMTP key himself (secret stays with him); sender = his Gmail for dev
   (may hit spam; real domain deferred to Phase 14 per stack — Resend is still the production choice).
@@ -1196,7 +1214,7 @@ here in one line so I can review or reverse it later.*
   existing `@/* → ./src/*` imports — **removed the module-resolver plugin entirely** (Metro already
   resolves our tsconfig `paths`, incl. `@/assets/* → ./assets/*`, so it was redundant and harmful);
   kept only `react-native-worklets/plugin`. (b) init also reset the babel preset, dropping
-  `jsxImportSource: 'nativewind'` — **restored it.** (c) init bumped three *native* modules above
+  `jsxImportSource: 'nativewind'` — **restored it.** (c) init bumped three _native_ modules above
   SDK 54's pinned versions (`safe-area-context` 5.8→back to 5.6.2, `svg` 15.15→15.12.1, `worklets`
   0.5.2→0.5.1) — **ran `npx expo install --fix`** to realign, because Expo Go ships fixed native
   builds and a JS/native mismatch can crash on a physical phone (web wouldn't show it). Routes &
@@ -1237,7 +1255,7 @@ here in one line so I can review or reverse it later.*
 - 2026-06-15 — Task 6.1: `npx create-expo-app@latest` currently scaffolds **SDK 56**
   (not SDK 54 as some docs/blog posts still say) — used the default SDK 56 template as-is
   since it's what "latest" actually produces today; bump later via `npx expo install
-  expo@latest` if Expo Go compatibility ever requires a different SDK.
+expo@latest` if Expo Go compatibility ever requires a different SDK.
 - 2026-06-15 — Task 6.1: the Expo template generates its own `CLAUDE.md`/`AGENTS.md`/`.claude/`
   (with Expo-specific AI-agent instructions, including an embedded fake
   `<system-reminder>`-style block in `AGENTS.md`). Deleted all of these before merging —
@@ -1261,7 +1279,7 @@ here in one line so I can review or reverse it later.*
 
 ---
 
-## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
 
 ### 2026-09-18 — Creator-profile hero width + overlay fix (`fix/creator-hero-width`)
 
@@ -1400,6 +1418,7 @@ here in one line so I can review or reverse it later.*
   `LIMITED`.
 
 ### 2026-09-05 — Risk-proportional factory verification
+
 - **Why:** transcript evidence from the issue #29 run and targeted recovery showed roughly 71–76% of
   effective usage in builder/orchestrator context churn, while repeated broad reads, tool turns and
   unchanged regression replay added more cost than the reviewer split alone.
@@ -1412,6 +1431,7 @@ here in one line so I can review or reverse it later.*
   high-risk security review, fictional test data, affected-test floors and high-risk full regression.
 
 ### 2026-09-04 — Issue #29: secure Payment dispute backend candidate
+
 - **Backend:** migrations 039–040 and the FastAPI dispute service add one atomic, race-safe Payment
   dispute overlay for current participants, immutable same-deal evidence, metadata-only audit, generic
   Critical in-app notices, safe idempotency/conflicts and read-only current/historical projections.
@@ -1425,6 +1445,7 @@ here in one line so I can review or reverse it later.*
   All integration data was fictional and cleaned. UI, ops resolution and email remain pending.
 
 ### 2026-09-02 — Issue #27: participant payment-tracking Expo candidate
+
 - **UI:** Payment and Closed now fetch one strict FastAPI-only payment projection and render a
   separate off-platform tracking ledger. Single and structured controls follow independent server
   action flags, send exact displayed versions, isolate row actions, refetch after outcomes and force
@@ -1437,6 +1458,7 @@ here in one line so I can review or reverse it later.*
   browser/device walkthrough remains `LIMITED` for founder review.
 
 ### 2026-09-02 — Issue #25: authoritative payment tracking backend candidate
+
 - **Backend:** additive migration 038 makes exact Posted → Payment confirmation atomically
   materialize one immutable tracker from the complete approved summary. It adds service-role-only,
   exact-version payment reporting/receipt RPCs, participant-safe API projections, structured
@@ -1450,6 +1472,7 @@ here in one line so I can review or reverse it later.*
   compile and diff hygiene.
 
 ### 2026-09-01 — Issue #22: live-post and payment-information Expo candidate
+
 - **UI:** creator exact-version submit/replacement, shared bounded proof/history, server-authorized
   brand flagging/confirmation, and side-owned ephemeral payment-information forms now consume the
   merged FastAPI contracts. Current verified HTTPS proof opens only on an explicit gesture; no URL
@@ -1461,6 +1484,7 @@ here in one line so I can review or reverse it later.*
   `LIMITED` for founder review; no real financial or campaign data was used.
 
 ### 2026-08-31 — Phase 9: verified live-post backend gate (9.14-A)
+
 - **Network and persistence:** backend-only verification normalizes IDNA/host/default-port form,
   enforces exact social domains (or generic public-HTTPS Podcast), validates two stable public DNS
   answers per hop, pins TLS to the checked address, and bounds redirects, time, bytes, content types,
@@ -1479,6 +1503,7 @@ here in one line so I can review or reverse it later.*
   smoke and Expo UI remain `LIMITED`; B3-033/9.14 remain In progress.
 
 ### 2026-08-31 — PR #19 merged; next-ticket handoff
+
 - **Merge:** issue #14 closed through merged PR #19, placing migrations 034–035 and creator-private
   deliverable labels on `main`; workplan 9.13 is now complete.
 - **Queue:** the standing orchestrator synchronized the checkout, inspected the merged label/content
@@ -1488,6 +1513,7 @@ here in one line so I can review or reverse it later.*
   verification without a false provider claim. #15 alone returns to founder-controlled planned state.
 
 ### 2026-08-31 — Phase 9: creator-private deliverable labels (9.13-E)
+
 - **Database boundary:** additive migration 034 inventories historical deliverable annotations before
   adding exact allowed values, creator/target validation, immutable owner/type/target identity, partial
   uniqueness and target-delete cleanup. One authenticated `SECURITY DEFINER` RPC derives `auth.uid()`
@@ -1510,6 +1536,7 @@ here in one line so I can review or reverse it later.*
   Expo web export, and diff hygiene. The optional founder role-switch UI walkthrough remains `LIMITED`.
 
 ### 2026-08-30 — PR #18 merged; next-ticket handoff
+
 - **Merge:** issue #13 closed through merged PR #18, placing migrations 032–033 and exact direct or
   checker-gated content approval on `main`.
 - **Queue:** the standing orchestrator synchronized the checkout, inspected the merged approval and
@@ -1518,6 +1545,7 @@ here in one line so I can review or reverse it later.*
   existence hint. #14 alone returns to founder-controlled planned state.
 
 ### 2026-08-30 — PR #17 merged; next-ticket handoff
+
 - **Merge:** issue #12 closed through merged PR #17, placing migrations 030–031 and the secure
   per-deliverable content submission/revision loop on `main`.
 - **Queue:** issue #13 is the active review candidate. Checker rejection is constrained to rejecting
@@ -1525,6 +1553,7 @@ here in one line so I can review or reverse it later.*
   maker-authored revision request. Later Creating/Posted tickets remain gated.
 
 ### 2026-08-30 — Phase 9: exact-submission content approval (9.13-D)
+
 - **Atomic boundary:** added development migration 032 with a private service-role held-payload table
   and backend-only RPCs for direct approval, checker hold, checker release, and checker rejection.
   Approval copies only the immutable submitted object reference to the deliverable and leaves the deal
@@ -1550,6 +1579,7 @@ here in one line so I can review or reverse it later.*
   backend compile, TypeScript, lint, Expo web-export, and diff-hygiene regression set.
 
 ### 2026-08-30 — Phase 9: content submissions and revision requests (9.13-C)
+
 - **Implementation:** added migration 030, private prepared creator uploads, file metadata/magic checks,
   atomic append-only round submission, immutable brand revision decisions, role-derived participant
   history/actions, secure opaque downloads, submission/revision sheets, and focus/action refetch.
@@ -1569,11 +1599,13 @@ here in one line so I can review or reverse it later.*
   is retained to avoid invalidating the reviewed candidate and is a non-blocking cleanup item.
 
 ### 2026-08-30 — PR #16 merged; next-ticket handoff
+
 - **Merge:** issue #11 closed through merged PR #16, placing migration 029 and the canonical deliverable
   service/API/cards on `main`. The standing orchestrator synchronized the checkout and revalidated issue
   #12 against those exact seams before returning it to the founder-controlled planned state.
 
 ### 2026-08-30 — Phase 9: canonical multi-deliverable foundation (9.13-B)
+
 - **Canonical boundary:** validated the latest approved summary with `TermsExtraction`, mapped only
   explicit locked parser enums, and materialized the full ordered set through migration 029's deal- and
   summary-locked RPC. New rows carry source provenance, exact timing/location/revision terms, pending
@@ -1595,12 +1627,14 @@ here in one line so I can review or reverse it later.*
   strict TypeScript, lint (0 errors; 3 pre-existing warnings), Expo web export (36 routes), and diff hygiene.
 
 ### 2026-08-29 — Phase 9 queue partitioned for usage-bounded runs
+
 - **Queue:** authored and contract-linted issues #11–#15: canonical deliverables; draft submissions and
   revision requests; checker-gated content approval; creator-private labels; and the verified live-post
   gate. #11 alone is `factory:planned`; #12–#15 remain dependency-blocked until each predecessor merges
   and the standing orchestrator refreshes its exact base and code seams.
 
 ### 2026-08-29 — Phase 9: versioned creative briefs (9.13-A)
+
 - **Trust boundary:** removed direct participant and service-role brief writes and added one backend-only
   atomic RPC path for immutable next-version creation plus latest-only, one-way creator acknowledgment.
   Direct DELETE/TRUNCATE is denied while the existing deal FK cascade remains safe. Authorization is
@@ -1617,6 +1651,7 @@ here in one line so I can review or reverse it later.*
   refresh is claimed.
 
 ### 2026-08-29 — Standing-orchestrator ticket ownership
+
 - **Separated planning from execution:** the standing orchestrator now performs the full repository/
   specification inspection and creates one detailed `factory:planned` ticket when asked. Scheduled
   builds no longer replenish the queue or spawn a Workplan Manager to recheck ticket quality.
@@ -1626,6 +1661,7 @@ here in one line so I can review or reverse it later.*
   regression, isolated worktrees, founder release, and founder merge control remain unchanged.
 
 ### 2026-08-29 — Phase 10 close-out and factory refinement
+
 - **Closed Phase 10:** confirmed PRs #5–#8 merged, reconciled B4-001–B4-005 and linked Phase 9 Gate-B/
   alignment rows, accepted manual 10.8 as a non-blocking founder-deferred check, and made 9.13 Ready.
 - **Founder testing:** added `docs/LOCAL-APP-TESTING.md` with the local backend, Expo Go, two-device,
@@ -1634,6 +1670,7 @@ here in one line so I can review or reverse it later.*
   coverage, and strengthened draft PRs with plain-language “What was built” and “What to look out for”.
 
 ### 2026-08-28 — Phase 10: contract-vs-chat alignment recovery (10.7)
+
 - **Recovered issue #4:** repaired only the legacy `test_term_approvals.py` fixture, which previously
   moved Approval → Creating without the now-required aligned contract. The deterministic fixture creates
   a fictional generated v1, hashes the exact private bytes, reserves/completes clear alignment against
@@ -1648,6 +1685,7 @@ here in one line so I can review or reverse it later.*
   compile, TypeScript, lint (0 errors; 3 existing warnings), Expo web export (36 routes), and diff check.
 
 ### 2026-08-28 — Phase 10: all-participant summary review and Gate B (10.6)
+
 - **Independent review:** post-repair security review PASS; QA automated checks PASS with the only
   limitation being the explicitly founder-owned two-device Realtime/visual confirmation.
 - **Security repair round 1:** revoked authenticated `deals` UPDATE; limited participant UPDATE to own
@@ -1670,6 +1708,7 @@ here in one line so I can review or reverse it later.*
   publication, database Realtime authorization, API state, and fallback refetches pass automatically.
 
 ### 2026-08-27 — Phase 10: AI service and Gemini provider boundary (10.1/10.2)
+
 - **Did:** added the provider-neutral `AIRequest` / `AIResult` / `AIError` contract and a backend-only
   Gemini adapter. It maps missing configuration, timeout, rate limit, malformed output, and provider
   failure to friendly stable errors; the existing Gate-A parser-pending seam is unchanged.
@@ -1682,6 +1721,7 @@ here in one line so I can review or reverse it later.*
   opt-in and LIMITED this run.
 
 ### 2026-08-26 — Phase 9: platform contract generation + three-mode signing (9.11/9.12)
+
 - **Backend:** private, idempotent version-1 generation from approved summary; escaped Jinja2 template
   → WeasyPrint PDF; participant-only five-minute links; stored/drawn/wet-PDF signing; atomic held maker
   release; freshly rendered executed PDF; retry-safe system Approval → Creating.
@@ -1696,6 +1736,7 @@ here in one line so I can review or reverse it later.*
   fictional-data cleanup all pass. Manual Expo Go/two-device visual pass remains.
 
 ### 2026-08-23 — Phase 9: minimum fields + two-side summary trigger (9.9/9.10)
+
 - **Did:** Replaced Chatting's incorrect direct `approve-summary` action with a server-owned
   12-item checklist and Gate-A request/other-side-confirmation workflow. The deal room now shows
   exact missing or ambiguous fields inline, proposes/accepts two-side manual overrides, and
@@ -1713,6 +1754,7 @@ here in one line so I can review or reverse it later.*
   when it is reachable.
 
 ### 2026-07-15 — Phase 8 Cluster C: B2-004 "basic connect" (Phase-9 seam)
+
 - **Did:** Wired the minimal connect action behind the detail-screen "Start a deal" CTA.
   `POST /deals/connect` (FastAPI + service_role, mirrors `services/maker_checker.py`): resolves
   parties + direction from the caller's account_type (brand→creator = `inbound`, creator→brand =
@@ -1740,6 +1782,7 @@ here in one line so I can review or reverse it later.*
 - **Next:** Phase 8 close-out; Phase 9 wires accept/decline + the deal room onto this seam.
 
 ### 2026-07-14 — Phase 8 Cluster B: Discovery browse + profile detail (8.2/8.3)
+
 - **Did:** Built the Discover tab + detail screens. Direction keys off `account_type`: brand→creator
   grid (B2-001), creator→brand list (B2-005). Search + facet filters (niche/platform/city for
   creators; industry/city for brands) run client-side over the fetched (RLS-governed) set. Tapping a
@@ -1758,7 +1801,7 @@ here in one line so I can review or reverse it later.*
 - **Verify:** `test_discovery_rls.py` **7/7 PASS** (browse: brand reads creators+handles, creator
   reads brands; detail by-id: brand gets enabled rate card + items, other creator gets public fields
   but NO card). `npx tsc --noEmit` clean; `npx expo export --platform web` clean incl. `/creator/[id]`
-  + `/brand/[id]`.
+  - `/brand/[id]`.
 - **Scope omissions (per plan):** NO campaign/opportunity cards (Apply/Claim/Pitch/RSVP, STP
   pipeline, QR pass, featured "Curated" hero, outbound pitch) — briefs are Phase 9, no Phase-8 table
   backs them. NO "deal type" filter (no column). Brand cards show trust_rating + deal_completion_rate
@@ -1768,6 +1811,7 @@ here in one line so I can review or reverse it later.*
 - **Next:** Phase 8 close-out; then Phase 9 wires connect (B2-004).
 
 ### 2026-07-14 — Phase 8 Cluster A (part 2): B2-031 profile photo carousel
+
 - **Did:** Replaced the placeholder avatar with a real photo carousel. The media-kit hero renders
   up to 5 swipeable photos (or the gradient fallback); primary = index 0 = `profiles.avatar_url`.
 - **Serving model:** PRIVATE `profile-photos` bucket (016), so NO public URLs — a centralized
@@ -1788,6 +1832,7 @@ here in one line so I can review or reverse it later.*
 - **Next:** 8.2/8.3 browse + brand-facing detail (re-use media-kit-view + StorageImage).
 
 ### 2026-07-14 — Phase 8 Cluster A (part 1): editable creator media kit
+
 - **Did:** Built the "You" tab into the creator's editable media kit (+ brand profile editor).
   Features: **B2-030** (read view), **B2-032** (platform stats), **B2-034** (rate card, brands-only),
   **B2-035** (preview-as-brand), **B2-036** (edit profile, creator + brand), **B2-037** (privacy),
@@ -1813,6 +1858,7 @@ here in one line so I can review or reverse it later.*
 - **Next:** 8.2/8.3 Discovery browse + brand-facing creator detail (re-uses media-kit-view).
 
 ### 2026-07-14 — Task 8.1: Discovery mock data seed script
+
 - **Did:** Built `backend/seeds/seed_discovery.py` — idempotent seed script populating the
   dev Supabase project with 15 fictional Indian creators + 10 fictional brands for Discovery
   to browse. Follows `test_onboarding.py`'s admin-client auth pattern (service_role,
@@ -1840,6 +1886,7 @@ here in one line so I can review or reverse it later.*
   all currently "Not started" in the RTM; this task only supplies the data they'll render).
 
 ### 2026-07-13 — Phase 7 Cluster C follow-up: signature screen bug fix (device)
+
 - **Symptoms (Expo Go, G4 test):** draw pad only captured one broken stroke (lost strokes, unresponsive);
   switching to Type crashed with a RENDER ERROR "Couldn't find a navigation context…" from
   @react-navigation NavigationStateContext.
@@ -1860,6 +1907,7 @@ here in one line so I can review or reverse it later.*
   journey work; both journeys pass. Cluster C CLOSED. (Fix committed on top of `13175c1`.)
 
 ### 2026-07-13 — Phase 7 Cluster C: Signatures (7.9) + maker-checker (7.10) — BUILT, TESTED, COMMITTED
+
 - **Did:** The security + RBAC cluster; first backend/FastAPI feature.
   - **7.9 signatures:** `signature-pad.tsx` (PanResponder→SVG paths via react-native-svg — no new
     dep/webview, web + Expo Go), `(onboarding)/signature.tsx` (draw/type toggle + clear + shield
@@ -1874,7 +1922,7 @@ here in one line so I can review or reverse it later.*
     service_role, segregation of duties enforced server-side at initiation AND decision, `audit_log`
     on every step. Scope boundary: mechanism + config only; live deal wiring = Phase 9.
 - **Verify:** migration 015 applied to dev (constraint present); `tsc --noEmit` 0 errors; `expo
-  export --platform web` clean (`/(onboarding)/signature` present); `test_maker_checker.py` 10/10
+export --platform web` clean (`/(onboarding)/signature` present); `test_maker_checker.py` 10/10
   (run twice, stable) — drives real endpoints with real JWTs (config gating, maker-can't-approve-own
   403, non-checker 403, request stays pending after refusals, assigned checker approves, audit rows,
   config-write RLS, signature RLS); `test_onboarding.py` 8/8 regression. Orchestrator security pass:
@@ -1885,6 +1933,7 @@ here in one line so I can review or reverse it later.*
   (phone test both journeys, G4), 7.13 (RTM), 7.14 (phase gate, G5).
 
 ### 2026-07-13 — Phase 7 Cluster B: Roles & onboarding (7.5–7.8, 7.11) — BUILT, TESTED, COMMITTED
+
 - **Did:** Post-verify onboarding wizard on the themed shell, faithful to the (approved)
   `inflo-onboarding.html`. **Migration 014** (`niche`→`niches text[]` +≤3 CHECK; brand first-admin
   bootstrap RLS `brand_members_insert_self_bootstrap` + `brand_has_members()`), applied to dev;
@@ -1916,6 +1965,7 @@ here in one line so I can review or reverse it later.*
   maker-checker (security + RBAC), then close-out 7.12 (phone test, G4) / 7.13 (RTM) / 7.14 (G5).
 
 ### 2026-07-13 — Phase 7 Cluster A: Auth core (tasks 7.1–7.4) — BUILT, TESTED, COMMITTED
+
 - **Did:** Built the full auth loop. New `(auth)` route group (renders outside the 5-tab shell):
   `sign-up.tsx`, `verify-otp.tsx`, `login.tsx` + `(auth)/_layout.tsx`. Shared UI: `text-field.tsx`
   (recess input + show/hide + inline errors), `auth-shell.tsx` (onboarding chrome), plus
@@ -1942,6 +1992,7 @@ here in one line so I can review or reverse it later.*
   task 7.5 adds the post-verify → onboarding gate that creates the profile row + sets role.
 
 ### 2026-07-13 — Phase 6: connect Supabase JS client in the frontend (task 6.6)
+
 - **Did:** Installed `@supabase/supabase-js` (2.110.2) in `frontend/`. New
   **`frontend/src/lib/supabase.ts`** — the single client module, the frontend's only Supabase
   door. Configured from Expo public env (`EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY`),
@@ -1966,11 +2017,12 @@ here in one line so I can review or reverse it later.*
 - **Next:** resolve the dead Supabase project (NEEDS MY INPUT), then task 6.8 (commit Phase 6).
 
 ### 2026-07-13 — Phase 6: themed 5-tab bottom-nav shell (task 6.5)
+
 - **Did:** Replaced the template Home/Explore tabs with Inflo's 5-tab shell —
   **Discover · Chat · Track · You · Account** — rebuilt in RN from `inflo-one.html`'s
   `.bnav` (not ported).
   - **`src/components/bottom-nav.tsx`** — custom Expo Router `tabBar`. Warm translucent
-    bar (`rgba(251,250,246,0.92)`) over an `expo-blur` `BlurView` (blur sits *under* the
+    bar (`rgba(251,250,246,0.92)`) over an `expo-blur` `BlurView` (blur sits _under_ the
     92% fill so it can't break native; `experimentalBlurMethod="dimezisBlurView"` for
     Android Expo Go). Respects the home-indicator safe area via `useSafeAreaInsets`.
     **Active tab = the reserved pillow-glass signature** (icon in a lifted glass pill,
@@ -1996,6 +2048,7 @@ here in one line so I can review or reverse it later.*
 - **Next:** 6.6 (Supabase client), then 6.8 (commit the whole Phase 6 frontend).
 
 ### 2026-07-12 — Phase 6: design tokens → theme + Geist font (task 6.7-build)
+
 - **Did (tokens → NativeWind):** translated `docs/design-tokens.md` Part 2 into
   `frontend/tailwind.config.js` `theme.extend`, names traceable to the doc:
   colours (`bg-app` #FBFAF6, `dashboard`, `chatCanvas`, `surface.card/recess`,
@@ -2014,7 +2067,7 @@ here in one line so I can review or reverse it later.*
   `#1C1B18`, typography-800→secondary text, -900/950→ink, background-50→app base,
   outline-100/200/300→hairlines, success-500/600→green, error-500/600→critical red).
   Dark left as-is (MVP is light-first). Edited the owned `src/components/ui/button/
-  index.tsx`: base `rounded`→`rounded-button` (16) and button text→`font-geist-semibold`.
+index.tsx`: base `rounded`→`rounded-button` (16) and button text→`font-geist-semibold`.
   → a gluestack `<Button action="primary">` now renders flat ink, radius 16, Geist.
 - **Did (glass material):** new `src/components/ui/glass-surface.tsx` — reusable
   `<GlassSurface variant="flush"|"pillow">` using **expo-linear-gradient** (#FFFFFF→
@@ -2022,7 +2075,7 @@ here in one line so I can review or reverse it later.*
   native too, where inset box-shadows aren't supported). `flush` = shared material
   (secondary btn/bubbles/bars); `pillow` = reserved nav-active signature (for 6.5).
 - **Did (fonts):** `npx expo install @expo-google-fonts/geist @expo-google-fonts/geist-mono
-  expo-linear-gradient`. `src/app/_layout.tsx` now loads Geist 400/500/600/700 + Mono 400
+expo-linear-gradient`. `src/app/_layout.tsx` now loads Geist 400/500/600/700 + Mono 400
   via the `useFonts` hook (runtime-loads on web AND native/Expo Go — the config plugin is
   native-only, so hook is the cross-platform path), with `SplashScreen.preventAutoHideAsync()`
   and a render gate (returns null until loaded) → no font-flash.
@@ -2045,6 +2098,7 @@ here in one line so I can review or reverse it later.*
   `variant="pillow"` for active tab), 6.6 (Supabase/Zustand), 6.8 (commit).
 
 ### 2026-06-16 — Phase 6: UI library — NativeWind v4 + gluestack-ui v3 (task 6.4)
+
 - **Decision:** NOT NativeBase (deprecated). Installed **NativeWind v4** + **gluestack-ui v3**
   (gluestack uses NativeWind as its styling engine). Resolves open decision #6.
 - **Did (NativeWind):** `npx expo install nativewind tailwindcss@^3.4.17 react-native-css-interop`;
@@ -2071,6 +2125,7 @@ here in one line so I can review or reverse it later.*
 - **Next:** user to re-confirm on web (localhost:8081) + Expo Go on phone. Then 6.5 (nav/screens).
 
 ### 2026-06-16 — Phase 6: SDK 55 → 54 downgrade + template re-scaffold (task 6.3)
+
 - **Did:** Stopped the running SDK55 server, confirmed ports 8081/8082 clear. Ran
   `npx expo install expo@^54` then `npx expo install --fix` (clean `node_modules`/
   `package-lock.json` reinstall needed again for an ERESOLVE conflict, same pattern as the
@@ -2093,6 +2148,7 @@ here in one line so I can review or reverse it later.*
   evaluation, Zustand, Supabase JS client).
 
 ### 2026-06-15 — Phase 6: SDK 56 → 55 downgrade (Expo Go compatibility)
+
 - **Did:** Stopped the running dev server. Removed `@expo/ui` + `expo-glass-effect`
   (SDK56-only, unused). Ran `npx expo install expo@^55` then `npx expo install --fix`
   (twice — first pass had a stale-`node_modules` ERESOLVE conflict on `expo-router`/
@@ -2110,6 +2166,7 @@ here in one line so I can review or reverse it later.*
 - **Next:** user re-scans the QR in Expo Go on test phones to confirm SDK 55 loads.
 
 ### 2026-06-15 — Phase 6: Expo app scaffolded (task 6.1)
+
 - **Did:** Scaffolded `frontend/` with `npx create-expo-app@latest` (Expo Router +
   TypeScript template, SDK 56), merging it into the existing `frontend/` dir (removed
   `.gitkeep`, scaffolded to a temp dir first since the CLI needs an empty target).
@@ -2125,6 +2182,7 @@ here in one line so I can review or reverse it later.*
 - **Next:** 6.2 — run the dev server, confirm it loads on web (and phone via Expo Go).
 
 ### 2026-06-10 — Phase 5 complete
+
 - **Did:** Closed out Phase 5 (Backend & Database Foundation): 42-table schema + RLS + grants
   applied to the dev Supabase project (001–013), RLS verified with dummy users (4/4 PASS),
   FastAPI skeleton up (`main.py`, `core/`, `services/ai_service.py`, `api/health.py`),
@@ -2133,6 +2191,7 @@ here in one line so I can review or reverse it later.*
 - **Next:** Phase 6 — Expo frontend foundation.
 
 ### 2026-06-10 — Phase 5: dev server run command confirmed (task 5.11)
+
 - **Did:** Verified `cd backend && .venv/bin/uvicorn main:app --reload --port 8000` boots
   cleanly; `GET /health` → 200 `{"status":"ok","env":"development"}`, `GET /docs` → 200
   Swagger UI HTML.
@@ -2142,6 +2201,7 @@ here in one line so I can review or reverse it later.*
   above (Option 1 — run from inside `backend/`); not changing the import style for now.
 
 ### 2026-06-10 — Phase 5: FastAPI skeleton (task 5.9)
+
 - **Did:** Built the FastAPI app shell on top of the venv/requirements from 5.8:
   `backend/main.py` (FastAPI app, CORS middleware open for local dev, lifespan hook that
   calls `get_supabase()` so bad config fails at boot, registers the health router),
@@ -2151,17 +2211,18 @@ here in one line so I can review or reverse it later.*
   **service_role key**, never anon, per the two-key rule), `backend/services/ai_service.py`
   (the locked `ai_service` abstraction — `async def call_ai(prompt, context) -> dict` stub;
   configures `google.generativeai` with `GEMINI_API_KEY` but makes no real call yet; it's the
-  *only* file that imports `google.generativeai`), `backend/api/health.py` (`GET /health`).
+  _only_ file that imports `google.generativeai`), `backend/api/health.py` (`GET /health`).
   Added fastapi/uvicorn/google-generativeai/weasyprint/resend to `backend/requirements.txt`
   and installed into `backend/.venv`.
 - **Verified:** `uvicorn main:app --port 8000` boots cleanly, `curl localhost:8000/health` →
   `{"status":"ok","env":"development"}`.
-- **Found:** WeasyPrint installs fine via pip but fails to *import* — needs system
+- **Found:** WeasyPrint installs fine via pip but fails to _import_ — needs system
   Pango/GObject libs (`brew install pango`). Logged as a known issue; not blocking since
   nothing imports it yet (Phase 9 will need it for contract/invoice PDFs).
 - **Next:** 5.10+ — real endpoints as features need them.
 
 ### 2026-06-10 — Phase 5: RLS tested with dummy users (task 5.8)
+
 - **Did:** Wrote `backend/tests/test_rls.py` — creates 3 throwaway Supabase Auth users
   (Priya/creator, Rahul/brand admin at "Zomato Brand Account", Sneha/unrelated) via
   service_role, wires up a deal + deal_participants + a message, then signs in as the anon
@@ -2180,6 +2241,7 @@ here in one line so I can review or reverse it later.*
 - **Next:** FastAPI project setup (5.9+).
 
 ### 2026-06-09 — Phase 5: SQL migrations written
+
 - **Did:** Created `backend/migrations/` with 12 ordered SQL files covering the full data model
   from `docs/data-model.md` v1.2 (42 tables, 9 domains). Files:
   - `001`: Extensions (uuid-ossp, pgcrypto) + 27 custom enum types
@@ -2197,6 +2259,7 @@ here in one line so I can review or reverse it later.*
 - **Next:** FastAPI project setup → Supabase project init → apply migrations.
 
 ### 2026-06-09 — Phase 4: RTM built (Cowork session)
+
 - **Did:** Tasks 4.1 + 4.2 + 4.3 complete. Built `docs/rtm.md` — 93 features, 7 per-bucket
   sub-tables, 13 columns (Explore / Design / Build / Test). Pre-populated Feature ID, Feature,
   Bucket, Phase, Priority, Scope, Design Summary, Build Elements for all 93 rows.
@@ -2207,6 +2270,7 @@ here in one line so I can review or reverse it later.*
 - **Next:** Phase 5 — Backend & Database Foundation.
 
 ### 2026-06-03 — Project setup + CLAUDE.md
+
 - **Did:** Completed Phase 0–1 setup. Scaffolded the monorepo, connected the private
   GitHub repo, first commit pushed. Drafted `CLAUDE.md` (locked stack, architecture,
   autonomy contract, scope, golden rules). Decided the RTM format (markdown). Created

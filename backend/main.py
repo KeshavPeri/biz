@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api import chat_attachments, deals, health, maker_checker, ops
+from core.error_middleware import UnhandledErrorMiddleware
 from core.supabase_client import get_supabase
 
 
@@ -14,6 +15,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Biz API", lifespan=lifespan)
+
+# Added before CORS so CORS wraps it (last added = outermost): an unhandled
+# error then becomes a readable 500 *with* CORS headers, instead of a bare 500
+# the browser reports as a network failure.
+app.add_middleware(UnhandledErrorMiddleware)
 
 # Local dev only (Expo web/native -> localhost:8000); tighten in Phase 14.
 app.add_middleware(
