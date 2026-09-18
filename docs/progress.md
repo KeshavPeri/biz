@@ -857,6 +857,22 @@ up exactly where the last one left off, with zero context lost.
     - Discover scroll position kept across tab switches
   - **Not verified:** native iPhone (project SDK 54 vs phone Expo Go SDK 57), real iOS safe-area
     insets and live Reduce Motion (checked by code path only).
+  - **Follow-up — integrated mobile headers (same PR):**
+    - **Web shell:** new `src/app/+html.tsx` paints html/body `#FBFAF6`, adds
+      `theme-color` `#FBFAF6` and `viewport-fit=cover`. Expo's default body was unpainted, so
+      iPhone Safari showed a white band.
+    - **Discover:** the large title now scrolls with the content and fades as it leaves (fade
+      skipped under Reduce Motion). The search row pins via `stickyHeaderIndices`, so it stays
+      reachable.
+    - **Media kit:** the header overlays its ScrollView, with measured top padding so nothing
+      starts hidden, including when the preview banner is showing.
+    - **Shared edge:** both use `ScrollEdgeScrim` — the page ground at 0.94 plus a 16pt fade.
+      It's invisible at rest and scroll-linked, so cards dissolve under the header instead of
+      being sliced.
+    - **Checks:** tsc, eslint (changed files), node tests 15/15, web export.
+    - **Browser pane at 390/320 wide:** creator and brand Discover at rest, mid-scroll and pinned;
+      typing in the pinned search; media-kit header at rest, mid-scroll, preview on and Exit.
+    - **Unread dot:** now also seen with real data (brand account).
 
 ## NEXT UP  *(ordered)*
 
@@ -1248,6 +1264,9 @@ here in one line so I can review or reverse it later.*
   NativeWind classes).
 - Pane coordinate clicks don't fire dock tabs under touch emulation. `main`'s original bar
   behaves the same, so tab switching was driven by DOM clicks.
+- Follow-up: integrated the Discover and media-kit headers (pinned search, scroll-linked edge,
+  warm web shell). A dev-only Reanimated web error ("reading 'top'") on signed-out reloads was
+  confirmed pre-existing: it reproduced on 3 of 3 reloads on `origin/main`. Flagged separately.
 
 ### 2026-09-16 — Phase 9 RTM and sequencing gate
 
