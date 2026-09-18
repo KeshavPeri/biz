@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { Linking, Platform, Text, View } from 'react-native';
+import { Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import * as Haptics from 'expo-haptics';
-import { Button, ButtonText } from '@/components/ui/button';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { LinearTransition } from 'react-native-reanimated';
+import ChevronDownIcon from '@/assets/icons/chevron-down.svg';
+import ChevronUpIcon from '@/assets/icons/chevron-up.svg';
+import { PressableScale } from '@/components/motion/pressable-scale';
+import { Skeleton } from '@/components/motion/skeleton';
+import { EASE_OUT, useMotion } from '@/components/motion/use-motion';
+import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
+import { IconButton } from '@/components/ui/icon-button';
 import { ContractSignSheet } from '@/components/deal/contract-sign-sheet';
 import { ContractAlignmentCard } from '@/components/deal/contract-alignment-card';
 import { TermsReviewCard } from '@/components/deal/terms-review-card';
@@ -71,6 +79,7 @@ import {
   uploadContentDraft,
   subscribeToTermApprovals,
   type DealThread,
+  type DealStage,
   type ContractState,
   type CreativeBriefContent,
   type CreativeBriefState,
@@ -98,6 +107,16 @@ import {
   type PrivateDeliverableLabelMap,
 } from '@/lib/private-deliverable-labels';
 import { PostCloseContextFence, forPostCloseContext } from '@/lib/post-close-context-fence';
+
+/**
+ * Stages whose bar stacks several cards (deliverables, payment, dispute, close…).
+ * These collapse to a peek row so the chat always keeps most of the screen
+ * (B2-13); the short single-card stages render flat, as before.
+ */
+const COLLAPSIBLE_STAGES: DealStage[] = ['approval', 'creating', 'posted', 'payment', 'closed'];
+
+type PeekAction = { label: string; onPress: () => void; disabled: boolean; busy: boolean };
+type PeekState = { label: string; status: string; action?: PeekAction };
 
 /**
  * StickyActionBar (task 9.7) — the stage-aware AND role-aware bar above the
@@ -136,6 +155,8 @@ export function StickyActionBar({
 
   const [acting, setActing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The bar is a peek row until asked to open (B2-13), so the chat keeps the screen.
+  const [expanded, setExpanded] = useState(false);
   // Set when accept returns a warn-only exclusivity notice (needs re-confirm).
   const [exclusivityWarning, setExclusivityWarning] = useState<string | null>(null);
   const [summary, setSummary] = useState<SummaryChecklist | null>(null);
@@ -209,6 +230,16 @@ export function StickyActionBar({
   if (postCloseFenceRef.current.switchContext(postCloseContext)) {
     postCloseLoadRequestRef.current += 1;
   }
+
+  // A new stage brings a new set of cards, so start from the peek row again.
+  useEffect(() => {
+    setExpanded(false);
+  }, [thread.stage]);
+
+  // Errors are rendered inside the panel, so an error has to open it.
+  useEffect(() => {
+    if (error) setExpanded(true);
+  }, [error]);
 
   const loadSummary = useCallback(async () => {
     if (thread.stage !== 'chatting') return;
@@ -1050,6 +1081,15 @@ export function StickyActionBar({
     }
   }, []);
 
+  // Shared by the peek row and the expanded panel, so one press does one thing.
+  const runGenerateContract = useCallback(() => {
+    void runContract(async () => {
+      const result = await generateContract(thread.dealId);
+      if (result.ok) notifyTransitionSuccess();
+      return result;
+    });
+  }, [notifyTransitionSuccess, runContract, thread.dealId]);
+
   // ── Role / relationship derivations (rbac.md + deal-engine.md) ──
   const { stage, myRole } = thread;
   const isInitiator = thread.createdBy === userId;
@@ -1059,6 +1099,18 @@ export function StickyActionBar({
   const livePostDeliverable = livePostAction
     ? deliverables?.deliverables.find((item) => item.id === livePostAction.deliverableId) ?? null
     : null;
+  const canConfirmPosts = Boolean(
+    deliverables?.post_confirmation.future_actions.can_confirm_all
+    && paymentDetails?.allowed_actions.can_confirm_posts,
+  );
+  // Rows where a required step is mine — the number the peek row reports.
+  const deliverablesNeedingMe = deliverables?.deliverables.filter((item) => (
+    item.available_actions.can_submit_content
+    || item.available_actions.can_approve_content
+    || item.available_actions.can_request_revision
+    || item.post_state.future_actions.can_submit_or_replace
+    || item.content_approval?.can_decide
+  )).length ?? 0;
 
   const deliverablesView = () => deliverables ? (
     <DeliverablesCard
@@ -1078,7 +1130,7 @@ export function StickyActionBar({
       onOpenVerifiedPost={(url) => { void openVerifiedPost(url); }}
     />
   ) : deliverablesLoading ? (
-    <Waiting text="Loading the agreed deliverables…" />
+    <LoadingPanel label="Loading the agreed deliverables" />
   ) : (
     <Actions label="Agreed deliverables" error={deliverablesError}>
       <InlineButton label="Retry" onPress={() => void loadDeliverables(true)} disabled={deliverablesLoading} />
@@ -1094,7 +1146,7 @@ export function StickyActionBar({
       onSaveBrand={saveBrandPaymentDetails}
     />
   ) : paymentDetailsLoading ? (
-    <Waiting text="Loading off-platform payment information…" />
+    <LoadingPanel label="Loading the payment details" />
   ) : (
     <Actions label="Off-platform payment information" error={paymentDetailsError}>
       <InlineButton label="Retry" onPress={() => void loadPaymentDetails(true)} disabled={paymentDetailsLoading} />
@@ -1189,7 +1241,7 @@ export function StickyActionBar({
   );
 
   const termsReview = (readOnly: boolean): ReactNode => {
-    if (termsLoading && !terms) return <Waiting text="Loading the terms review…" />;
+    if (termsLoading && !terms) return <LoadingPanel label="Loading the terms review" />;
     if (termsError && !terms) {
       return (
         <Actions label="Terms review" error={termsError}>
@@ -1208,6 +1260,50 @@ export function StickyActionBar({
         onDecision={runTermsDecision}
       />
     );
+  };
+
+  /**
+   * What the collapsed bar says, and the one action it can carry. Card-heavy
+   * stages get no peek action — the panel holds several cards, and promoting one
+   * of them would break "one primary action per screen" (§10).
+   */
+  const peek = (): PeekState => {
+    switch (stage) {
+      case 'approval':
+        if (contractLoading && !contract) return { label: 'Approval', status: 'Loading the contract…' };
+        if (!contract?.contract) {
+          return {
+            label: 'Approval',
+            status: 'The contract has not been generated yet',
+            action: { label: 'Generate contract', onPress: runGenerateContract, disabled: acting, busy: acting },
+          };
+        }
+        return { label: 'Approval', status: 'Contract ready to review and sign' };
+      case 'creating':
+        return {
+          label: 'Creating content',
+          status: deliverablesNeedingMe
+            ? `${deliverablesNeedingMe} deliverable${deliverablesNeedingMe === 1 ? '' : 's'} need you`
+            : 'Deliverables, brief and drafts',
+        };
+      case 'posted':
+        return {
+          label: 'Posted',
+          status: canConfirmPosts ? 'Live proof is ready to confirm' : 'Live posts and payment details',
+          action: canConfirmPosts
+            ? { label: 'Confirm posts live', onPress: () => void confirmPosts(), disabled: acting, busy: acting }
+            : undefined,
+        };
+      case 'payment':
+        return {
+          label: 'Payment',
+          status: thread.isDisputed ? 'Disputed — open to review' : 'Payment tracking, dispute and close',
+        };
+      case 'closed':
+        return { label: 'Closed', status: 'Deal record, ratings and notes' };
+      default:
+        return { label: 'This deal', status: 'Open the deal panel' };
+    }
   };
 
   const body = () => {
@@ -1244,17 +1340,13 @@ export function StickyActionBar({
         return termsReview(false) ?? <SummaryGate summary={summary} dealId={thread.dealId} userId={userId} acting={acting} error={error} onAction={runSummary} />;
 
       case 'approval':
-        if (contractLoading && !contract) return <View className="gap-2.5">{termsReview(true)}<Waiting text="Loading the contract…" /></View>;
+        if (contractLoading && !contract) return <View className="gap-2.5">{termsReview(true)}<LoadingPanel label="Loading the contract" /></View>;
         if (!contract?.contract) {
           return (
             <View className="gap-2.5">
               {termsReview(true)}
               <Actions label="Approval — contract" error={error}>
-                <PrimaryButton label={acting ? 'Generating…' : 'Generate contract'} onPress={() => runContract(async () => {
-                  const result = await generateContract(thread.dealId);
-                  if (result.ok) notifyTransitionSuccess();
-                  return result;
-                })} disabled={acting} />
+                <PrimaryButton label="Generate contract" onPress={runGenerateContract} disabled={acting} busy={acting} />
               </Actions>
             </View>
           );
@@ -1295,7 +1387,7 @@ export function StickyActionBar({
                 onAcknowledge={(briefId) => void acknowledgeBrief(briefId)}
               />
             ) : briefsLoading ? (
-              <Waiting text="Loading the campaign brief…" />
+              <LoadingPanel label="Loading the campaign brief" />
             ) : (
               <Actions label="Campaign brief" error={briefsError}>
                 <Text className="font-geist text-[12px] text-ink-3">Brief status is temporarily unavailable.</Text>
@@ -1309,10 +1401,9 @@ export function StickyActionBar({
           <View className="gap-2.5">
             {deliverablesView()}
             {paymentDetailsView()}
-            {deliverables?.post_confirmation.future_actions.can_confirm_all
-              && paymentDetails?.allowed_actions.can_confirm_posts ? (
+            {canConfirmPosts ? (
                 <Actions label="Posted — exact confirmation" error={error}>
-                  <PrimaryButton label={acting ? 'Confirming…' : 'Confirm posts live'} onPress={() => void confirmPosts()} disabled={acting} />
+                  <PrimaryButton label="Confirm posts live" onPress={() => void confirmPosts()} disabled={acting} busy={acting} />
                 </Actions>
               ) : (
                 <Waiting text={paymentDetails && (!paymentDetails.creator_complete || !paymentDetails.brand_complete)
@@ -1347,7 +1438,13 @@ export function StickyActionBar({
 
   return (
     <>
-      <View className="border-t border-hairline bg-app px-4 pb-2 pt-3">{body()}</View>
+      {COLLAPSIBLE_STAGES.includes(stage) ? (
+        <ActionPanel peek={peek()} expanded={expanded} onToggle={() => setExpanded((value) => !value)}>
+          {body()}
+        </ActionPanel>
+      ) : (
+        <View className="border-t border-hairline bg-app px-4 pb-2 pt-3">{body()}</View>
+      )}
       {contract?.contract ? (
         <ContractSignSheet
           visible={signing}
@@ -1449,6 +1546,89 @@ export function StickyActionBar({
     </>
   );
 }
+
+/**
+ * ActionPanel — the bar as a peek row that expands into a scrollable panel
+ * (B2-13/roadmap §1 #11). Collapsed it is one ≤72pt row: stage label, what is
+ * happening, and at most one action. Expanded it takes 60% of the chat area and
+ * scrolls, so the thread keeps at least 40% and the composer stays put.
+ */
+function ActionPanel({
+  peek,
+  expanded,
+  onToggle,
+  children,
+}: {
+  peek: PeekState;
+  expanded: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  const { t } = useMotion();
+  return (
+    <Animated.View
+      layout={LinearTransition.duration(t(240)).easing(EASE_OUT)}
+      className="border-t border-hairline bg-app px-4 pb-2 pt-2"
+      style={expanded ? styles.expanded : undefined}
+    >
+      <View className="flex-row items-center gap-2">
+        <PressableScale
+          onPress={onToggle}
+          accessibilityRole="button"
+          accessibilityLabel={`${peek.label}. ${peek.status}`}
+          accessibilityHint={expanded ? 'Hides the deal panel' : 'Opens the deal panel'}
+          accessibilityState={{ expanded }}
+          className="min-h-11 min-w-0 flex-1 justify-center"
+        >
+          <Text className="font-geist-medium text-micro text-ink-3" numberOfLines={1}>{peek.label}</Text>
+          <Text className="font-geist-semibold text-secondary text-ink" numberOfLines={1}>{peek.status}</Text>
+        </PressableScale>
+        {/* Only while collapsed: expanded, the same action reads in its own card. */}
+        {peek.action && !expanded ? (
+          <PrimaryButton
+            label={peek.action.label}
+            onPress={peek.action.onPress}
+            disabled={peek.action.disabled}
+            busy={peek.action.busy}
+            className="shrink-0 px-4"
+          />
+        ) : null}
+        <IconButton
+          icon={expanded ? ChevronDownIcon : ChevronUpIcon}
+          label={expanded ? 'Hide the deal panel' : 'Open the deal panel'}
+          onPress={onToggle}
+        />
+      </View>
+      {/* Hidden, not unmounted: the cards keep their state, and one-shot moments
+          (a WinSpring on a closed deal) don't re-fire every time this reopens. */}
+      <View
+        className="flex-shrink pt-2.5"
+        style={expanded ? undefined : styles.hidden}
+        pointerEvents={expanded ? 'auto' : 'none'}
+        accessibilityElementsHidden={!expanded}
+        importantForAccessibility={expanded ? 'auto' : 'no-hide-descendants'}
+      >
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelBody}>
+          {children}
+        </ScrollView>
+        {/* Soft scroll edge instead of a hard divider, so "more below" reads. */}
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(251,250,246,0)', 'rgba(251,250,246,0.9)']}
+          style={styles.bottomFade}
+        />
+      </View>
+    </Animated.View>
+  );
+}
+
+const styles = StyleSheet.create({
+  // 60% of the chat area: the thread keeps the other 40% (B2-13).
+  expanded: { maxHeight: '60%' },
+  hidden: { display: 'none' },
+  panelBody: { paddingBottom: 12 },
+  bottomFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 16 },
+});
 
 function localPlainSnippet(value: string) {
   return value.replace(/<[^>]*>/g, ' ').replace(/(?:https?:\/\/|www\.)\S+/gi, '[link removed]').replace(/\s+/g, ' ').trim().slice(0, 160) || 'Message evidence';
@@ -1586,7 +1766,7 @@ function SummaryGate({
   error: string | null;
   onAction: (fn: () => Promise<{ ok: true } | { ok: false; message: string }>) => void;
 }) {
-  if (!summary) return <Waiting text="Checking the deal checklist…" />;
+  if (!summary) return <LoadingPanel label="Checking the deal checklist" />;
   const missing = summary.missing_fields;
   const isRequester = summary.requested_by === userId;
   const isOtherSide = summary.requester_side != null && summary.requester_side !== summary.viewer_side;
@@ -1674,29 +1854,58 @@ function Waiting({ text }: { text: string }) {
   );
 }
 
-type ActionButtonProps = { label: string; onPress: () => void; disabled: boolean; className?: string };
+type ActionButtonProps = {
+  label: string;
+  onPress: () => void;
+  disabled: boolean;
+  className?: string;
+  /** Shows the inline spinner and keeps the label steady (B2-22). */
+  busy?: boolean;
+};
 
 // Thin wrappers over ui/button so every deal-room action shares one tier system.
-function PrimaryButton({ label, onPress, disabled, className }: ActionButtonProps) {
+function PrimaryButton({ label, onPress, disabled, className, busy = false }: ActionButtonProps) {
   return (
     <Button action="primary" onPress={onPress} isDisabled={disabled} accessibilityLabel={label} className={className}>
+      {busy ? <ButtonSpinner size="small" /> : null}
       <ButtonText>{label}</ButtonText>
     </Button>
   );
 }
 
-function GhostButton({ label, onPress, disabled, className }: ActionButtonProps) {
+function GhostButton({ label, onPress, disabled, className, busy = false }: ActionButtonProps) {
   return (
     <Button action="secondary" onPress={onPress} isDisabled={disabled} accessibilityLabel={label} className={className}>
+      {busy ? <ButtonSpinner size="small" /> : null}
       <ButtonText>{label}</ButtonText>
     </Button>
   );
 }
 
-function InlineButton({ label, onPress, disabled }: ActionButtonProps) {
+function InlineButton({ label, onPress, disabled, busy = false }: ActionButtonProps) {
   return (
     <Button action="secondary" onPress={onPress} isDisabled={disabled} accessibilityLabel={label} className="mt-1 self-start">
+      {busy ? <ButtonSpinner size="small" /> : null}
       <ButtonText>{label}</ButtonText>
     </Button>
+  );
+}
+
+/**
+ * LoadingPanel — the first-load placeholder for a bar card (B2-22/roadmap §2.6):
+ * the card's shape appears immediately instead of a grey "Loading…" box.
+ */
+function LoadingPanel({ label }: { label: string }) {
+  return (
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={label}
+      className="gap-2 rounded-2xl border border-hairline bg-surface-card p-3"
+    >
+      <Skeleton.Block width="45%" height={14} radius="pill" />
+      <Skeleton.Block width="70%" height={12} radius="pill" />
+      <Skeleton.Block height={44} radius="panel" />
+    </View>
   );
 }

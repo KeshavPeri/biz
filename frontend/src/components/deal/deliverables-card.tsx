@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { LayoutAnimationConfig } from 'react-native-reanimated';
 
+import MoreIcon from '@/assets/icons/more-horizontal.svg';
 import { ListItemFade } from '@/components/motion/list-item-fade';
 import { Button, ButtonText } from '@/components/ui/button';
+import { EditSheet } from '@/components/ui/edit-sheet';
+import { IconButton } from '@/components/ui/icon-button';
 import { PrivateDeliverableLabelPicker } from '@/components/deal/private-deliverable-label-picker';
 import type {
   CanonicalDeliverable,
@@ -121,6 +124,14 @@ export function DeliverablesCard({
   );
 }
 
+type RowAction = {
+  key: string;
+  label: string;
+  a11yLabel: string;
+  tier: 'primary' | 'secondary';
+  onPress: () => void;
+};
+
 function DeliverableRow({
   deliverable,
   acting,
@@ -153,8 +164,57 @@ function DeliverableRow({
   onOpenVerifiedPost: (url: string) => void;
 }) {
   const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [overflowOpen, setOverflowOpen] = useState(false);
   const currentPost = deliverable.post_state.current;
   const priorPosts = deliverable.post_state.history.filter((item) => item.id !== currentPost?.id);
+
+  // One primary per row — the next required step — with everything else behind
+  // the overflow (B2-33). Order below IS the priority order.
+  const actions: RowAction[] = [];
+  if (deliverable.available_actions.can_submit_content) {
+    const label = deliverable.revision_current === 0 ? 'Submit content' : `Submit round ${deliverable.revision_current + 1}`;
+    actions.push({ key: 'submit', label, a11yLabel: `${label} for ${deliverable.display_name}`, tier: 'primary', onPress: onSubmit });
+  }
+  if (deliverable.available_actions.can_approve_content) {
+    actions.push({
+      key: 'approve',
+      label: 'Approve content',
+      a11yLabel: `Approve content for ${deliverable.display_name}`,
+      tier: 'primary',
+      onPress: onApprove,
+    });
+  }
+  if (deliverable.post_state.future_actions.can_submit_or_replace) {
+    const label = currentPost ? 'Replace live URL' : 'Submit live URL';
+    actions.push({ key: 'live-post', label, a11yLabel: `${label} for ${deliverable.display_name}`, tier: 'primary', onPress: onLivePost });
+  }
+  if (deliverable.available_actions.can_request_revision) {
+    actions.push({
+      key: 'revision',
+      label: 'Request revision',
+      a11yLabel: `Request a revision for ${deliverable.display_name}`,
+      tier: 'secondary',
+      onPress: onRequestRevision,
+    });
+  }
+  if (deliverable.post_state.future_actions.can_flag && currentPost) {
+    actions.push({
+      key: 'flag',
+      label: 'Flag issue',
+      a11yLabel: `Flag the live URL for ${deliverable.display_name}`,
+      tier: 'secondary',
+      onPress: onFlagPost,
+    });
+  }
+  const [primaryAction, ...overflowActions] = actions;
+
+  // Every overflow action opens another sheet, so let this one finish its exit
+  // (EditSheet's 220ms) before the next Modal presents.
+  const runOverflowAction = (action: RowAction) => {
+    setOverflowOpen(false);
+    setTimeout(action.onPress, 240);
+  };
+
   return (
     <View className="gap-2 rounded-xl bg-surface-recess p-3">
       <View className="flex-row items-start justify-between gap-3">
@@ -299,48 +359,53 @@ function DeliverableRow({
           </View>
         </View>
       ) : null}
-      {deliverable.available_actions.can_submit_content ? (
-        <Button action="primary" onPress={onSubmit} isDisabled={acting}>
-          <ButtonText>
-            {deliverable.revision_current === 0 ? 'Submit content' : `Submit round ${deliverable.revision_current + 1}`}
-          </ButtonText>
-        </Button>
-      ) : null}
-      {deliverable.available_actions.can_request_revision ? (
-        <Button action="secondary" onPress={onRequestRevision} isDisabled={acting}>
-          <ButtonText>Request revision</ButtonText>
-        </Button>
-      ) : null}
-      {deliverable.available_actions.can_approve_content ? (
-        <Button action="primary" onPress={onApprove} isDisabled={acting}>
-          <ButtonText>Approve content</ButtonText>
-        </Button>
-      ) : null}
-      {deliverable.post_state.future_actions.can_submit_or_replace ? (
-        <Button
-          action="primary"
-          onPress={onLivePost}
-          isDisabled={acting}
-          accessibilityLabel={`${currentPost ? 'Replace' : 'Submit'} live URL for ${deliverable.display_name}`}
-        >
-          <ButtonText>{currentPost ? 'Replace live URL' : 'Submit live URL'}</ButtonText>
-        </Button>
-      ) : null}
-      {deliverable.post_state.future_actions.can_flag && currentPost ? (
-        <Button
-          action="secondary"
-          onPress={onFlagPost}
-          isDisabled={acting}
-          accessibilityLabel={`Flag live URL for ${deliverable.display_name}`}
-        >
-          <ButtonText>Flag issue</ButtonText>
-        </Button>
+      {primaryAction ? (
+        <View className="flex-row items-center gap-2">
+          <Button
+            action={primaryAction.tier}
+            onPress={primaryAction.onPress}
+            isDisabled={acting}
+            accessibilityLabel={primaryAction.a11yLabel}
+            className="flex-1 px-3"
+          >
+            <ButtonText>{primaryAction.label}</ButtonText>
+          </Button>
+          {overflowActions.length ? (
+            <IconButton
+              icon={MoreIcon}
+              label={`More actions for ${deliverable.display_name}`}
+              onPress={() => setOverflowOpen(true)}
+              disabled={acting}
+            />
+          ) : null}
+        </View>
       ) : null}
       {deliverable.status === 'submitted' && !deliverable.available_actions.can_approve_content && !deliverable.content_approval ? (
         <Text className="font-geist text-micro text-ink-3">
           This submission is awaiting brand review.
         </Text>
       ) : null}
+      <EditSheet
+        visible={overflowOpen}
+        onClose={() => setOverflowOpen(false)}
+        title="More actions"
+        subtitle={deliverable.display_name}
+      >
+        <View className="gap-2">
+          {overflowActions.map((action) => (
+            <Button
+              key={action.key}
+              action="secondary"
+              size="lg"
+              onPress={() => runOverflowAction(action)}
+              isDisabled={acting}
+              accessibilityLabel={action.a11yLabel}
+            >
+              <ButtonText>{action.label}</ButtonText>
+            </Button>
+          ))}
+        </View>
+      </EditSheet>
     </View>
   );
 }

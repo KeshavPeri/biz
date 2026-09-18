@@ -821,6 +821,16 @@ up exactly where the last one left off, with zero context lost.
   outgoing chat bubble to `GlassFlush`, added shared neutral `LogoTile`, cleaned remaining off-palette
   values, and added the `tail: 6` radius; PR-20 added shared neutral `PlatformTile` and replaced the
   no-photo media-kit gradient with a warm cane surface. Full frontend checks are green; next: batch 10.
+- **2026-09-18 — Batch 10 (`ui/batch-10`, the last UI batch):** PR-15 turned the deal-room sticky
+  action bar into a peek row (stage label + what's happening + at most one action) that expands into
+  a scrollable panel capped at 60% of the chat area, so the thread and composer are never crushed;
+  the 22-field terms review moved into its own sheet with a sticky approve/request-changes bar; each
+  deliverable row now shows one primary action with the rest behind a 44pt overflow sheet; and acting
+  buttons keep their label with an inline spinner while first-load boxes became skeletons. Full
+  frontend checks are green. The UI remediation programme (PR-00 to PR-23) is complete; the one open
+  finding is B2-43/B2-47 — the creative-brief and payment-details editors still edit inline in their
+  cards instead of in a sheet (see the batch-10 session-log entry in
+  `docs/ui-audit/REMEDIATION-PROGRESS.md`).
 
 ## NEXT UP  *(ordered)*
 
