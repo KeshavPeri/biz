@@ -816,6 +816,11 @@ up exactly where the last one left off, with zero context lost.
   with bounded identity motion, glass edit controls, tabular values, name/bio truncation, and an
   accessible pager. tsc/lint (3 pre-existing warnings)/web-export (35 routes)/node-tests (15/15)
   green. Next: batch 9 (critical-tint/stage pills, off-palette/chat bubble, PlatformTile/hero).
+- **2026-09-18 — Batch 9 (`ui/batch-9`):** PR-10 replaced deal-room red/green washed panels with
+  neutral recess surfaces and status dots, and made stage pills neutral-first; PR-11 moved the
+  outgoing chat bubble to `GlassFlush`, added shared neutral `LogoTile`, cleaned remaining off-palette
+  values, and added the `tail: 6` radius; PR-20 added shared neutral `PlatformTile` and replaced the
+  no-photo media-kit gradient with a warm cane surface. Full frontend checks are green; next: batch 10.
 
 ## NEXT UP  *(ordered)*
 
