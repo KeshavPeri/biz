@@ -80,7 +80,7 @@ export function MediaKitScreen() {
 
   if (loadState === 'loading') {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-app" edges={['top']}>
+      <SafeAreaView className="flex-1 items-center justify-center bg-transparent" edges={['top']}>
         <ActivityIndicator color="#847F78" />
       </SafeAreaView>
     );
@@ -88,7 +88,7 @@ export function MediaKitScreen() {
 
   if (loadState === 'not_onboarded') {
     return (
-      <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+      <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
         <View className="px-4 pt-2">
           <Text className="font-geist-bold text-display text-ink">You</Text>
           <Text className="mt-3 font-geist text-body text-ink-2">
@@ -108,7 +108,7 @@ export function MediaKitScreen() {
 
   if (loadState === 'error' || !data) {
     return (
-      <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+      <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
         <View className="px-4 pt-2">
           <Text className="font-geist-bold text-display text-ink">You</Text>
           <Text className="mt-3 font-geist text-body text-ink-2">
@@ -133,12 +133,17 @@ export function MediaKitScreen() {
   const isPreview = preview;
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
       {/* Top bar — Preview-as-brand toggle. */}
-      <View className="flex-row items-center justify-between px-4 py-2">
-        <Text className="font-geist-bold text-title text-ink">Your media kit</Text>
-        <View className="flex-row items-center gap-2">
-          <Text className="font-geist-medium text-secondary text-ink-2">Preview as brand</Text>
+      <View className="flex-row items-center justify-between gap-3 px-4 py-2">
+        <Text numberOfLines={1} className="flex-shrink font-geist-bold text-title text-ink">
+          Your media kit
+        </Text>
+        {/* Never shrinks: the switch and its label stay on one line, aligned, at 320pt. */}
+        <View className="flex-shrink-0 flex-row items-center gap-2">
+          <Text numberOfLines={1} className="font-geist-medium text-secondary text-ink-2">
+            Preview as brand
+          </Text>
           <Toggle value={isPreview} onValueChange={setPreview} accessibilityLabel="Preview as brand" />
         </View>
       </View>
@@ -241,7 +246,7 @@ function BrandScreen({
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerClassName="px-4 pt-2"

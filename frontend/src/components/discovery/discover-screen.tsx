@@ -100,7 +100,7 @@ export function DiscoverScreen() {
   const count = isBrand ? filteredCreators.length : filteredBrands.length;
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
       <View className="px-4 pt-2">
         <Text className="font-geist-bold text-display text-ink">Discover</Text>
         <View className="mt-3 rounded-input bg-surface-recess px-4 py-3 shadow-recessInset">

@@ -831,6 +831,32 @@ up exactly where the last one left off, with zero context lost.
   finding is B2-43/B2-47 — the creative-brief and payment-details editors still edit inline in their
   cards instead of in a sheet (see the batch-10 session-log entry in
   `docs/ui-audit/REMEDIATION-PROGRESS.md`).
+- **2026-09-18 — Floating glass dock + toggle fix (`ui/floating-glass-dock`, draft PR):**
+  - **Dock:** the full-width tab bar is now a horizontally inset glass capsule.
+    - Native Liquid Glass (`clear`) on iOS 26+.
+    - Elsewhere: light blur, thin warm tint and rim light.
+    - One pillow pill slides between tabs (280ms ease-out).
+    - Scenes cross-fade with a 14pt directional drift (220ms). Reduce Motion makes both instant.
+  - **Active-tab bug:** the old per-tab pill was absolutely positioned and painted over the
+    unpositioned `<svg>` on web, hiding the icon. Icons now sit in a positioned wrapper above the
+    single pill. Tabs also emit `aria-selected` on web.
+  - **Ambient background:** a fixed warm off-white `AmbientBackdrop` (faint teal/cane light) sits
+    behind the navigator. Tab screen roots are now transparent so cards scroll over it; it never
+    moves or animates.
+  - **Shared `Toggle`:** the off-state thumb was invisible because NativeWind doesn't convert
+    `className` on Reanimated's `Animated.View`. The live DOM showed the knob and ink layers at
+    48×0px, transparent. They now use plain styles. The toggle also emits `aria-checked`, and the
+    media-kit header keeps the switch intact at 320pt.
+  - **Checks:** tsc, eslint (changed files), node tests 15/15, web export all green. Browser-pane
+    checks at 390/375/320 wide:
+    - all 5 tabs
+    - toggle off/on/Exit
+    - scroll-under and last-item clearance
+    - unread dot (forced temporarily)
+    - pill and scene timing
+    - Discover scroll position kept across tab switches
+  - **Not verified:** native iPhone (project SDK 54 vs phone Expo Go SDK 57), real iOS safe-area
+    insets and live Reduce Motion (checked by code path only).
 
 ## NEXT UP  *(ordered)*
 
@@ -869,6 +895,16 @@ do not proceed. I'll resolve these at the start of my next session.*
 
 *Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later.*
+
+- 2026-09-18 — **Dock glass balance.**
+  - Founder asked for glass between liquid and frosted, and a static ambient background.
+  - Dock tint is `rgba(251,250,246,0.56)` over a light blur. 0.34 let dark hero imagery drop the
+    11px inactive labels to weak contrast. It's 0.88 where web lacks `backdrop-filter`.
+  - The ambient layer is mounted once behind `<Tabs>` and is static by design.
+- 2026-09-18 — **Rule: no `className` on Reanimated `Animated.View`.** NativeWind only converts it
+  on registered components. Verified broken for `Toggle`. The same pattern still exists in
+  `detail-header`, `stage-progress-bar`, `signature-pad` and `verify-otp`, left out of this task's
+  scope; worth an audit.
 
 - 2026-09-16 — **Phase 9 sequencing gate.** Founder explicitly approved closing workplan
   9.18 and 9.19 for sequencing while deferring the unrun manual lifecycle walkthrough.
@@ -1203,6 +1239,15 @@ here in one line so I can review or reverse it later.*
 ---
 
 ## SESSION HISTORY  *(append-only — newest at top, keep each entry brief)*
+
+### 2026-09-18 — Floating glass dock, sliding tab indicator, toggle thumb fix
+
+- Frontend-only UI task on `ui/floating-glass-dock`; no backend, auth or tab-destination changes.
+- Diagnosed and fixed both reported bugs in the browser pane: the active-tab icon was covered by
+  the pill (web paint order), and the toggle knob and ink layers rendered 0px tall (dropped
+  NativeWind classes).
+- Pane coordinate clicks don't fire dock tabs under touch emulation. `main`'s original bar
+  behaves the same, so tab switching was driven by DOM clicks.
 
 ### 2026-09-16 — Phase 9 RTM and sequencing gate
 

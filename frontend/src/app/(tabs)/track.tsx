@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 // Track — placeholder shell (task 6.5); trackers land in Phase 11.
 export default function TrackScreen() {
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
       <EmptyState
         Icon={ChartIcon}
         title="Track is coming together"

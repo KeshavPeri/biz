@@ -124,7 +124,7 @@ export default function ChatScreen() {
   }, [editorDeal, fence, identity, reloadLabels, userId]);
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
       <View className="px-4 pb-2 pt-2">
         <Text className="font-geist-bold text-display text-ink">Chat</Text>
       </View>
