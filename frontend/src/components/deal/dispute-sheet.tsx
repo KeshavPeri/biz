@@ -90,9 +90,12 @@ export function DisputeSheet({
     <EditSheet visible={visible} onClose={close} title={confirming ? 'Confirm payment dispute' : 'Raise a payment dispute'} subtitle={confirming ? 'Raising this pauses Payment tracking. Platform operations must later resolve it.' : 'Describe the issue. You can optionally attach evidence already visible in this deal.'} footer={footer}>
       {confirming ? (
         <View className="gap-3">
-          <View className="rounded-xl border border-status-critical bg-status-critical-tint px-3 py-3">
-            <Text className="font-geist-semibold text-secondary text-status-critical">Payment tracking will pause</Text>
-            <Text className="mt-1 font-geist text-micro text-ink-2">This does not resolve the dispute, restart payment, or move money.</Text>
+          <View className="flex-row items-start gap-2 rounded-panel bg-surface-recess px-3 py-3">
+            <View className="mt-1.5 h-2 w-2 rounded-full bg-status-critical" />
+            <View className="min-w-0 flex-1">
+              <Text className="font-geist-semibold text-secondary text-status-critical">Payment tracking will pause</Text>
+              <Text className="mt-1 font-geist text-micro text-ink-2">This does not resolve the dispute, restart payment, or move money.</Text>
+            </View>
           </View>
           <Text className="font-geist text-micro text-ink-2">{trimmed}</Text>
           <Text className="font-geist text-micro text-ink-3">{selected.length} evidence item{selected.length === 1 ? '' : 's'} selected</Text>

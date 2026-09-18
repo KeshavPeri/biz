@@ -91,8 +91,9 @@ export function DeliverablesCard({
         </Text>
       </View>
       {state.deliverables.length === 0 ? (
-        <View className="rounded-xl bg-status-critical-tint px-3 py-3">
-          <Text className="font-geist-medium text-secondary text-status-critical">
+        <View className="flex-row items-start gap-2 rounded-panel bg-surface-recess px-3 py-3">
+          <View className="mt-1.5 h-2 w-2 rounded-full bg-status-critical" />
+          <Text className="flex-1 font-geist-medium text-secondary text-status-critical">
             The agreed plan is empty. Refresh or ask support to review the approved terms.
           </Text>
         </View>
@@ -183,9 +184,12 @@ function DeliverableRow({
           <Text className="font-geist-medium text-micro text-ink-3">Current live proof</Text>
           <PostEvidence evidence={currentPost} current onOpenVerifiedPost={onOpenVerifiedPost} />
           {currentPost.verification_status === 'flagged' && currentPost.flag_reason ? (
-            <View className="rounded-lg bg-status-critical-tint px-2.5 py-2">
-              <Text className="font-geist-semibold text-secondary text-status-critical">Flagged for correction</Text>
-              <Text selectable className="mt-0.5 font-geist text-micro text-ink-2">{currentPost.flag_reason}</Text>
+            <View className="flex-row items-start gap-2 rounded-panel bg-surface-recess px-2.5 py-2">
+              <View className="mt-1.5 h-2 w-2 rounded-full bg-status-critical" />
+              <View className="min-w-0 flex-1">
+                <Text className="font-geist-semibold text-secondary text-status-critical">Flagged for correction</Text>
+                <Text selectable className="mt-0.5 font-geist text-micro text-ink-2">{currentPost.flag_reason}</Text>
+              </View>
             </View>
           ) : null}
           {priorPosts.length || deliverable.post_state.history_truncated ? (
@@ -212,11 +216,14 @@ function DeliverableRow({
         <Text className="border-t border-hairline pt-2 font-geist text-micro text-ink-3">No live URL submitted yet.</Text>
       ) : null}
       {deliverable.content_ops_attention ? (
-        <View className="rounded-lg bg-status-critical-tint px-2.5 py-2">
-          <Text className="font-geist-semibold text-secondary text-status-critical">Revision rounds exhausted</Text>
-          <Text className="mt-0.5 font-geist text-micro text-ink-2">
-            This deal remains in Creating and is paused for platform help.
-          </Text>
+        <View className="flex-row items-start gap-2 rounded-panel bg-surface-recess px-2.5 py-2">
+          <View className="mt-1.5 h-2 w-2 rounded-full bg-status-critical" />
+          <View className="min-w-0 flex-1">
+            <Text className="font-geist-semibold text-secondary text-status-critical">Revision rounds exhausted</Text>
+            <Text className="mt-0.5 font-geist text-micro text-ink-2">
+              This deal remains in Creating and is paused for platform help.
+            </Text>
+          </View>
         </View>
       ) : null}
       {deliverable.submission_history.length ? (
@@ -253,13 +260,17 @@ function DeliverableRow({
         <Text className="border-t border-hairline pt-2 font-geist text-micro text-ink-3">No draft submitted yet.</Text>
       )}
       {deliverable.content_approval ? (
-        <View className={`rounded-lg px-2.5 py-2 ${
+        <View className={`flex-row items-start gap-2 rounded-panel px-2.5 py-2 ${
           deliverable.content_approval.status === 'rejected'
-            ? 'bg-status-critical-tint'
+            ? 'bg-surface-recess'
             : deliverable.content_approval.status === 'approved'
-              ? 'bg-status-good-tint'
+              ? 'bg-surface-recess'
               : 'bg-cane-1'
         }`}>
+          {deliverable.content_approval.status !== 'pending' ? (
+            <View className={`mt-1.5 h-2 w-2 rounded-full ${deliverable.content_approval.status === 'rejected' ? 'bg-status-critical' : 'bg-status-good'}`} />
+          ) : null}
+          <View className="min-w-0 flex-1">
           <Text className="font-geist-semibold text-secondary text-ink">
             {deliverable.content_approval.status === 'pending'
               ? `Awaiting checker · ${deliverable.content_approval.checker_name}`
@@ -285,6 +296,7 @@ function DeliverableRow({
               </Button>
             </View>
           ) : null}
+          </View>
         </View>
       ) : null}
       {deliverable.available_actions.can_submit_content ? (

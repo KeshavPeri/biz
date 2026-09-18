@@ -30,7 +30,7 @@ export function DisputeCard({
   if (dispute.current_open) {
     const current = dispute.current_open;
     return (
-      <View className="gap-2 rounded-2xl border border-status-critical bg-status-critical-tint p-3">
+      <View className="gap-2 rounded-2xl border border-hairline bg-surface-recess p-3">
         <View className="flex-row items-start justify-between gap-3">
           <View className="min-w-0 flex-1">
             <Text className="font-geist-semibold text-secondary text-status-critical">Payment dispute open</Text>
@@ -122,9 +122,12 @@ export function DisputeDetailSheet({
 
 function DisputeDetail({ item, current = false }: { item: DisputeItem; current?: boolean }) {
   return (
-    <View className={`gap-2 rounded-xl border p-3 ${current ? 'border-status-critical bg-status-critical-tint' : 'border-hairline bg-surface-card'}`}>
+    <View className={`gap-2 rounded-xl border p-3 ${current ? 'border-hairline bg-surface-recess' : 'border-hairline bg-surface-card'}`}>
       <View className="flex-row items-center justify-between gap-2">
-        <Text className={`font-geist-semibold text-secondary ${current ? 'text-status-critical' : 'text-ink'}`}>{item.status === 'open' ? 'Open dispute' : 'Resolved dispute'}</Text>
+        <View className="flex-row items-center gap-2">
+          {current ? <View className="h-2 w-2 rounded-full bg-status-critical" /> : null}
+          <Text className={`font-geist-semibold text-secondary ${current ? 'text-status-critical' : 'text-ink'}`}>{item.status === 'open' ? 'Open dispute' : 'Resolved dispute'}</Text>
+        </View>
         <Text className="font-geist text-micro tabular-nums text-ink-3">{item.created_at}</Text>
       </View>
       <Text className="font-geist text-micro text-ink">{item.description}</Text>

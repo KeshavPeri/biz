@@ -1218,8 +1218,9 @@ export function StickyActionBar({
           return (
             <Actions label="Connection request" error={error}>
               {exclusivityWarning ? (
-                <View className="mb-2 rounded-xl bg-status-critical-tint px-3 py-2">
-                  <Text className="font-geist-medium text-[13px] text-status-critical">{exclusivityWarning}</Text>
+                <View className="mb-2 flex-row items-start gap-2 rounded-panel bg-surface-recess px-3 py-2">
+                  <View className="mt-1.5 h-2 w-2 rounded-full bg-status-critical" />
+                  <Text className="flex-1 font-geist-medium text-[13px] text-status-critical">{exclusivityWarning}</Text>
                   <Text className="mt-0.5 font-geist text-[12px] text-ink-2">
                     You can still accept — this is a heads-up, not a block.
                   </Text>
@@ -1508,7 +1509,9 @@ function ContractCard({
       />
 
       {approval ? (
-        <View className={`rounded-xl px-3 py-2 ${approval.status === 'rejected' ? 'bg-status-critical-tint' : approval.status === 'approved' ? 'bg-status-good-tint' : 'bg-cane-1'}`}>
+        <View className={`flex-row items-start gap-2 rounded-panel px-3 py-2 ${approval.status === 'rejected' || approval.status === 'approved' ? 'bg-surface-recess' : 'bg-cane-1'}`}>
+          {approval.status !== 'pending' ? <View className={`mt-1.5 h-2 w-2 rounded-full ${approval.status === 'rejected' ? 'bg-status-critical' : 'bg-status-good'}`} /> : null}
+          <View className="min-w-0 flex-1">
           <Text className="font-geist-semibold text-secondary text-ink">
             {approval.status === 'pending'
               ? `Maker signature held · waiting for ${approval.checker_name}`
@@ -1523,6 +1526,7 @@ function ContractCard({
               <PrimaryButton className="flex-1 px-3" label="Approve signing" onPress={() => onDecision(approval.request_id, 'approve')} disabled={acting} />
             </View>
           ) : null}
+          </View>
         </View>
       ) : null}
 

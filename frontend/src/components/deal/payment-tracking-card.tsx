@@ -220,9 +220,12 @@ export function PaymentTrackingCard({
         </View>
 
         {isDisputed || state.state === 'disputed' ? (
-          <View className="rounded-xl bg-status-critical-tint px-3 py-2.5">
-            <Text className="font-geist-semibold text-secondary text-status-critical">Dispute in progress — payment tracking is paused.</Text>
-            <Text className="mt-1 font-geist text-micro text-ink-2">Current evidence remains visible and read-only.</Text>
+          <View className="flex-row items-start gap-2 rounded-panel bg-surface-recess px-3 py-2.5">
+            <View className="mt-1.5 h-2 w-2 rounded-full bg-status-critical" />
+            <View className="min-w-0 flex-1">
+              <Text className="font-geist-semibold text-secondary text-status-critical">Dispute in progress — payment tracking is paused.</Text>
+              <Text className="mt-1 font-geist text-micro text-ink-2">Current evidence remains visible and read-only.</Text>
+            </View>
           </View>
         ) : state.stage === 'closed' ? (
           <View className="rounded-xl bg-surface-recess px-3 py-2.5">
@@ -269,8 +272,11 @@ export function PaymentTrackingCard({
         )}
 
         {error ? (
-          <View className="gap-2 rounded-xl bg-status-critical-tint px-3 py-2.5">
-            <Text className="font-geist-medium text-micro text-status-critical">{error}</Text>
+          <View className="gap-2 rounded-panel bg-surface-recess px-3 py-2.5">
+            <View className="flex-row items-start gap-2">
+              <View className="mt-1.5 h-2 w-2 rounded-full bg-status-critical" />
+              <Text className="flex-1 font-geist-medium text-micro text-status-critical">{error}</Text>
+            </View>
             <RetryButton label="Refresh payment tracking" onPress={onRetry} />
           </View>
         ) : null}
@@ -423,7 +429,7 @@ function StatusLine({ state }: { state: PaymentState }) {
   const good = state === 'paid_full';
   const warning = state === 'not_paid_delayed';
   return (
-    <View className={`self-start flex-row items-center gap-2 rounded-lg px-2 py-1.5 ${critical ? 'bg-status-critical-tint' : good ? 'bg-status-good-tint' : warning ? 'bg-cane-1' : 'bg-surface-card'}`}>
+    <View className={`self-start flex-row items-center gap-2 rounded-panel px-2 py-1.5 ${critical || good ? 'bg-surface-recess' : warning ? 'bg-cane-1' : 'bg-surface-card'}`}>
       <View className={`h-2 w-2 rounded-full ${critical ? 'bg-status-critical' : good ? 'bg-status-good' : warning ? 'bg-cane-5' : 'bg-status-neutral'}`} />
       <Text className={`font-geist-semibold text-micro ${critical ? 'text-status-critical' : good ? 'text-status-good-label' : 'text-ink-2'}`}>
         {PAYMENT_STATE_LABELS[state]}

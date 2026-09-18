@@ -70,8 +70,9 @@ export function TermsReviewCard({
       ) : null}
 
       {!readOnly && blocked ? (
-        <View className="rounded-xl bg-status-critical-tint px-3 py-2">
-          <Text className="font-geist-medium text-micro text-status-critical">
+        <View className="flex-row items-start gap-2 rounded-panel bg-surface-recess px-3 py-2">
+          <View className="mt-1.5 h-2 w-2 rounded-full bg-status-critical" />
+          <Text className="flex-1 font-geist-medium text-micro text-status-critical">
             {summary.unresolved_fields.length} applicable field{summary.unresolved_fields.length === 1 ? '' : 's'} must be clarified before approval.
           </Text>
         </View>

@@ -130,13 +130,16 @@ export function PaymentStateSheet({
         </View>
       ) : reviewingConsequence && consequence ? (
         <View className="gap-3">
-          <View className="rounded-xl bg-status-critical-tint px-3 py-3">
-            <Text className="font-geist-semibold text-secondary text-status-critical">
-              Record {selectedLabel} for {target.label}?
-            </Text>
-            <Text className="mt-1 font-geist text-micro text-ink-2">
-              This records a high-consequence tracking label only. It does not move, refund, verify, or recover money.
-            </Text>
+          <View className="flex-row items-start gap-2 rounded-panel bg-surface-recess px-3 py-3">
+            <View className="mt-1.5 h-2 w-2 rounded-full bg-status-critical" />
+            <View className="min-w-0 flex-1">
+              <Text className="font-geist-semibold text-secondary text-status-critical">
+                Record {selectedLabel} for {target.label}?
+              </Text>
+              <Text className="mt-1 font-geist text-micro text-ink-2">
+                This records a high-consequence tracking label only. It does not move, refund, verify, or recover money.
+              </Text>
+            </View>
           </View>
           <Button
             action="secondary"
@@ -182,8 +185,9 @@ export function PaymentStateSheet({
 
 function ActionError({ message }: { message: string }) {
   return (
-    <View className="rounded-xl bg-status-critical-tint px-3 py-2.5">
-      <Text className="font-geist-medium text-micro text-status-critical">{message}</Text>
+    <View className="flex-row items-start gap-2 rounded-panel bg-surface-recess px-3 py-2.5">
+      <View className="mt-1.5 h-2 w-2 rounded-full bg-status-critical" />
+      <Text className="flex-1 font-geist-medium text-micro text-status-critical">{message}</Text>
     </View>
   );
 }
