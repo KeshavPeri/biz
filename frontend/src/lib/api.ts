@@ -5,11 +5,32 @@
  * change deal state / need service_role (docs/api-architecture.md). Those endpoints
  * verify the caller's Supabase JWT, so we send it as a Bearer token.
  *
- * Base URL comes from EXPO_PUBLIC_API_URL (defaults to localhost for web/simulator
- * dev). On a physical device the laptop's LAN IP must be set there (Phase 14).
+ * Base URL comes from EXPO_PUBLIC_API_URL; in local dev its host follows the
+ * host the app was loaded from (see api-base.ts), so a phone on the LAN works
+ * without rebuilding when the laptop's IP changes.
  */
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
+import { resolveApiBase } from './api-base';
+
+/** Host this app was loaded from: the page on web, the Metro dev server on native. */
+function currentHost(): string | undefined {
+  if (Platform.OS === 'web') {
+    return typeof window !== 'undefined' ? window.location?.hostname || undefined : undefined;
+  }
+  const hostUri = Constants.expoConfig?.hostUri;
+  return hostUri ? hostUri.split(':')[0] : undefined;
+}
+
+let apiBase: string | undefined;
+
+/** Resolved lazily so the web static render (no window) never pins the wrong host. */
+function getApiBase(): string {
+  apiBase ??= resolveApiBase(process.env.EXPO_PUBLIC_API_URL, currentHost());
+  return apiBase;
+}
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; message: string; status?: number };
 
@@ -23,7 +44,7 @@ export async function postJson<T>(
   accessToken: string,
 ): Promise<ApiResult<T>> {
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
+    const res = await fetch(`${getApiBase()}${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -59,7 +80,7 @@ export async function putJson<T>(
   accessToken: string,
 ): Promise<ApiResult<T>> {
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
+    const res = await fetch(`${getApiBase()}${path}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -88,7 +109,7 @@ export async function putJson<T>(
 /** GET JSON from FastAPI with the same friendly-error contract as postJson. */
 export async function getJson<T>(path: string, accessToken: string): Promise<ApiResult<T>> {
   try {
-    const res = await fetch(`${API_BASE}${path}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const res = await fetch(`${getApiBase()}${path}`, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!res.ok) {
       let message = 'Something went wrong. Please try again.';
       try {
