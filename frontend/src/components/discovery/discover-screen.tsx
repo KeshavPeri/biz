@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
-import { LayoutAnimationConfig } from 'react-native-reanimated';
+import { StyleSheet, Text, TextInput, View, type LayoutChangeEvent } from 'react-native';
+import Animated, {
+  Extrapolation,
+  LayoutAnimationConfig,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, type Href } from 'expo-router';
 
@@ -10,6 +18,8 @@ import { FilterChips } from '@/components/discovery/filter-chips';
 import { ListItemFade } from '@/components/motion/list-item-fade';
 import { Skeleton } from '@/components/motion/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ScrollEdgeScrim } from '@/components/ui/scroll-edge-scrim';
+import { useMotion } from '@/components/motion/use-motion';
 import {
   fetchBrandsForBrowse,
   fetchCreatorsForBrowse,
@@ -96,37 +106,65 @@ export function DiscoverScreen() {
     });
   }, [brands, search, industry, city]);
 
+  // Scroll-linked header: the large title fades as it leaves, and the pinned search
+  // row gains its backing only once content is actually passing beneath it.
+  const { reduce } = useMotion();
+  const scrollY = useSharedValue(0);
+  const titleH = useSharedValue(56);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
+  const onTitleLayout = (e: LayoutChangeEvent) => {
+    titleH.value = e.nativeEvent.layout.height;
+  };
+  const edge = useDerivedValue(() =>
+    interpolate(scrollY.value, [titleH.value - 4, titleH.value + 8], [0, 1], Extrapolation.CLAMP)
+  );
+  const titleStyle = useAnimatedStyle(() =>
+    reduce
+      ? {}
+      : { opacity: interpolate(scrollY.value, [0, titleH.value * 0.8], [1, 0], Extrapolation.CLAMP) }
+  );
+
   const isBrand = accountType === 'brand';
   const count = isBrand ? filteredCreators.length : filteredBrands.length;
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={['top']}>
-      <View className="px-4 pt-2">
-        <Text className="font-geist-bold text-display text-ink">Discover</Text>
-        <View className="mt-3 rounded-input bg-surface-recess px-4 py-3 shadow-recessInset">
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder={loading ? 'Search' : isBrand ? 'Creators by name' : 'Brands by name'}
-            placeholderTextColor="#847F78"
-            className="font-geist text-body text-ink"
-            autoCapitalize="none"
-            editable={!loading}
-          />
-        </View>
-      </View>
+    <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        // The search row (child 1) pins once the large title has scrolled away.
+        stickyHeaderIndices={[1]}
+        contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
+        scrollIndicatorInsets={{ bottom: tabBarInset }}
+      >
+        <Animated.View onLayout={onTitleLayout} style={[styles.title, titleStyle]}>
+          <Text className="font-geist-bold text-display text-ink">Discover</Text>
+        </Animated.View>
 
-      {loading ? (
-        <View className="px-4 pt-3">
-          <Skeleton.CardGrid columns={2} rows={3} />
+        <View style={styles.searchRow}>
+          <ScrollEdgeScrim progress={edge} />
+          <View className="rounded-input bg-surface-recess px-4 py-3 shadow-recessInset">
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder={loading ? 'Search' : isBrand ? 'Creators by name' : 'Brands by name'}
+              placeholderTextColor="#847F78"
+              className="font-geist text-body text-ink"
+              autoCapitalize="none"
+              editable={!loading}
+            />
+          </View>
         </View>
-      ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerClassName="px-4 pt-3"
-          contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
-          scrollIndicatorInsets={{ bottom: tabBarInset }}
-        >
+
+        {loading ? (
+          <View className="px-4 pt-1">
+            <Skeleton.CardGrid columns={2} rows={3} />
+          </View>
+        ) : (
+          <View className="px-4 pt-1">
           {isBrand ? (
             <>
               <FilterChips label="Niche" options={creatorNiches} selected={niche} onSelect={setNiche} />
@@ -176,8 +214,15 @@ export function DiscoverScreen() {
               ))}
             </LayoutAnimationConfig>
           )}
-        </ScrollView>
-      )}
+          </View>
+        )}
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  title: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
+  // Vertical padding gives the pinned field breathing room from the top edge.
+  searchRow: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 10 },
+});

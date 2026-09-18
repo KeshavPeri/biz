@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
  */
 export function TabPlaceholder({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
       <View className="px-4 pt-2">
         <Text className="font-geist-bold text-display text-ink">{title}</Text>
         {children}

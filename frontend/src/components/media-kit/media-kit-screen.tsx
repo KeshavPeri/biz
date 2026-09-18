@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ScrollEdgeScrim } from '@/components/ui/scroll-edge-scrim';
 import { Toggle } from '@/components/ui/toggle';
 import { MediaKitView } from '@/components/media-kit/media-kit-view';
 import { EditProfileSheet } from '@/components/media-kit/editors/edit-profile-sheet';
@@ -14,7 +15,13 @@ import { PhotosEditor } from '@/components/media-kit/editors/photos-editor';
 import { useTabBarInset } from '@/hooks/use-tab-bar-inset';
 import { fetchOwnMediaKit, type MediaKitData, type SocialHandle } from '@/lib/media-kit';
 import { useAuthStore } from '@/store/auth-store';
-import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedScrollHandler,
+  useDerivedValue,
+  useSharedValue,
+} from 'react-native-reanimated';
 
 type Editor = 'profile' | 'handle' | 'rate' | 'privacy' | 'affiliations' | 'photos' | null;
 
@@ -36,6 +43,11 @@ export function MediaKitScreen() {
   const onScroll = useAnimatedScrollHandler((event) => {
     scrollY.value = event.contentOffset.y;
   });
+  const [headerHeight, setHeaderHeight] = useState(52);
+  // The header's backing appears only once the hero has started passing beneath it.
+  const headerEdge = useDerivedValue(() =>
+    interpolate(scrollY.value, [0, 12], [0, 1], Extrapolation.CLAMP)
+  );
 
   const load = useCallback(async () => {
     if (!session) {
@@ -80,7 +92,7 @@ export function MediaKitScreen() {
 
   if (loadState === 'loading') {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-app" edges={['top']}>
+      <SafeAreaView className="flex-1 items-center justify-center bg-transparent" edges={['top']}>
         <ActivityIndicator color="#847F78" />
       </SafeAreaView>
     );
@@ -88,7 +100,7 @@ export function MediaKitScreen() {
 
   if (loadState === 'not_onboarded') {
     return (
-      <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+      <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
         <View className="px-4 pt-2">
           <Text className="font-geist-bold text-display text-ink">You</Text>
           <Text className="mt-3 font-geist text-body text-ink-2">
@@ -108,7 +120,7 @@ export function MediaKitScreen() {
 
   if (loadState === 'error' || !data) {
     return (
-      <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+      <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
         <View className="px-4 pt-2">
           <Text className="font-geist-bold text-display text-ink">You</Text>
           <Text className="mt-3 font-geist text-body text-ink-2">
@@ -133,33 +145,14 @@ export function MediaKitScreen() {
   const isPreview = preview;
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={['top']}>
-      {/* Top bar — Preview-as-brand toggle. */}
-      <View className="flex-row items-center justify-between px-4 py-2">
-        <Text className="font-geist-bold text-title text-ink">Your media kit</Text>
-        <View className="flex-row items-center gap-2">
-          <Text className="font-geist-medium text-secondary text-ink-2">Preview as brand</Text>
-          <Toggle value={isPreview} onValueChange={setPreview} accessibilityLabel="Preview as brand" />
-        </View>
-      </View>
-
-      {isPreview ? (
-        <View className="mx-4 mb-1 flex-row items-center gap-2 rounded-panel bg-surface-recess px-3.5 py-2 shadow-recessInset">
-          <Text className="flex-1 font-geist text-secondary text-ink-2">
-            This is roughly what a brand sees. Real visibility is enforced server-side.
-          </Text>
-          <Pressable onPress={() => setPreview(false)} accessibilityRole="button">
-            <Text className="font-geist-semibold text-secondary text-ink">Exit</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
+    <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
-        scrollIndicatorInsets={{ bottom: tabBarInset }}
+        // Content starts below the overlaid header, then scrolls up beneath it.
+        contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: tabBarInset + 16 }}
+        scrollIndicatorInsets={{ top: headerHeight, bottom: tabBarInset }}
       >
         <MediaKitView
           data={data}
@@ -182,6 +175,38 @@ export function MediaKitScreen() {
           }
         />
       </Animated.ScrollView>
+
+      {/* Header overlays the scroll so the hero dissolves beneath it instead of being sliced. */}
+      <View
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
+      >
+        <ScrollEdgeScrim progress={headerEdge} />
+        {/* Top bar — Preview-as-brand toggle. */}
+        <View className="flex-row items-center justify-between gap-3 px-4 py-2">
+          <Text numberOfLines={1} className="flex-shrink font-geist-bold text-title text-ink">
+            Your media kit
+          </Text>
+          {/* Never shrinks: the switch and its label stay on one line, aligned, at 320pt. */}
+          <View className="flex-shrink-0 flex-row items-center gap-2">
+            <Text numberOfLines={1} className="font-geist-medium text-secondary text-ink-2">
+              Preview as brand
+            </Text>
+            <Toggle value={isPreview} onValueChange={setPreview} accessibilityLabel="Preview as brand" />
+          </View>
+        </View>
+
+        {isPreview ? (
+          <View className="mx-4 mb-1 flex-row items-center gap-2 rounded-panel bg-surface-recess px-3.5 py-2 shadow-recessInset">
+            <Text className="flex-1 font-geist text-secondary text-ink-2">
+              This is roughly what a brand sees. Real visibility is enforced server-side.
+            </Text>
+            <Pressable onPress={() => setPreview(false)} accessibilityRole="button">
+              <Text className="font-geist-semibold text-secondary text-ink">Exit</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </View>
 
       {/* Editors. */}
       <EditProfileSheet visible={editor === 'profile'} onClose={() => setEditor(null)} onSaved={afterSave} data={data} />
@@ -241,7 +266,7 @@ function BrandScreen({
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-app" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerClassName="px-4 pt-2"
