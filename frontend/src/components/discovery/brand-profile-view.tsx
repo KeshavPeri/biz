@@ -1,17 +1,11 @@
 import { Text, View } from 'react-native';
 
+import { LogoTile } from '@/components/discovery/logo-tile';
 import { Button, ButtonText } from '@/components/ui/button';
 import { type BrandProfile } from '@/lib/media-kit';
 
 import CheckIcon from '@/assets/icons/check.svg';
 import StarIcon from '@/assets/icons/star.svg';
-
-const LOGO_COLORS = ['#B96A83', '#A9BE8E', '#CBB080', '#8FA3B5', '#C98FA0', '#7E5B4E'];
-function logoColor(name: string): string {
-  let sum = 0;
-  for (let i = 0; i < name.length; i += 1) sum += name.charCodeAt(i);
-  return LOGO_COLORS[sum % LOGO_COLORS.length];
-}
 
 /**
  * BrandProfileView — read-only brand business profile (B2-006 / B2-038), shown to a
@@ -32,14 +26,7 @@ export function BrandProfileView({ data, onConnect }: { data: BrandProfile; onCo
     <View className="px-4 pb-8 pt-2">
       {/* Header */}
       <View className="flex-row items-center gap-3.5">
-        <View
-          className="h-16 w-16 items-center justify-center rounded-panel"
-          style={{ backgroundColor: logoColor(data.companyName) }}
-        >
-          <Text className="font-geist-bold text-[22px] text-white">
-            {data.companyName.trim().slice(0, 2).toUpperCase()}
-          </Text>
-        </View>
+        <LogoTile name={data.companyName} size="large" />
         <View className="flex-1">
           <View className="flex-row items-center gap-2">
             <Text className="font-geist-bold text-title text-ink" numberOfLines={2}>

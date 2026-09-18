@@ -35,7 +35,10 @@ export function DealPreviewCard({ deal, labels, onPress, onEditLabels }: {
           </Text>
           <View className="mt-0.5 flex-row items-center gap-1.5">
             <View className={`rounded-pill px-2 py-0.5 ${pill.bg}`}>
-              <Text className={`font-geist-semibold text-micro ${pill.text}`}>{pill.label}</Text>
+              <View className="flex-row items-center gap-1">
+                {pill.dot === 'critical' ? <View className="h-1.5 w-1.5 rounded-full bg-status-critical" /> : null}
+                <Text className={`font-geist-semibold text-micro ${pill.text}`}>{pill.label}</Text>
+              </View>
             </View>
             {directionLabel ? (
               <View className="rounded-pill border border-hairline px-2 py-0.5">

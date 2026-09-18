@@ -21,7 +21,7 @@ export function SelectedChatAttachment({
 }) {
   return (
     <View className="mb-2 flex-row items-center gap-2 rounded-xl border border-hairline bg-surface-card px-3 py-2">
-      <AttachmentIcon width={18} height={18} color="#5D5953" />
+      <AttachmentIcon width={18} height={18} color="#5E574E" />
       <View className="min-w-0 flex-1">
         <Text numberOfLines={1} className="font-geist-medium text-secondary text-ink">{attachment.name}</Text>
         <Text className="font-geist text-micro text-ink-3">
@@ -35,7 +35,7 @@ export function SelectedChatAttachment({
         onPress={onRemove}
         className="h-8 w-8 items-center justify-center"
       >
-        <CloseIcon width={18} height={18} color="#5D5953" />
+        <CloseIcon width={18} height={18} color="#5E574E" />
       </Pressable>
     </View>
   );
@@ -147,7 +147,7 @@ export function ChatAttachment({
       onPress={open}
       className="my-1 flex-row items-center gap-2 rounded-xl border border-hairline bg-app px-3 py-2"
     >
-      <AttachmentIcon width={20} height={20} color="#5D5953" />
+      <AttachmentIcon width={20} height={20} color="#5E574E" />
       <View className="min-w-0 flex-1">
         <Text numberOfLines={1} className="font-geist-medium text-secondary text-ink">{attachment.fileName}</Text>
         <Text className="font-geist text-micro text-ink-3">

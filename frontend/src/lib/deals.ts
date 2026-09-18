@@ -2051,21 +2051,21 @@ export function subscribeToTermApprovals(
 
 /* ── Presentation helpers (shared by the list card + the deal-room header) ── */
 
-/** Label + NativeWind token classes (bg + text kept apart) for a stage pill. Colours from the mockup. */
-export function stagePill(stage: DealStage, isDisputed: boolean): { label: string; bg: string; text: string } {
+/** Label + NativeWind token classes (bg + text kept apart) for a stage pill. */
+export function stagePill(stage: DealStage, isDisputed: boolean): { label: string; bg: string; text: string; dot?: 'critical' } {
   if (isDisputed && stage === 'payment') {
-    return { label: 'Disputed', bg: 'bg-status-critical-tint', text: 'text-status-critical' };
+    return { label: 'Disputed', bg: 'bg-surface-recess', text: 'text-status-critical', dot: 'critical' };
   }
   const map: Record<DealStage, { label: string; bg: string; text: string }> = {
     pending: { label: 'Pending', bg: 'bg-surface-recess', text: 'text-ink-3' },
     chatting: { label: 'Chatting', bg: 'bg-surface-recess', text: 'text-ink-2' },
-    approval: { label: 'Approval', bg: 'bg-[#F3EFE2]', text: 'text-[#8A7A45]' },
-    creating: { label: 'Creating', bg: 'bg-[#E8EFF0]', text: 'text-[#12707E]' },
+    approval: { label: 'Approval', bg: 'bg-surface-recess', text: 'text-ink-2' },
+    creating: { label: 'Creating', bg: 'bg-surface-recess', text: 'text-ink-2' },
     posted: { label: 'Posted', bg: 'bg-status-good-tint', text: 'text-status-good-label' },
-    payment: { label: 'Payment', bg: 'bg-[#EFEBE3]', text: 'text-[#6A553E]' },
+    payment: { label: 'Payment', bg: 'bg-surface-recess', text: 'text-ink-2' },
     closed: { label: 'Closed', bg: 'bg-surface-recess', text: 'text-ink-3' },
-    declined: { label: 'Declined', bg: 'bg-status-critical-tint', text: 'text-status-critical' },
-    cancelled: { label: 'Cancelled', bg: 'bg-status-critical-tint', text: 'text-status-critical' },
+    declined: { label: 'Declined', bg: 'bg-surface-recess', text: 'text-status-critical' },
+    cancelled: { label: 'Cancelled', bg: 'bg-surface-recess', text: 'text-status-critical' },
   };
   return map[stage];
 }

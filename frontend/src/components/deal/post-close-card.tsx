@@ -79,8 +79,11 @@ export function PostCloseCard({
       </Section>
 
       {error ? (
-        <View className="gap-2 rounded-xl bg-status-critical-tint px-3 py-2.5">
-          <Text accessibilityRole="alert" className="font-geist text-micro text-status-critical">{error}</Text>
+        <View className="gap-2 rounded-panel bg-surface-recess px-3 py-2.5">
+          <View className="flex-row items-start gap-2">
+            <View className="mt-1.5 h-2 w-2 rounded-full bg-status-critical" />
+            <Text accessibilityRole="alert" className="flex-1 font-geist text-micro text-status-critical">{error}</Text>
+          </View>
           <InlineButton label="Refresh post-deal record" onPress={onRetry} disabled={loading || acting} />
         </View>
       ) : null}

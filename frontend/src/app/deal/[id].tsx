@@ -311,7 +311,7 @@ export default function DealRoomScreen() {
         onBack={() => router.back()}
         rightAction={currentThread && !isTerminal && currentThread.dealNameVersion !== null ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Edit deal name" hitSlop={8} onPress={() => setNameEditorOpen(true)} className="h-11 w-11 items-center justify-center">
-            <EditIcon width={15} height={15} color="#5D5953" />
+            <EditIcon width={15} height={15} color="#5E574E" />
           </Pressable>
         ) : null}
       />
@@ -465,7 +465,8 @@ export default function DealRoomScreen() {
 function MessageBubble({ message, dealId, contextKey }: { message: ChatMessage; dealId: string; contextKey: string }) {
   if (message.mine) {
     return (
-      <View className="max-w-[86%] self-end rounded-2xl rounded-br-md border border-hairline bg-[#F3EFE7] px-3.5 py-2">
+      <View className="relative max-w-[86%] self-end overflow-hidden rounded-card rounded-br-tail border border-[rgba(28,27,24,0.07)] px-3.5 py-2">
+        <GlassFlush />
         {message.attachments.map((attachment) => (
           <ChatAttachment key={`${contextKey}:${message.id}:${attachment.id}`} attachment={attachment} unavailable={false} dealId={dealId} contextKey={contextKey} messageId={message.id} />
         ))}

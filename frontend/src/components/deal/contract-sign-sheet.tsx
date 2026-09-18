@@ -142,7 +142,8 @@ export function ContractSignSheet({
     >
       {justSigned ? (
         <WinSpring trigger={justSigned} style={{ marginBottom: 12 }}>
-          <View className="flex-row items-center gap-2 rounded-panel bg-status-good-tint px-3 py-2.5">
+          <View className="flex-row items-center gap-2 rounded-panel bg-surface-recess px-3 py-2.5">
+            <View className="h-2 w-2 rounded-full bg-status-good" />
             <CheckIcon width={16} height={16} color="#4F7A1E" />
             <Text className="font-geist-medium text-secondary text-status-good-label">Contract signed</Text>
           </View>
@@ -186,8 +187,9 @@ export function ContractSignSheet({
             <ButtonText>{uploaded ? 'Replace signed PDF' : 'Choose signed PDF'}</ButtonText>
           </Button>
           {uploaded ? (
-            <View className="rounded-xl bg-status-good-tint px-3 py-2">
-              <Text className="font-geist-medium text-secondary text-status-good-label" numberOfLines={2}>
+            <View className="flex-row items-start gap-2 rounded-panel bg-surface-recess px-3 py-2">
+              <View className="mt-1.5 h-2 w-2 rounded-full bg-status-good" />
+              <Text className="flex-1 font-geist-medium text-secondary text-status-good-label" numberOfLines={2}>
                 Uploaded privately · {uploaded.name}
               </Text>
             </View>

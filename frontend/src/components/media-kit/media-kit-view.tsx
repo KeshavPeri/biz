@@ -92,12 +92,7 @@ export function MediaKitView({
         {hasPhotos ? (
           <PhotoCarousel paths={data.photoCarousel} height={HERO_H} />
         ) : (
-          <LinearGradient
-            colors={['#D9C7B4', '#9C7E86', '#6E5A78']}
-            start={{ x: 0.1, y: 0 }}
-            end={{ x: 0.9, y: 1 }}
-            style={{ position: 'absolute', inset: 0 }}
-          />
+          <View style={StyleSheet.absoluteFillObject} className="bg-cane-2" />
         )}
 
         {/* Bottom scrim for text legibility over any photo. */}
