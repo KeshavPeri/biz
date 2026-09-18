@@ -28,7 +28,7 @@ Status values: todo · in progress · done · blocked (reason).
 | 8 | PR-22 Media-kit editors + hero | done | acd81fe | shared ChipGroup/IconButton; editor motion, busy guards, upload skeleton, hero/pager polish |
 | 9 | PR-10 Red-tint sweep + stage pills | done | efa21c1 | decisions 3, 5; deal status panels use neutral recess surfaces with status dots; stage pills neutral except Posted |
 | 9 | PR-11 Off-palette sweep + chat bubble | done | 169dc85 | decisions 7, 8; GlassFlush chat bubble, shared neutral LogoTile, palette cleanup, tail: 6 token |
-| 9 | PR-20 PlatformTile + hero | todo | | |
+| 9 | PR-20 PlatformTile + hero | done | 8e6cb41 | shared neutral PlatformTile for onboarding/reach cards; no-photo hero uses warm cane surface |
 | 10 | PR-15 Sticky action bar peek/expand | todo | | |
 
 ## Batch status
