@@ -1,0 +1,23 @@
+{
+  "source": "Pexels",
+  "license": "Pexels License — free to use",
+  "license_url": "https://www.pexels.com/license/",
+  "optimization": "Downloaded individually, then JPEG-encoded at quality 78 with longest edge capped at 1200px.",
+  "photos": [
+    {"seed_name":"Ananya Rao","file":"creator-photos/ananya-rao.jpg","sha256":"55bb712e19229323c834bda7345b365fd25d324a59243b43beb5be63f39e2aa4","page_url":"https://www.pexels.com/photo/hand-holding-camera-with-lens-16784620/","photographer":"Lübna Abdullah"},
+    {"seed_name":"Vikram Malhotra","file":"creator-photos/vikram-malhotra.jpg","sha256":"18dff7a1f3708c0c708c2382a5123f765661c47d8fad7bf09aab904bc946f78e","page_url":"https://www.pexels.com/photo/person-using-a-laptop-7858835/","photographer":"Greta Hoffman"},
+    {"seed_name":"Priya Nair","file":"creator-photos/priya-nair.jpg","sha256":"83e633c80bea28ee894e0b66fcda0e64ebfed8afd3f5fd118fac676bf19089e8","page_url":"https://www.pexels.com/photo/crop-man-doing-weightlifting-workout-in-gym-6550846/","photographer":"Andres Ayrton"},
+    {"seed_name":"Rohan Kapoor","file":"creator-photos/rohan-kapoor.jpg","sha256":"ac39e04fb2674c90dfd2a022771e95aa69d730e4fc3bd860fb41ebf765ec225e","page_url":"https://www.pexels.com/photo/black-and-white-photo-of-hands-cooking-food-9716082/","photographer":"Alexey Demidov"},
+    {"seed_name":"Sneha Iyer","file":"creator-photos/sneha-iyer.jpg","sha256":"3bbcb40b1816a13858895b0dc0eb31eaeb9252f2f3487b98306422e58ebf16ba","page_url":"https://www.pexels.com/photo/clothes-racks-in-a-boutique-5424922/","photographer":"Arina Krasnikova"},
+    {"seed_name":"Aditya Bhatt","file":"creator-photos/aditya-bhatt.jpg","sha256":"0dd9bb44e2ecf818e897804ba4f5dfda282bf7c45d6642821518d453ead392c4","page_url":"https://www.pexels.com/photo/person-riding-bicycle-3460051/","photographer":"Den iwan Setiawan"},
+    {"seed_name":"Kavya Menon","file":"creator-photos/kavya-menon.jpg","sha256":"de7d3fe43ae7dafd31060184becca41f774442393008d4dfe5c818ae7530b331","page_url":"https://www.pexels.com/photo/back-view-of-a-person-working-out-near-the-sea-8018978/","photographer":"ROMAN ODINTSOV"},
+    {"seed_name":"Arjun Sethi","file":"creator-photos/arjun-sethi.jpg","sha256":"a4b444f7778c69b42ae620dec1058fd6281b6d55ff3d6d6419af887dec2d3869","page_url":"https://www.pexels.com/photo/person-riding-bicycle-1277034/","photographer":"The Lazy Artist Gallery"},
+    {"seed_name":"Ishita Chawla","file":"creator-photos/ishita-chawla.jpg","sha256":"d34b5ed0a05a269d34c98f20f811b9c5ca9151d9433bb2ec5da40e83cbc1c073","page_url":"https://www.pexels.com/photo/hands-holding-camera-16853114/","photographer":"UMUT 🆁🅰🆆"},
+    {"seed_name":"Karan Oberoi","file":"creator-photos/karan-oberoi.jpg","sha256":"b845a37eefd550f88581637e8cc214b249518a35b61a562e957bc73ade232d54","page_url":"https://www.pexels.com/photo/a-person-using-a-laptop-7241679/","photographer":"Eren Li"},
+    {"seed_name":"Meera Pillai","file":"creator-photos/meera-pillai.jpg","sha256":"935679e17a6da33fd13080782c41976a8efd6deccebd70ac0cdf0ae3306c634e","page_url":"https://www.pexels.com/photo/a-person-using-laptop-6889204/","photographer":"cottonbro studio"},
+    {"seed_name":"Yash Trivedi","file":"creator-photos/yash-trivedi.jpg","sha256":"05e230bac45ac6622d03d88f7f04d37b8679d7989754b3e0a97ed374fb1dff27","page_url":"https://www.pexels.com/photo/close-up-of-hands-cooking-with-sweet-potatoes-35065623/","photographer":"Connor Scott McManus"},
+    {"seed_name":"Riya Dsouza","file":"creator-photos/riya-dsouza.jpg","sha256":"ba913a01c857a0d81ce357c1d8d1e76c1fa46b94c33023914c0375f78cdd7e20","page_url":"https://www.pexels.com/photo/hand-in-glove-and-food-5591509/","photographer":"黃詩媛"},
+    {"seed_name":"Nikhil Bose","file":"creator-photos/nikhil-bose.jpg","sha256":"3899a5f97c5d509e5f6af8f145c0d7219e6a0d50c6a7fa5f0638d1eb10bdc253","page_url":"https://www.pexels.com/photo/cooking-seafood-on-pan-10432671/","photographer":"RDNE Stock project"},
+    {"seed_name":"Tanya Ghosh","file":"creator-photos/tanya-ghosh.jpg","sha256":"7c47bca7cc95e75376e6029406ec6f20363ea41acaf1fb297716abf895f37047","page_url":"https://www.pexels.com/photo/modern-fashion-store-interior-with-clothing-racks-37080676/","photographer":"Sabhyata Sahu"}
+  ]
+}
