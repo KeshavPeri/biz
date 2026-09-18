@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { AuthShell } from '@/components/ui/auth-shell';
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { OnboardingProgress } from '@/components/ui/onboarding-progress';
+import { PlatformTile } from '@/components/media-kit/platform-tile';
 import {
   useOnboardingStore,
   type ConnectedPlatform,
@@ -85,13 +86,7 @@ export default function PlatformsScreen() {
             key={key}
             className="mb-[11px] flex-row items-center gap-3 rounded-card border border-hairline-card bg-surface-card p-3.5 shadow-l1"
           >
-            <View
-              className="h-10 w-10 items-center justify-center rounded-panel border border-hairline bg-avatar"
-            >
-              <Text className="font-geist-bold text-secondary text-ink">
-                {name[0]}
-              </Text>
-            </View>
+            <PlatformTile label={name} size="large" />
             <View className="flex-1">
               <Text className="font-geist-semibold text-body text-ink">{name}</Text>
               <Text className="mt-0.5 font-geist text-secondary text-ink-3" numberOfLines={1}>

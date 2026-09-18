@@ -1,20 +1,9 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { PlatformTile } from '@/components/media-kit/platform-tile';
 import { type SocialHandle } from '@/lib/media-kit';
 import { platformLabel } from '@/lib/media-kit-enums';
 import { formatCount, formatPercent } from '@/lib/format';
-
-// Per-platform accent (mockup's `.pic` chips). Falls back to ink for the long tail.
-const PLATFORM_COLOR: Record<string, string> = {
-  instagram: '#B96A83',
-  youtube: '#C0574B',
-  tiktok: '#1C1B18',
-  x: '#2C2A25',
-  linkedin: '#2C6BA0',
-  pinterest: '#C0392B',
-  threads: '#1C1B18',
-  podcast: '#7E5B4E',
-};
 
 /**
  * PlatformStatCard — one "Reach" card (B2-032). Renders the mock stats already on
@@ -31,20 +20,12 @@ export function PlatformStatCard({
   handle: SocialHandle;
   onEdit?: () => void;
 }) {
-  const color = PLATFORM_COLOR[handle.platform] ?? '#1C1B18';
   const verified = handle.verification_status === 'verified';
 
   const body = (
     <View className="flex-1 rounded-card border border-hairline-card bg-surface-card p-3.5 shadow-l1">
       <View className="mb-2 flex-row items-center gap-2">
-        <View
-          className="h-7 w-7 items-center justify-center rounded-[9px]"
-          style={{ backgroundColor: color }}
-        >
-          <Text className="font-geist-bold text-secondary text-white">
-            {platformLabel(handle.platform)[0]}
-          </Text>
-        </View>
+        <PlatformTile label={platformLabel(handle.platform)} />
         <View className="flex-1">
           <Text className="font-geist-medium text-micro text-ink-3" numberOfLines={1}>
             {handle.handle}
