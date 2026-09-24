@@ -16,6 +16,33 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #61 / Workplan 11.1-A deal tracker candidate (2026-09-24):** additive migration 048 is
+  applied only to the approved development project. One no-argument authenticated RPC derives its
+  viewer from `auth.uid()` and delegates to a fixed-search-path helper whose actor/clock parameters
+  remain service-role-only. Current creator or active same-brand participants receive one bounded
+  row per active deal; outsiders, anonymous callers, inactive stale brand participants and
+  caller-supplied identities fail closed. One UTC server snapshot drives exact Red-over-Amber-over-
+  Green thresholds: disputes/critical payment states, three-calendar-day payment overdue, missed
+  canonical deliverables, 48h confirmations, expired connections and inconsistent state are Red;
+  24h confirmations, deliverables within two UTC dates, payments through +3 dates and connections
+  within 12h are Amber. Payment obligations select the single canonical aggregate or canonical
+  milestones, never both; paid/refunded obligations are excluded. The v1 payload exposes only safe
+  display fields and reconciled active/action/due-week/next-deadline/overdue/I/O facts, with a hard
+  500-row error bound rather than silent truncation.
+  The Track tab now has six summary facts, accessible text+dot health rows, server-snapshot timing,
+  deterministic red-first ordering, status/stage/type/created-date/direction filters, focus refresh,
+  pull-to-refresh, retry/true-empty/filtered-empty/skeleton states, existing deal navigation and
+  account/unmount/superseded-request fencing. Development integration proves all exact boundary,
+  precedence, canonical-source, arithmetic, grant, isolation and cleanup paths **20/20**; pure client
+  parsing/filter/sort/date/I/O/fence tests pass **6/6**. The required de-duplicated candidate union
+  passed **19/19 commands** and **338/338 backend assertions**: tracker 20, payment 30, disputes 43,
+  close 27, posting 34, content approval 20, brief 28, summary gate 39, term approvals 32, stage
+  engine 23, baseline RLS 4, maker/checker 10 and contract flow 28; backend compile, frontend tests,
+  strict TypeScript, lint (0 errors / 3 pre-existing warnings), Expo web export and diff hygiene also
+  passed at non-documentation fingerprint `eeb2c29a62060d3e29fe4dcfba7e92f72d1c5314`.
+  The optional creator+brand visual/device walkthrough remains `LIMITED`. B5-005 and the rest of
+  Phase 11 remain not started.
+
 - **Phone-on-LAN "Could not reach the server" fix (2026-09-18, branch `fix/lan-api-base-url`):**
   two proven causes. (1) `EXPO_PUBLIC_API_URL` is baked in at export time and Metro's transform
   cache kept an old `localhost:8000` value, so the phone called itself. `src/lib/api-base.ts` now
@@ -901,10 +928,13 @@ health`, `from core.config import settings`) that only resolve with `backend/` a
 
 ## NEXT UP _(ordered)_
 
-1. **Phase 11:** prepare the first bounded workplan 11.1 ticket when the founder requests it.
-2. **Founder manual follow-up:** revisit the deferred 9.18 two-persona/device lifecycle
+1. **Issue #61 / Workplan 11.1-A:** review the pending draft PR; optionally perform the
+   creator-and-brand Track visual walkthrough, then decide whether to merge.
+2. **Phase 11:** after #61 is merged, prepare or release the separate 11.1-B ticket for B5-005
+   monthly summaries when the founder requests it.
+3. **Founder manual follow-up:** revisit the deferred 9.18 two-persona/device lifecycle
    walkthrough, plus the previously deferred Phase 10 manual gate; record actual outcomes.
-3. **Later phases:** implement deferred B3-037/041/042 in their mapped Phase 11/12 work;
+4. **Later phases:** implement deferred B3-037/041/042 in their mapped Phase 11/12 work;
    retain the documented B3-016 and B3-017 limitations until their later work lands.
 
 ## NEEDS MY INPUT _(blockers + anything Claude flagged per the CLAUDE.md STOP list)_
@@ -912,6 +942,11 @@ health`, `from core.config import settings`) that only resolve with `backend/` a
 _Claude: when you hit a STOP-and-flag situation (destructive ops, anything paid, live/prod,
 real secrets, big architectural change, irreversible + low confidence), describe it here and
 do not proceed. I'll resolve these at the start of my next session._
+
+- **2026-09-24 — OPTIONAL founder review for Issue #61:** open Track as one creator and one
+  active brand participant; check the six facts, Red/Amber/Green ordering, filters and a deal
+  link, then confirm an outsider sees neither account's tracker. Automated isolation and
+  arithmetic evidence already passed; this visual/device walkthrough remains `LIMITED`.
 
 - **2026-09-17 — UI batch 3: `docs/design-tokens.md` is read-only (`r--------`).** Decision 2 says to
   log the new `sheet: 24` radius there. Claude did not change the file's permissions. To finish, add to
@@ -936,6 +971,11 @@ do not proceed. I'll resolve these at the start of my next session._
 
 _Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later._
+
+- 2026-09-24 — **Deal tracker health is a bounded, server-time snapshot.** RAG is derived only
+  in the participant-safe RPC (never stored), uses Red-over-Amber precedence, and returns safe
+  display reasons rather than source records. This keeps restricted payment/workflow data and
+  device-clock drift out of Track; monthly aggregation remains separately scoped to B5-005.
 
 - 2026-09-18 — **Dock glass balance.**
   - Founder asked for glass between liquid and frosted, and a static ambient background.
@@ -1280,6 +1320,18 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-09-24 — Issue #61: Workplan 11.1-A deal tracker candidate
+
+- Added development-only migration 048: one auth-derived, fixed-search-path participant-safe
+  tracker snapshot with canonical obligations/workflow evidence and no direct authenticated access
+  to restricted payment or approval sources.
+- Replaced the Track placeholder with a validated, refreshable six-fact dashboard and red-first
+  accessible deal list with every approved filter, deterministic ordering, safe error/empty states
+  and account-response fencing.
+- Migration fixture cleanup and the full regression passed: 19/19 commands, 338/338 backend
+  assertions and 6/6 frontend tests at fingerprint `eeb2c29a62060d3e29fe4dcfba7e92f72d1c5314`.
+  Independent QA and security reviews passed. Founder visual/device review remains `LIMITED`.
 
 ### 2026-09-18 — Creator-profile hero width + overlay fix (`fix/creator-hero-width`)
 
