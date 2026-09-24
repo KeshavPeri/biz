@@ -61,6 +61,8 @@ export default function TrackScreen() {
     setRefreshing(true); await load(); setRefreshing(false);
   }, [load]);
 
+  const openMonthlySummary = () => router.push('/monthly-summary');
+
   if (loading && !visibleSnapshot) {
     return (
       <SafeAreaView className="flex-1 bg-transparent px-4 pt-2" edges={['top']}>
@@ -76,7 +78,7 @@ export default function TrackScreen() {
   if (!visibleSnapshot && error) {
     return (
       <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
-        <View className="px-4 pt-2"><Text className="font-geist-bold text-display text-ink">Track</Text></View>
+        <View className="gap-3 px-4 pt-2"><Text className="font-geist-bold text-display text-ink">Track</Text><Button action="secondary" onPress={openMonthlySummary}><ButtonText>Monthly summary</ButtonText></Button></View>
         <EmptyState title="Tracking couldn’t load" description={error} actionLabel="Try again" onAction={() => void load()} />
       </SafeAreaView>
     );
@@ -85,7 +87,7 @@ export default function TrackScreen() {
   if (!visibleSnapshot || visibleSnapshot.deals.length === 0) {
     return (
       <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
-        <View className="px-4 pt-2"><Text className="font-geist-bold text-display text-ink">Track</Text></View>
+        <View className="gap-3 px-4 pt-2"><Text className="font-geist-bold text-display text-ink">Track</Text><Button action="secondary" onPress={openMonthlySummary}><ButtonText>Monthly summary</ButtonText></Button></View>
         <EmptyState title="No active deals" description="Your active deal deadlines and health will appear here." actionLabel="Browse Discover" onAction={() => router.push('/')} />
       </SafeAreaView>
     );
@@ -107,6 +109,7 @@ export default function TrackScreen() {
               <Text className="font-geist-bold text-display text-ink">Track</Text>
               <Text className="mt-1 font-geist text-micro text-ink-3">Server snapshot · {new Date(visibleSnapshot.asOf).toLocaleString()}</Text>
             </View>
+            <Button action="secondary" accessibilityLabel="Open monthly deal summary" onPress={openMonthlySummary}><ButtonText>Monthly summary</ButtonText></Button>
             <TrackerSummary snapshot={visibleSnapshot} />
             {error ? (
               <View accessibilityRole="alert" className="flex-row items-center gap-3 rounded-panel bg-surface-recess px-3 py-2.5">

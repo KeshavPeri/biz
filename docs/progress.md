@@ -16,6 +16,36 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #63 / Workplan 11.1-B monthly deal summary candidate (2026-09-24):** additive migration
+  049 is applied only to the approved development project. A separate authenticated v1 RPC derives
+  the caller from `auth.uid()` and keeps its viewer/month/clock helper service-role-only with a fixed
+  search path. The selected UTC month is the first valid Approval→Creating transition; Creating,
+  Posted, Payment and Closed deals remain visible, while deleted/terminal-off-ramp/unexecuted or
+  untrustworthy-source rows add no money. Creator views group by stable brand ID and active
+  same-brand views group by stable creator ID. Contracted value comes only from the executed v1
+  contract's approved, fully validated 22-field source; canonical deliverables and payment sources
+  must reconcile to that same immutable summary. Currencies stay separate and all database/client
+  money remains exact decimal text. Confirmed received counts only a current-version creator receipt
+  on a paid-full single payment, or current-version creator receipts on paid-full canonical
+  milestones while neither the parent nor deal is actively disputed. Refunded, disputed,
+  unconfirmed, version-mismatched and wrong-confirmer values remain outstanding; only a real
+  single/milestone `paid_partial` state raises the unquantified notice, without inventing an amount.
+  A missing canonical payment is valid only before Payment (Creating/Posted); Payment/Closed gaps
+  become integrity attention. Invalid/duplicate
+  sources and impossible arithmetic fail closed into a generic attention count, with 500-deal/group
+  bounds rather than truncation.
+  Track now links to an accessible monthly route with server-current/previous/next UTC navigation,
+  per-currency totals, counterparty cards, honest partial/integrity notices, empty/error/retry/pull-
+  refresh states, a return path, and account/month/unmount/superseded-response fencing. The required
+  de-duplicated affected/ticket candidate union passes **15/15 commands** and **188/188 backend
+  assertions**: monthly 24, tracker 20, payment 30, contract 28, deliverables 17, stage engine 23,
+  baseline RLS 4, term approvals 32 and maker/checker 10; client monthly/tracker tests pass **12/12**,
+  backend compile, strict TypeScript, lint (0 errors / 3 pre-existing warnings), Expo web export and
+  diff hygiene pass. Non-documentation fingerprint: `a3e5b302f150a7446af751b6224d7bf01e148ce4`. Independent QA/security
+  re-review passed after four focused repairs, and the required final regression passed at the same
+  fingerprint, so B5-005 and workplan 11.1 are `In review` pending founder draft-PR review. The optional
+  creator+brand browser/native walkthrough remains founder-owned and `LIMITED`.
+
 - **Issue #61 / Workplan 11.1-A deal tracker candidate (2026-09-24):** additive migration 048 is
   applied only to the approved development project. One no-argument authenticated RPC derives its
   viewer from `auth.uid()` and delegates to a fixed-search-path helper whose actor/clock parameters
@@ -40,8 +70,8 @@ up exactly where the last one left off, with zero context lost.
   engine 23, baseline RLS 4, maker/checker 10 and contract flow 28; backend compile, frontend tests,
   strict TypeScript, lint (0 errors / 3 pre-existing warnings), Expo web export and diff hygiene also
   passed at non-documentation fingerprint `eeb2c29a62060d3e29fe4dcfba7e92f72d1c5314`.
-  The optional creator+brand visual/device walkthrough remains `LIMITED`. B5-005 and the rest of
-  Phase 11 remain not started.
+  The optional creator+brand visual/device walkthrough remains `LIMITED`. B5-005 is now implemented
+  as the separate issue #63 candidate above; later Phase 11 slices remain not started.
 
 - **Phone-on-LAN "Could not reach the server" fix (2026-09-18, branch `fix/lan-api-base-url`):**
   two proven causes. (1) `EXPO_PUBLIC_API_URL` is baked in at export time and Metro's transform
@@ -928,10 +958,10 @@ health`, `from core.config import settings`) that only resolve with `backend/` a
 
 ## NEXT UP _(ordered)_
 
-1. **Issue #61 / Workplan 11.1-A:** review the pending draft PR; optionally perform the
-   creator-and-brand Track visual walkthrough, then decide whether to merge.
-2. **Phase 11:** after #61 is merged, prepare or release the separate 11.1-B ticket for B5-005
-   monthly summaries when the founder requests it.
+1. **Issues #61 and #63 / Workplan 11.1:** review the pending draft PRs; optionally perform the
+   creator-and-brand Track and monthly-summary visual walkthroughs, then decide whether to merge.
+2. **Phase 11:** after the 11.1 draft PRs are merged, prepare or release the next tracking ticket
+   when the founder requests it.
 3. **Founder manual follow-up:** revisit the deferred 9.18 two-persona/device lifecycle
    walkthrough, plus the previously deferred Phase 10 manual gate; record actual outcomes.
 4. **Later phases:** implement deferred B3-037/041/042 in their mapped Phase 11/12 work;
@@ -1320,6 +1350,17 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-09-24 — Issue #63: Workplan 11.1-B monthly deal summary candidate
+
+- Added development-only migration 049: an authenticated, fixed-search-path monthly snapshot that
+  derives caller identity, isolates current participants, validates immutable executed v1 sources,
+  preserves per-currency decimal arithmetic and fails closed on reconciled-source integrity gaps.
+- Added the Track-linked monthly UI with accessible counterparty cards, UTC navigation, exact totals,
+  honest partial/integrity notices, retry/empty/refresh states and response fencing.
+- QA and security re-review passed after strict-date and payment-integrity repairs. Final regression
+  passed 15/15 commands, 188/188 backend assertions and 12/12 frontend tests at
+  `a3e5b302f150a7446af751b6224d7bf01e148ce4`; founder browser/native walkthrough remains `LIMITED`.
 
 ### 2026-09-24 — Issue #61: Workplan 11.1-A deal tracker candidate
 
