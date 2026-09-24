@@ -157,7 +157,7 @@ The normal G4 device check remains for the Approval contract card, drawn-signatu
 
 | ID | Task | Effective dependency | Status | RTM feature(s) |
 |---|---|---|---|---|
-| 11.1 | Deal tracker and RAG dashboard | 10.9, 9.19 | Ready | B5-001, B5-002 and B5-005. |
+| 11.1 | Deal tracker and RAG dashboard | 10.9, 9.19 | In review | B5-001, B5-002 and B5-005. Issue #63 completes the remaining monthly-summary implementation; QA/security re-review and final regression passed, with founder draft-PR review remaining. |
 | 11.2 | Payment tracker | 11.1, 9.15 | Waiting | B5-006 and B5-008. |
 | 11.3 | Calendar | 11.1 | Waiting | B5-010, B5-011 and B5-012. |
 | 11.4 | Rights and exclusivity trackers | 11.1, 10.5 | Waiting | B5-003, B5-004 and B5-013–B5-017. |
