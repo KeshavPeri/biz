@@ -68,6 +68,7 @@ from services.contract_alignment import confirm_contract_alignment, start_contra
 from services.term_approvals import get_terms_review
 from services.brief_service import acknowledge_brief, create_brief, get_briefs
 from services.deliverable_service import get_deliverables
+from services.deliverable_detail_service import get_deliverable_detail
 from services.content_service import (
     approve_submission,
     prepare_upload,
@@ -453,6 +454,18 @@ def canonical_deliverables(
 ) -> dict[str, Any]:
     try:
         return get_deliverables(deal_id, user_id, _client_ip(request))
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get('/{deal_id}/deliverables/{deliverable_id}/detail')
+def deliverable_detail(
+    deal_id: str,
+    deliverable_id: str,
+    user_id: str = Depends(get_current_user_id),
+) -> dict[str, Any]:
+    try:
+        return get_deliverable_detail(deal_id, deliverable_id, user_id)
     except DealError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 

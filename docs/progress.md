@@ -16,6 +16,23 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #69 / Workplan 11.4-A deliverable detail candidate (2026-09-25):** a participant-safe,
+  bearer-authenticated server projection now binds a requested canonical deliverable to its exact
+  executed contract-v1 source before returning content/platform/location, exact posting date or
+  inclusive window, revision/submission/approval facts, current safe live proof and UTC-derived
+  usage-rights status. Creator and active same-brand participant checks precede lookup; invalid,
+  cross-deal, stale-membership and noncanonical requests fail generically. The payload omits
+  private labels, storage paths, submitted redirect URLs, preview internals and actor IDs. The
+  root detail route validates account/deal/deliverable context, fences stale responses and obtains
+  a fresh existing short-lived draft URL only after an explicit action. Strict parsing rejects
+  unknown/malformed data, impossible revision counts and invalid approval timestamp lifecycles.
+  Focused/affected evidence passed, including deliverable detail **6/6**, client parser state
+  **11/11**, compile, strict TypeScript, lint (0 errors / 3 pre-existing warnings), Expo web
+  export and diff hygiene; recovered contract flow passed **28/28** with fictional-fixture
+  cleanup. Combined acceptance/integrity review passed at non-documentation fingerprint
+  `3df6b448eb5e26b853764f7505a20fcd1b30cd6c`. Founder creator/brand browser-native and
+  external-link walkthrough remains `LIMITED`; no migration, grant, RLS or production change.
+
 - **Issue #67 / Workplan 11.3 campaign calendar candidate (2026-09-25):** additive migration
   051 is applied only to the approved development project. Contract execution now validates the
   exact approved/executed contract-version-1 22-field source and, before Approval can complete entry to Creating,
@@ -1043,13 +1060,15 @@ health`, `from core.config import settings`) that only resolve with `backend/` a
 
 ## NEXT UP _(ordered)_
 
-1. **Issues #61 and #63 / Workplan 11.1:** review the pending draft PRs; optionally perform the
+1. **Issue #69 / Workplan 11.4-A:** review the deliverable-detail draft PR; optionally perform the
+   creator-and-brand browser/native and external-link walkthrough before deciding whether to merge.
+2. **Issues #61 and #63 / Workplan 11.1:** review the pending draft PRs; optionally perform the
    creator-and-brand Track and monthly-summary visual walkthroughs, then decide whether to merge.
-2. **Phase 11:** after the 11.1 draft PRs are merged, prepare or release the next tracking ticket
+3. **Phase 11:** after the relevant draft PRs are merged, prepare or release the next tracking ticket
    when the founder requests it.
-3. **Founder manual follow-up:** revisit the deferred 9.18 two-persona/device lifecycle
+4. **Founder manual follow-up:** revisit the deferred 9.18 two-persona/device lifecycle
    walkthrough, plus the previously deferred Phase 10 manual gate; record actual outcomes.
-4. **Later phases:** implement deferred B3-037/041/042 in their mapped Phase 11/12 work;
+5. **Later phases:** implement deferred B3-037/041/042 in their mapped Phase 11/12 work;
    retain the documented B3-016 and B3-017 limitations until their later work lands.
 
 ## NEEDS MY INPUT _(blockers + anything Claude flagged per the CLAUDE.md STOP list)_
@@ -1435,6 +1454,16 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-09-25 — Issue #69: Workplan 11.4-A deliverable detail candidate
+
+- Added the authenticated, source-bound deliverable-detail projection and root detail route with
+  safe proof facts, action-time short-lived draft downloads, accessible state handling and strict
+  account/deal/deliverable response fencing; no migration, grant, RLS or mutation boundary changed.
+- Focused/affected checks passed; recovery reran contract flow cleanly at 28/28 after clearing only
+  its fictional leftover fixtures. Combined acceptance/integrity review passed after parser checks
+  were tightened for revision order and approval-decision lifecycle invariants. Founder browser,
+  native and external-link walkthrough remains `LIMITED`.
 
 ### 2026-09-24 — Issue #63: Workplan 11.1-B monthly deal summary candidate
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 import { LayoutAnimationConfig } from 'react-native-reanimated';
 
@@ -117,6 +118,7 @@ export function DeliverablesCard({
           onLivePost={() => onLivePost(deliverable)}
           onFlagPost={() => onFlagPost(deliverable)}
           onOpenVerifiedPost={onOpenVerifiedPost}
+          onViewDetails={() => router.push({ pathname: '/deliverable/[id]', params: { id: deliverable.id, dealId: state.deal_id } })}
         />
       ))}
       {error ? <Text className="font-geist-medium text-secondary text-status-critical">{error}</Text> : null}
@@ -147,6 +149,7 @@ function DeliverableRow({
   onLivePost,
   onFlagPost,
   onOpenVerifiedPost,
+  onViewDetails,
 }: {
   deliverable: CanonicalDeliverable;
   acting: boolean;
@@ -162,6 +165,7 @@ function DeliverableRow({
   onLivePost: () => void;
   onFlagPost: () => void;
   onOpenVerifiedPost: (url: string) => void;
+  onViewDetails: () => void;
 }) {
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -380,6 +384,9 @@ function DeliverableRow({
           ) : null}
         </View>
       ) : null}
+      <Button action="secondary" onPress={onViewDetails} accessibilityLabel={`View details for ${deliverable.display_name}`} className="self-start px-3">
+        <ButtonText>View details</ButtonText>
+      </Button>
       {deliverable.status === 'submitted' && !deliverable.available_actions.can_approve_content && !deliverable.content_approval ? (
         <Text className="font-geist text-micro text-ink-3">
           This submission is awaiting brand review.
