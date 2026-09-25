@@ -16,6 +16,26 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #75 / Workplan 11.4-D blackout tracker verified candidate (2026-09-26):** a read-only,
+  bearer-authenticated `/tracking/blackouts` projection now authorizes current creator participation
+  or active same-brand membership before reading any source data. It validates one executed v1
+  contract, the approved matching summary, either the complete matching canonical usage/blackout
+  pair or the strict historical execution-audit plus Approval→Creating fallback, and the complete
+  same-source canonical deliverable set. Explicit false produces no range; missing, mixed,
+  duplicate or malformed evidence becomes only a bounded generic unavailable count. Exact UTC
+  before/after/both ranges are derived for every canonical posting date/window, all posting days
+  are removed, then only overlapping/adjacent remaining days merge. Ended history remains in the
+  calendar but is absent from the tracker; a single server UTC date yields Active then Upcoming
+  ordering. Track now links to a root Blackouts screen with strict response parsing, account/request
+  fencing, textual state, refresh/retry/empty/integrity states and deal deep links. No migration,
+  grants/RLS/auth contract, materialization or write path changed. The repaired affected/ticket
+  union passed **14/14 commands**: blackout arithmetic **3/3**, calendar **19/19**,
+  exclusivity **16/16**, deliverables **17/17**, contract flow **28/28**, private labels **21/21**,
+  RLS **4/4**, frontend state **24/24**, compile, TypeScript, lint, web export and diff hygiene.
+  A combined acceptance/privacy verifier passed after the empty-Track navigation repair at
+  non-documentation fingerprint `964754b8ffd9f1298d87fa9632222507122c2fab`. Founder
+  browser/native comparison with Calendar remains **LIMITED**.
+
 - **Issue #73 / Workplan 11.4-C exclusivity tracker candidate (2026-09-25):** additive
   migration 052 is applied only to the approved development project. It preserves legacy
   source-null rows, adds strict canonical false/true shapes and one source-bound row per deal,
