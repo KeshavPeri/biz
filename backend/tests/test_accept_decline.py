@@ -17,6 +17,7 @@ Covers (deal-engine.md §1 + Guard conditions):
 Run: python backend/tests/test_accept_decline.py
 """
 
+import copy
 import os
 import re
 import sys
@@ -34,6 +35,7 @@ load_dotenv(BACKEND_DIR.parent / ".env")
 
 from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
+from test_contract_alignment_unit import payload as alignment_payload  # noqa: E402
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
@@ -180,11 +182,19 @@ def main() -> None:
         # so accepting a fresh deal fires the warn-only notice.
         brand2_id = admin.table("brands").insert({"company_name": "Rival Co", "industry": "Beauty"}).execute().data[0]["id"]
         prior = admin.table("deals").insert(
-            {"creator_id": ids["C2"], "brand_id": brand2_id, "deal_name": "Prior", "direction": "inbound", "created_by": ids["C2"], "stage": "closed"}
+            {"creator_id": ids["C2"], "brand_id": brand2_id, "deal_name": "Prior", "direction": "inbound", "created_by": ids["C2"], "stage": "approval"}
         ).execute().data[0]["id"]
-        admin.table("exclusivity_clauses").insert(
-            {"deal_id": prior, "has_exclusivity": True, "category": "skincare", "end_date": None}
-        ).execute()
+        admin.table("deal_participants").insert({"deal_id": prior, "profile_id": ids["C2"], "participant_role": "creator"}).execute()
+        prior_terms = copy.deepcopy(alignment_payload())
+        evidence = prior_terms["exclusivity"]["evidence"]
+        prior_terms["exclusivity"] = {"status": "found", "value": True, "evidence": evidence}
+        prior_terms["exclusivity_duration_days"] = {"status": "found", "value": 36500, "evidence": evidence}
+        prior_terms["exclusivity_category"] = {"status": "found", "value": "skincare", "evidence": evidence}
+        prior_source = admin.table("ai_summaries").insert({"deal_id": prior, "raw_output": {"source": "fictional accept warning"}, "structured_terms": prior_terms, "status": "approved"}).execute().data[0]
+        prior_contract = admin.table("contracts").insert({"deal_id": prior, "version": 1, "status": "executed", "storage_path": f"{prior}/fictional-v1.pdf", "generated_from_summary_id": prior_source["id"], "draft_source_sha256": "0" * 64}).execute().data[0]
+        admin.table("audit_log").insert({"actor_id": ids["C2"], "action": "contract_executed", "entity_type": "deal", "entity_id": prior, "metadata": {"contract_id": prior_contract["id"], "version": 1}, "ip_address": "127.0.0.1"}).execute()
+        admin.rpc("materialize_canonical_exclusivity", {"p_deal_id": prior, "p_source_summary_id": prior_source["id"], "p_actor_id": ids["C2"], "p_ip_address": "127.0.0.1"}).execute()
+        mgmt_sql("SET session_replication_role = replica; " f"UPDATE deals SET stage='closed' WHERE id='{prior}'; " "SET session_replication_role = origin;")
 
         token_b = token_for(USERS["B"]["email"])
         token_c = token_for(USERS["C"]["email"])
