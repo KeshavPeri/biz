@@ -16,6 +16,41 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #65 / Workplan 11.2 payment dashboard candidate (2026-09-25):** additive migration
+  050 is applied only to the approved development project. Its authenticated v1 wrapper derives
+  the caller from `auth.uid()` and delegates to a fixed-search-path, service-role-only fixed-clock
+  helper. Creator access requires the named creator participant; brand access requires both a
+  current deal participant and active same-brand membership. Direct authenticated access to
+  payments, milestones and receipt evidence remains revoked, and the projection exposes no actor,
+  audit, dispute narrative, raw terms or private financial fields. Single-payment deals emit the
+  canonical payment once; milestone/combination deals emit only contiguous, amount-reconciled
+  canonical milestones. Current-version creator evidence plus `paid_full` is the sole received
+  condition. Bad debt, overdue, pending and received derive from one server UTC date while
+  disputed/refunded canonical states remain explicit and never received. Money stays exact decimal
+  text with separate per-currency page totals; partial payments retain the full obligation plus an
+  explicit unquantified notice. Deal/counterparty/inclusive-date/bucket/canonical-state filters are
+  server-side, unknown due dates are excluded by date ranges, and validated bounded cursors bind
+  viewer, UTC day, filters and limit with deterministic bad-debt-first ordering.
+  Track links to a separate Payments route without changing the five-tab shell. The route provides
+  creator/brand-safe wording, accessible text+dot bad-debt emphasis, exact loaded currency facts,
+  all required filters/reset, load-more/refresh, true-empty/filtered-empty/retry states and source-
+  deal links. Account/filter/refresh/pagination/unmount/superseded responses are fenced, and strict
+  parsing rejects unknown keys, unsafe text, malformed identity/date/instant/cursor/money values,
+  impossible receipt/bucket combinations, duplicates, ordering faults and unreconciled totals.
+  The migration/fixture run passed **71/71** with run-unique fictional multi-currency fixtures and
+  verified zero-deal/zero-brand cleanup. The required affected/ticket candidate union passes
+  **17/17 commands**, **312/312 backend assertions** and **20/20 client tests**: dashboard 71,
+  payment 30, monthly 24, tracker 20, disputes 43, close 27, stage 23, baseline RLS 4, term approvals
+  32, maker/checker 10 and contract flow 28; backend compile, strict TypeScript, lint (0 errors / 3
+  pre-existing warnings), Expo web export (37 routes) and diff hygiene pass. Non-documentation
+  fingerprint: `491e39091fcf079f8ba7ed12b7a775569387feca`. QA/security revision 2 exercises a real canonical
+  null-due milestone through the dashboard RPC and proves it emits a pending flag, remains visible
+  without a range and is excluded by concrete ranges; an authenticated null page limit fails
+  generically before either SQL `LIMIT`.
+  Independent QA and security review passed, and the required post-review full regression passed
+  unchanged at the recorded fingerprint. Founder creator+brand browser/native walkthrough is
+  `LIMITED`; no real payment or campaign data was used.
+
 - **Issue #63 / Workplan 11.1-B monthly deal summary candidate (2026-09-24):** additive migration
   049 is applied only to the approved development project. A separate authenticated v1 RPC derives
   the caller from `auth.uid()` and keeps its viewer/month/clock helper service-role-only with a fixed
