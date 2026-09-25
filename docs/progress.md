@@ -16,6 +16,56 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #67 / Workplan 11.3 campaign calendar candidate (2026-09-25):** additive migration
+  051 is applied only to the approved development project. Contract execution now validates the
+  exact approved/executed contract-version-1 22-field source and, before Approval can complete entry to Creating,
+  materializes exactly one source-bound usage-rights row plus one source-bound blackout row,
+  including explicit false terms. The backend-only boundary locks the deal, is idempotent on an
+  exact retry, fails closed on pre-existing/source/count conflicts, preserves all historical rows,
+  and leaves authenticated raw-table reads plus direct authenticated/service table writes revoked.
+  Finite rights start on the matching v1 contract-execution audit's UTC date. Historical fallback
+  additionally requires that exact audit to precede a real Approval→Creating transition; missing,
+  mismatched and v2-only evidence fails closed. Rights end after the agreed inclusive day count;
+  perpetual or absent rights emit no expiry. Existing executed deals with no canonical rights rows
+  derive the same validated facts without any write-on-read.
+  One fixed-search-path authenticated v1 calendar RPC derives its caller only from `auth.uid()`;
+  creators require the named creator participation, while brand viewers require both current deal
+  participation and active same-brand membership. A single server instant and strict inclusive
+  1–42-day UTC window bound scheduled exact dates/windows, confirmed-post dates, canonical single
+  or milestone payment dues, finite rights expiry and blackout ranges. Current confirmed-post
+  payloads expose no URLs/previews/actors; missing payment dates remain unscheduled counts.
+  Creator deliverable labels join only by the caller-owned annotation and retain a constant null
+  brand payload shape. Historical/invalid source integrity is generic and bounded. Blackout days
+  derive before/after/both relative to each canonical schedule, exclude every posting date/window,
+  and merge only remaining adjacent days for the same deal. Oversized/duplicate result sets fail
+  rather than truncate, and calendar reads contain no mutation or dynamic SQL.
+  Track links to a separate day/week/month route without changing the five-tab shell or adding a
+  dependency. UTC previous/next/today navigation includes complete 42-day month grids; route
+  parameters restore the same view/date after a deal deep-link. The UI provides amber blackout
+  text+shading, icon+text event meaning, selected-day agenda, bounded overflow, creator-only label
+  chips, source-deal links, refresh/retry/loading/true-empty/selected-day-empty/integrity states and
+  account/view/window/refresh/unmount/superseded-request fencing. Strict parsing rejects unknown
+  keys, malformed identities/dates/instants/ranges, unsafe text, duplicates, unauthorized label
+  shapes, non-intersecting events and oversized payloads.
+  Development acceptance passes **19/19** with fictional creator/brand/outsider/cross-brand
+  fixtures across a leap day, exact dates, windows, milestones, confirmed posts, rights expiry,
+  merged blackouts, historical fallback, idempotency, membership loss and exact cleanup. The
+  required de-duplicated
+  affected/ticket candidate union passes **21/21 commands**, **332/332 backend assertions** and
+  **21/21 client tests**; backend compile, strict TypeScript, lint (0 errors / 3 pre-existing
+  warnings), Expo web export and diff hygiene pass. A post-union trust-boundary/UI repair reran the
+  affected calendar integration **15/15**, calendar state **7/7**, TypeScript, lint, web export and
+  diff hygiene successfully. QA/security revision 1 then bound every source to executed contract
+  v1, revoked authenticated raw rights-table reads, and made historical fallback require the
+  matching execution audit plus later Approval→Creating transition. Its affected checks pass
+  **4/4 commands** and **51/51 backend assertions** (calendar 19, contract flow 28, RLS 4) plus
+  backend compile. Non-documentation fingerprint: `1a0cc6a2bae4e69d10503b0152a8bf5899e8ea6b`.
+  Independent QA/security re-review passed. The required unchanged-fingerprint full regression
+  passed **21/21 commands**, **336/336 backend assertions** and **21/21 client tests**; the
+  reviewed fingerprint still matches. Founder creator+brand browser/native walkthrough remains
+  `LIMITED`; no real campaign,
+  contract or payment data was used.
+
 - **Issue #65 / Workplan 11.2 payment dashboard candidate (2026-09-25):** additive migration
   050 is applied only to the approved development project. Its authenticated v1 wrapper derives
   the caller from `auth.uid()` and delegates to a fixed-search-path, service-role-only fixed-clock
