@@ -5,6 +5,8 @@ import { StorageImage } from '@/components/media-kit/storage-image';
 import { stagePill, type DealPreview } from '@/lib/deals';
 import { formatRelativeTime } from '@/lib/format';
 import type { PrivateDealLabel } from '@/lib/private-deal-labels';
+import { UsageRightsChip } from '@/components/tracker/usage-rights-chip';
+import type { UsageRightsDeal } from '@/lib/usage-rights-state';
 
 /**
  * DealPreviewCard — one row in the chat list (task 9.2), rebuilt in RN from the
@@ -12,8 +14,8 @@ import type { PrivateDealLabel } from '@/lib/private-deal-labels';
  * name, a stage pill, the last message, an unread badge, and the next-action
  * prompt. Tap opens the deal room (/deal/[id]).
  */
-export function DealPreviewCard({ deal, labels, onPress, onEditLabels }: {
-  deal: DealPreview; labels: PrivateDealLabel[]; onPress: () => void; onEditLabels: () => void;
+export function DealPreviewCard({ deal, labels, rights, onPress, onEditLabels }: {
+  deal: DealPreview; labels: PrivateDealLabel[]; rights: Pick<UsageRightsDeal, 'status' | 'endDate' | 'isPerpetual'> | null; onPress: () => void; onEditLabels: () => void;
 }) {
   const pill = stagePill(deal.stage, deal.isDisputed);
   const directionLabel =
@@ -45,6 +47,7 @@ export function DealPreviewCard({ deal, labels, onPress, onEditLabels }: {
                 <Text className="font-geist-semibold text-micro text-ink-3">{directionLabel}</Text>
               </View>
             ) : null}
+            {rights ? <UsageRightsChip rights={rights} /> : null}
           </View>
         </View>
         {deal.unreadCount > 0 ? (

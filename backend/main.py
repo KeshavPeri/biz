@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api import chat_attachments, deals, health, maker_checker, ops
+from api import chat_attachments, deals, health, maker_checker, ops, tracking
 from core.error_middleware import UnhandledErrorMiddleware
 from core.supabase_client import get_supabase
 
@@ -35,3 +35,4 @@ app.include_router(maker_checker.router)
 app.include_router(deals.router)
 app.include_router(chat_attachments.router)
 app.include_router(ops.router)
+app.include_router(tracking.router)

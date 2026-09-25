@@ -19,6 +19,8 @@ import {
   distinctPrivateDealLabels, filterDealsByPrivateLabel, PrivateDealLabelContextFence,
 } from '@/lib/private-deal-label-state';
 import { useAuthStore } from '@/store/auth-store';
+import { fetchUsageRights } from '@/lib/usage-rights';
+import { UsageRightsContextFence, type UsageRightsDeal } from '@/lib/usage-rights-state';
 
 /**
  * Chat — the deal inbox (task 9.2). One preview card per deal I participate in,
@@ -39,14 +41,19 @@ export default function ChatScreen() {
   const [labelLoading, setLabelLoading] = useState(false);
   const [labelFetchError, setLabelFetchError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rights, setRights] = useState<Record<string, UsageRightsDeal>>({});
+  const [rightsOwnerId, setRightsOwnerId] = useState<string | null>(null);
+  const [rightsError, setRightsError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const fence = useRef(new PrivateDealLabelContextFence()).current;
+  const rightsFence = useRef(new UsageRightsContextFence()).current;
   const identity = userId ?? '';
   fence.switchContext(identity);
 
   // Do not project another signed-in account's local-only state during rerender.
   const visibleLabels = labelsOwnerId === userId ? labels : {};
   const visibleDeals = dealsOwnerId === userId ? deals : [];
+  const visibleRights = rightsOwnerId === userId ? rights : {};
   const labelValues = distinctPrivateDealLabels(visibleLabels);
   const filteredDeals = filterDealsByPrivateLabel(visibleDeals, visibleLabels, selectedLabel);
 
@@ -55,8 +62,9 @@ export default function ChatScreen() {
   }, [labelValues, selectedLabel]);
 
   useEffect(() => {
-    setDeals([]); setDealsOwnerId(null); setLabels({}); setLabelsOwnerId(null); setSelectedLabel(null); setEditorDealId(null); setLabelLoading(false); setLabelFetchError(null);
+    setDeals([]); setDealsOwnerId(null); setLabels({}); setLabelsOwnerId(null); setSelectedLabel(null); setEditorDealId(null); setLabelLoading(false); setLabelFetchError(null); setRights({}); setRightsOwnerId(null); setRightsError(false);
   }, [userId]);
+  useEffect(() => () => rightsFence.invalidate(), [rightsFence]);
 
   const load = useCallback(async () => {
     if (!userId) {
@@ -70,6 +78,14 @@ export default function ChatScreen() {
     if (!fence.isCurrent(ticket)) return;
     setDeals(rows);
     setDealsOwnerId(userId);
+    const rightsTicket = rightsFence.begin(identity);
+    void fetchUsageRights().then((response) => {
+      if (!rightsFence.isCurrent(rightsTicket)) return;
+      if (response.ok) {
+        setRights(Object.fromEntries(response.data.deals.map((deal) => [deal.dealId, deal])));
+        setRightsOwnerId(userId); setRightsError(false);
+      } else { setRights({}); setRightsOwnerId(userId); setRightsError(true); }
+    });
     setLabelLoading(true);
     const response = await fetchPrivateDealLabels(userId, rows.map((row) => row.dealId));
     if (!fence.isCurrent(ticket)) return;
@@ -146,7 +162,7 @@ export default function ChatScreen() {
             ListEmptyComponent={selectedLabel ? <LabelEmptyState onClear={() => setSelectedLabel(null)} /> : null}
             renderItem={({ item }) => (
               <ListItemFade>
-                <DealPreviewCard deal={item} labels={visibleLabels[item.dealId] ?? []} onPress={() => router.push(`/deal/${item.dealId}`)} onEditLabels={() => setEditorDealId(item.dealId)} />
+                <DealPreviewCard deal={item} labels={visibleLabels[item.dealId] ?? []} rights={visibleRights[item.dealId] ?? (rightsError && ['creating', 'posted', 'payment', 'closed'].includes(item.stage) ? { status: 'unavailable', endDate: null, isPerpetual: false } : null)} onPress={() => router.push(`/deal/${item.dealId}`)} onEditLabels={() => setEditorDealId(item.dealId)} />
               </ListItemFade>
             )}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#847F78" />}

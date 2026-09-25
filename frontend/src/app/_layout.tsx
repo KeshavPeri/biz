@@ -95,6 +95,7 @@ export default function RootLayout() {
                   the chat list, so the tab shell stays mounted underneath. */}
               <Stack.Screen name="deal/[id]" options={{ headerShown: false }} />
               <Stack.Screen name="monthly-summary" options={{ headerShown: false }} />
+              <Stack.Screen name="usage-rights" options={{ headerShown: false }} />
             </Stack.Protected>
             <Stack.Protected guard={!!session && onboarded === false}>
               <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
