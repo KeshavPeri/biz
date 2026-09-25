@@ -16,7 +16,9 @@ RBAC path is therefore "no active membership → 403", which we assert.
 Run: python backend/tests/test_connect.py
 """
 
+import copy
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -24,16 +26,20 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))  # so `from main import app` resolves
 
 from dotenv import load_dotenv  # noqa: E402
+import httpx  # noqa: E402
 from supabase import Client, create_client  # noqa: E402
 
 load_dotenv(BACKEND_DIR.parent / ".env")
 
 from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
+from test_contract_alignment_unit import payload as alignment_payload  # noqa: E402
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+ACCESS_TOKEN = os.environ["SUPABASE_ACCESS_TOKEN"]
+PROJECT_REF = re.search(r"https://([a-z0-9]+)\.supabase\.co", SUPABASE_URL).group(1)
 
 TEST_PASSWORD = "Monsoon2026!Inflo"
 
@@ -53,11 +59,27 @@ def check(label: str, condition: bool) -> None:
     print(f"{'PASS' if condition else 'FAIL'} - {label}")
 
 
+def mgmt_sql(sql: str) -> None:
+    response = httpx.post(
+        f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query",
+        headers={"Authorization": f"Bearer {ACCESS_TOKEN}"}, json={"query": sql}, timeout=30,
+    )
+    response.raise_for_status()
+
+
 def cleanup(admin: Client) -> None:
     emails = {u["email"] for u in USERS.values()}
     leftover = [u for u in admin.auth.admin.list_users() if u.email in emails]
     ids = [u.id for u in leftover]
     if ids:
+        quoted = ",".join(f"'{value}'" for value in ids)
+        response = httpx.post(
+            f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query",
+            headers={"Authorization": f"Bearer {ACCESS_TOKEN}"},
+            json={"query": "SET session_replication_role = replica; " f"DELETE FROM audit_log WHERE actor_id IN ({quoted}); " "SET session_replication_role = origin;"},
+            timeout=30,
+        )
+        response.raise_for_status()
         # Delete any deals touching these users (cascades participants/messages/
         # transitions/exclusivity), then their brands, then the users.
         deals = admin.table("deals").select("id, brand_id").or_(
@@ -122,11 +144,19 @@ def main() -> None:
         # duplicate guard (different brand).
         brand_b2_id = admin.table("brands").insert({"company_name": "Rival Co", "industry": "Beauty"}).execute().data[0]["id"]
         prior = admin.table("deals").insert(
-            {"creator_id": ids["C"], "brand_id": brand_b2_id, "deal_name": "Prior", "direction": "inbound", "created_by": ids["C"], "stage": "closed"}
+            {"creator_id": ids["C"], "brand_id": brand_b2_id, "deal_name": "Prior", "direction": "inbound", "created_by": ids["C"], "stage": "approval"}
         ).execute().data[0]["id"]
-        admin.table("exclusivity_clauses").insert(
-            {"deal_id": prior, "has_exclusivity": True, "category": "skincare", "end_date": None}
-        ).execute()
+        admin.table("deal_participants").insert({"deal_id": prior, "profile_id": ids["C"], "participant_role": "creator"}).execute()
+        prior_terms = copy.deepcopy(alignment_payload())
+        evidence = prior_terms["exclusivity"]["evidence"]
+        prior_terms["exclusivity"] = {"status": "found", "value": True, "evidence": evidence}
+        prior_terms["exclusivity_duration_days"] = {"status": "found", "value": 36500, "evidence": evidence}
+        prior_terms["exclusivity_category"] = {"status": "found", "value": "skincare", "evidence": evidence}
+        prior_source = admin.table("ai_summaries").insert({"deal_id": prior, "raw_output": {"source": "fictional connect warning"}, "structured_terms": prior_terms, "status": "approved"}).execute().data[0]
+        prior_contract = admin.table("contracts").insert({"deal_id": prior, "version": 1, "status": "executed", "storage_path": f"{prior}/fictional-v1.pdf", "generated_from_summary_id": prior_source["id"], "draft_source_sha256": "0" * 64}).execute().data[0]
+        admin.table("audit_log").insert({"actor_id": ids["C"], "action": "contract_executed", "entity_type": "deal", "entity_id": prior, "metadata": {"contract_id": prior_contract["id"], "version": 1}, "ip_address": "127.0.0.1"}).execute()
+        admin.rpc("materialize_canonical_exclusivity", {"p_deal_id": prior, "p_source_summary_id": prior_source["id"], "p_actor_id": ids["C"], "p_ip_address": "127.0.0.1"}).execute()
+        mgmt_sql("SET session_replication_role = replica; " f"UPDATE deals SET stage='closed' WHERE id='{prior}'; " "SET session_replication_role = origin;")
 
         token_b = token_for(USERS["B"]["email"])
         token_nobrand = token_for(USERS["NOBRAND"]["email"])

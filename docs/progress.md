@@ -16,6 +16,36 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #73 / Workplan 11.4-C exclusivity tracker candidate (2026-09-25):** additive
+  migration 052 is applied only to the approved development project. It preserves legacy
+  source-null rows, adds strict canonical false/true shapes and one source-bound row per deal,
+  revokes authenticated raw access and ordinary service-role writes, and grants only the
+  fixed-search-path backend materialization function. Contract execution now validates the exact
+  approved/executed contract v1 and its single execution audit before materializing one explicit
+  false or inclusive UTC-dated true fact; deal locking makes retries/races converge on one row and
+  one metadata-only audit, while conflicts fail without repair or overwrite. Historical executed
+  deals derive from that exact source only when one matching execution audit precedes one real
+  Approval→Creating transition, and reads never backfill.
+  The bearer-authenticated snapshot authorizes current creator participation or active same-brand
+  membership before source lookup, returns only bounded safe deal/brand/creator/category/date
+  fields, derives Active/Expiring/Expired from one server UTC date, keeps expired history, omits
+  explicit false rows, and reports invalid evidence as a generic bounded unavailable count. The
+  root Exclusivity screen is linked from Track, deep-links every row, uses text as well as muted
+  styling, distinguishes loading/empty/retry/refresh/integrity states, and strictly parses and
+  fences unknown, malformed, duplicate, impossible, oversized, unordered and stale-account data.
+  Existing connect/accept behavior remains generic warn-only; category comparison and scheduled
+  14-day/7-day alerts remain deferred to workplan 11.5 and Phase 12 respectively. The required
+  affected/ticket union passes **20/20 commands**, **201/201 backend assertions/checks** and
+  **21/21 frontend state tests**; backend compile, strict TypeScript, lint (0 errors / 4
+  pre-existing warnings), Expo web export and diff hygiene pass. Migration/grant/materialization,
+  fictional fixture cleanup and secret/privilege diff inspection passed. Security repair 1 made
+  canonical true-row duration/end non-nullability explicit; its development constraint sync,
+  focused **16/16**, contract-flow **28/28**, compile and diff-hygiene impact set passed. Founder creator/brand
+  browser/native walkthrough remains **LIMITED** pending founder review. Independent QA accepted
+  the repaired candidate (with that allowed limitation) and security passed. The required final
+  regression then passed **20/20 commands**, **209/209 backend/migration checks** and **21/21
+  frontend state tests at fingerprint `02a607c4669e0174696f3f176c7a061c0fcf7773`.
+
 - **Issue #71 / Workplan 11.4-B usage-rights tracker verified candidate (2026-09-25):** one
   bearer-authenticated, read-only backend snapshot now authorizes current creator or active
   same-brand participation before looking up executed v1 source evidence or canonical rights.

@@ -682,9 +682,11 @@ def _finalize_if_ready(
         # deals that reached this stage before migration 029 existed.
         from services.calendar_service import materialize_for_creating_entry as materialize_calendar_terms
         from services.deliverable_service import materialize_for_creating_entry
+        from services.exclusivity_service import materialize_for_creating_entry as materialize_exclusivity
 
         materialize_for_creating_entry(client, deal["id"], actor_id, ip_address)
         materialize_calendar_terms(client, deal["id"], actor_id, ip_address)
+        materialize_exclusivity(client, deal["id"], actor_id, ip_address)
         try:
             request_transition(deal["id"], actor_id, "creating", ip_address, system=True)
         except DealError:
