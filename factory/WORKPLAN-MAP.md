@@ -159,7 +159,7 @@ The normal G4 device check remains for the Approval contract card, drawn-signatu
 |---|---|---|---|---|
 | 11.1 | Deal tracker and RAG dashboard | 10.9, 9.19 | In review | B5-001, B5-002 and B5-005. Issue #63 completes the remaining monthly-summary implementation; QA/security re-review and final regression passed, with founder draft-PR review remaining. |
 | 11.2 | Payment tracker | 11.1, 9.15 | In review | B5-006 and B5-008 are implemented by issue #65 with a participant-safe exact-money ledger, server filters, context-bound pagination and creator receipt history. QA/security and post-review full regression passed; founder draft-PR review remains. |
-| 11.3 | Calendar | 11.1 | Waiting | B5-010, B5-011 and B5-012. |
+| 11.3 | Calendar | 11.1 | In review | B5-010, B5-011 and B5-012 are implemented by issue #67 with source-bound rights/blackout materialization, an auth-derived bounded UTC calendar projection, creator-only labels and accessible day/week/month presentation. QA/security and the 21-command final regression passed; founder draft-PR review remains. |
 | 11.4 | Rights and exclusivity trackers | 11.1, 10.5 | Waiting | B5-003, B5-004 and B5-013–B5-017. |
 | 11.5 | Exclusivity conflict warning | 11.4 | Waiting | B3-041/B5 tracker integration; warn, never block. |
 | 11.6 | Test parser-to-tracker population | 11.5 | Manual | Phase 11 acceptance gate. |
