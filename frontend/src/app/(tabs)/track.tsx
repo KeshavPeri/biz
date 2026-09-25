@@ -66,6 +66,7 @@ export default function TrackScreen() {
   const openCampaignCalendar = () => router.push('/campaign-calendar');
   const openUsageRights = () => router.push('/usage-rights');
   const openExclusivity = () => router.push('/exclusivity');
+  const openBlackouts = () => router.push('/blackouts');
 
   if (loading && !visibleSnapshot) {
     return (
@@ -82,7 +83,7 @@ export default function TrackScreen() {
   if (!visibleSnapshot && error) {
     return (
       <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
-        <View className="gap-3 px-4 pt-2"><Text className="font-geist-bold text-display text-ink">Track</Text><View className="flex-row flex-wrap gap-2"><Button action="secondary" className="min-w-[30%] flex-1" onPress={openCampaignCalendar}><ButtonText>Calendar</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openPaymentDashboard}><ButtonText>Payments</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openMonthlySummary}><ButtonText>Monthly summary</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openUsageRights}><ButtonText>Usage rights</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openExclusivity}><ButtonText>Exclusivity</ButtonText></Button></View></View>
+        <View className="gap-3 px-4 pt-2"><Text className="font-geist-bold text-display text-ink">Track</Text><View className="flex-row flex-wrap gap-2"><Button action="secondary" className="min-w-[30%] flex-1" onPress={openCampaignCalendar}><ButtonText>Calendar</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openPaymentDashboard}><ButtonText>Payments</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openMonthlySummary}><ButtonText>Monthly summary</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openUsageRights}><ButtonText>Usage rights</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openExclusivity}><ButtonText>Exclusivity</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openBlackouts}><ButtonText>Blackouts</ButtonText></Button></View></View>
         <EmptyState title="Tracking couldn’t load" description={error} actionLabel="Try again" onAction={() => void load()} />
       </SafeAreaView>
     );
@@ -91,7 +92,7 @@ export default function TrackScreen() {
   if (!visibleSnapshot || visibleSnapshot.deals.length === 0) {
     return (
       <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
-        <View className="gap-3 px-4 pt-2"><Text className="font-geist-bold text-display text-ink">Track</Text><View className="flex-row flex-wrap gap-2"><Button action="secondary" className="min-w-[30%] flex-1" onPress={openCampaignCalendar}><ButtonText>Calendar</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openPaymentDashboard}><ButtonText>Payments</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openMonthlySummary}><ButtonText>Monthly summary</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openUsageRights}><ButtonText>Usage rights</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openExclusivity}><ButtonText>Exclusivity</ButtonText></Button></View></View>
+        <View className="gap-3 px-4 pt-2"><Text className="font-geist-bold text-display text-ink">Track</Text><View className="flex-row flex-wrap gap-2"><Button action="secondary" className="min-w-[30%] flex-1" onPress={openCampaignCalendar}><ButtonText>Calendar</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openPaymentDashboard}><ButtonText>Payments</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openMonthlySummary}><ButtonText>Monthly summary</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openUsageRights}><ButtonText>Usage rights</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openExclusivity}><ButtonText>Exclusivity</ButtonText></Button><Button action="secondary" className="min-w-[30%] flex-1" onPress={openBlackouts}><ButtonText>Blackouts</ButtonText></Button></View></View>
         <EmptyState title="No active deals" description="Your active deal deadlines and health will appear here." actionLabel="Browse Discover" onAction={() => router.push('/')} />
       </SafeAreaView>
     );
@@ -119,6 +120,7 @@ export default function TrackScreen() {
               <Button action="secondary" className="min-w-[30%] flex-1" accessibilityLabel="Open monthly deal summary" onPress={openMonthlySummary}><ButtonText>Monthly summary</ButtonText></Button>
               <Button action="secondary" className="min-w-[30%] flex-1" accessibilityLabel="Open usage rights" onPress={openUsageRights}><ButtonText>Usage rights</ButtonText></Button>
               <Button action="secondary" className="min-w-[30%] flex-1" accessibilityLabel="Open exclusivity tracker" onPress={openExclusivity}><ButtonText>Exclusivity</ButtonText></Button>
+              <Button action="secondary" className="min-w-[30%] flex-1" accessibilityLabel="Open blackout tracker" onPress={openBlackouts}><ButtonText>Blackouts</ButtonText></Button>
             </View>
             <TrackerSummary snapshot={visibleSnapshot} />
             {error ? (
