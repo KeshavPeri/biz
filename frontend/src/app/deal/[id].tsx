@@ -42,6 +42,9 @@ import { ParticipantSheet } from '@/components/deal/participant-sheet';
 import { DealNameSheet } from '@/components/deal/deal-name-sheet';
 import { formatClockTime } from '@/lib/format';
 import { useAuthStore } from '@/store/auth-store';
+import { UsageRightsChip } from '@/components/tracker/usage-rights-chip';
+import { fetchUsageRights } from '@/lib/usage-rights';
+import { UsageRightsContextFence, type UsageRightsDeal } from '@/lib/usage-rights-state';
 
 import SendIcon from '@/assets/icons/send.svg';
 import EditIcon from '@/assets/icons/edit.svg';
@@ -74,6 +77,8 @@ export default function DealRoomScreen() {
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [nameEditorOpen, setNameEditorOpen] = useState(false);
   const [participantRefresh, setParticipantRefresh] = useState(0);
+  const [rights, setRights] = useState<UsageRightsDeal | null>(null);
+  const [rightsFailed, setRightsFailed] = useState(false);
   const { reveal: revealDetailHeader, scrolled } = useDetailHeaderScroll();
 
   const listRef = useRef<FlatList<ChatMessage>>(null);
@@ -86,6 +91,7 @@ export default function DealRoomScreen() {
   const contextRef = useRef(screenContext);
   const loadGeneration = useRef(0);
   const attachmentFence = useRef(new ChatAttachmentContextFence());
+  const rightsFence = useRef(new UsageRightsContextFence()).current;
   if (contextRef.current !== screenContext) {
     contextRef.current = screenContext;
     loadGeneration.current += 1;
@@ -93,6 +99,7 @@ export default function DealRoomScreen() {
   const currentThread = threadContext === screenContext ? thread : null;
   const isTerminal = currentThread?.stage === 'closed' || currentThread?.stage === 'declined' || currentThread?.stage === 'cancelled';
   attachmentFence.current.switchContext(`${screenContext}:${isTerminal ? 'terminal' : 'live'}`);
+  rightsFence.switchContext(screenContext);
 
   // Load (or reload) the thread. Called on open AND after a stage transition, so
   // the stage bar + action bar update immediately on the acting client (9.7).
@@ -147,6 +154,18 @@ export default function DealRoomScreen() {
   }, [dealId, userId]);
 
   useEffect(() => () => attachmentFence.current.invalidate(), []);
+
+  useEffect(() => {
+    setRights(null); setRightsFailed(false);
+    if (!userId || !currentThread || !['creating', 'posted', 'payment', 'closed'].includes(currentThread.stage)) return;
+    const ticket = rightsFence.begin(screenContext);
+    void fetchUsageRights().then((result) => {
+      if (!rightsFence.isCurrent(ticket)) return;
+      if (result.ok) setRights(result.data.deals.find((row) => row.dealId === dealId) ?? null);
+      else setRightsFailed(true);
+    });
+    return () => rightsFence.invalidate();
+  }, [currentThread, dealId, rightsFence, screenContext, userId]);
 
   useFocusEffect(useCallback(() => {
     if (!userId) return undefined;
@@ -323,6 +342,7 @@ export default function DealRoomScreen() {
             </Text>
           </Pressable>
           <StageProgressBar stage={currentThread.stage} isDisputed={currentThread.isDisputed} />
+          {rights ? <View className="px-4 pb-2"><UsageRightsChip rights={rights} /></View> : rightsFailed ? <View className="px-4 pb-2"><UsageRightsChip rights={{ status: 'unavailable', endDate: null, isPerpetual: false }} /></View> : null}
         </View>
       ) : null}
 

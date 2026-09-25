@@ -16,6 +16,21 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #71 / Workplan 11.4-B usage-rights tracker verified candidate (2026-09-25):** one
+  bearer-authenticated, read-only backend snapshot now authorizes current creator or active
+  same-brand participation before looking up executed v1 source evidence or canonical rights.
+  It reuses the deliverable-detail execution fallback and one server UTC date, rejects invalid
+  source/conflict/overflow data, and returns a bounded, deterministic, participant-safe result
+  with explicit `none`, perpetual, active, expiring, expired, and unavailable states. The new
+  root Usage rights screen, Track entry point, chat-card chip, and deal-header chip consume the
+  same strictly parsed/fenced snapshot; expired chips remain readable and muted. No migration,
+  grant, RLS, auth, materialization, alert, or notification change was made. Final affected
+  evidence passed **13/13 commands**: 109 backend assertions/checks, 20 frontend state tests,
+  backend compile, strict TypeScript, lint (0 errors / 4 pre-existing warnings), Expo web export,
+  and diff hygiene. A combined verifier passed after the 21/21 frontend-state Unicode-ordering
+  repair check at source fingerprint `fb67233419a25178993f8dd4d6900eb1fd443556`.
+  Creator/active-brand browser/native walkthrough remains **LIMITED**.
+
 - **Issue #69 / Workplan 11.4-A deliverable detail candidate (2026-09-25):** a participant-safe,
   bearer-authenticated server projection now binds a requested canonical deliverable to its exact
   executed contract-v1 source before returning content/platform/location, exact posting date or
@@ -1454,6 +1469,20 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-09-25 — Issue #71: Workplan 11.4-B usage-rights tracker verified candidate
+
+- Added one server-only, source-bound rights snapshot and strict client parser/context fence;
+  current creator and active same-brand membership are checked before any rights/source lookup.
+- Added Track → Usage rights plus one reusable accessible chip on chat cards and deal headers;
+  rows/chips preserve explicit none, perpetual, active, expiring, expired, and recoverable
+  unavailable states without device-clock derivation or stale account/deal publication.
+- Final affected union passed 13/13 commands: usage-rights 11, deliverable-detail 6,
+  campaign-calendar 19, deal-tracker 20, contract-flow 28, private-deliverable-labels 21,
+  RLS 4, compile, frontend state 20, TypeScript, lint, Expo web export, and diff hygiene. The
+  combined verifier passed after a 21/21 Unicode-ordering parser repair check at
+  `fb67233419a25178993f8dd4d6900eb1fd443556`. Founder creator/active-brand browser/native
+  walkthrough remains **LIMITED**; scheduled alerts remain explicitly deferred.
 
 ### 2026-09-25 — Issue #69: Workplan 11.4-A deliverable detail candidate
 
