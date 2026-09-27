@@ -27,7 +27,14 @@ from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
 import services.posting_service as posting_service  # noqa: E402
 from services.posting_service import submit_live_post  # noqa: E402
-from services.term_extraction import TermsExtraction  # noqa: E402
+from services.term_extraction import (  # noqa: E402
+    CHAT_PROMPT_VERSION_V2,
+    CHAT_SCHEMA_VERSION_V2,
+    PROMPT_VERSION,
+    SCHEMA_VERSION,
+    TermsExtraction,
+    TermsExtractionV2,
+)
 from services.url_verifier import PreviewEvidence, UrlVerificationError  # noqa: E402
 
 
@@ -109,6 +116,16 @@ def payment_terms(count: int) -> dict:
     return value
 
 
+def payment_terms_v2(count: int) -> dict:
+    value = payment_terms(count)
+    value["sponsored_content_disclosure"] = found({
+        "required": True,
+        "platform_rules": [{"platform": "Instagram", "rule": "Use #ad in the caption"}],
+    })
+    TermsExtractionV2.model_validate(value)
+    return value
+
+
 def check(label: str, condition: bool) -> None:
     checks.append((label, condition))
     print(f"{'PASS' if condition else 'FAIL'} - {label}")
@@ -167,6 +184,8 @@ def make_deal(
     stage: str = "creating",
     approved: bool = True,
     terms_override: dict | None = None,
+    schema_version: str = SCHEMA_VERSION,
+    prompt_version: str = PROMPT_VERSION,
 ) -> tuple[str, list[str]]:
     deal_id = admin.table("deals").insert(
         {
@@ -192,6 +211,8 @@ def make_deal(
             "raw_output": {"source": "fictional posting fixture"},
             "structured_terms": terms_override or payment_terms(count),
             "status": "approved",
+            "schema_version": schema_version,
+            "prompt_version": prompt_version,
         }
     ).execute().data[0]["id"]
     admin.table("contracts").insert({
@@ -547,6 +568,43 @@ def main() -> None:
             },
         )
         check("confirmation retry is idempotent", confirm_retry.status_code == 200 and confirm_retry.json()["idempotent"])
+
+        v2_deal, [v2_deliverable] = make_deal(
+            "v2-payment-entry",
+            terms_override=payment_terms_v2(1),
+            schema_version=CHAT_SCHEMA_VERSION_V2,
+            prompt_version=CHAT_PROMPT_VERSION_V2,
+        )
+        v2_posted = call(
+            "POST", f"/deals/{v2_deal}/deliverables/{v2_deliverable}/live-post", "C",
+            {"url": "https://instagram.com/p/v2-payment-entry", "expected_version": 0},
+        )
+        save_payment_details(v2_deal)
+        v2_confirmed = call(
+            "POST", f"/deals/{v2_deal}/confirm-posts", "B",
+            {
+                "versions": [{"deliverable_id": v2_deliverable, "version": 1}],
+                "creator_payment_version": 1,
+                "brand_payment_version": 1,
+            },
+        )
+        v2_source = admin.table("contracts").select("generated_from_summary_id").eq(
+            "deal_id", v2_deal
+        ).single().execute().data["generated_from_summary_id"]
+        v2_payments = admin.table("payments").select("source_summary_id,amount,currency").eq(
+            "deal_id", v2_deal
+        ).execute().data
+        check("valid v2 executed terms atomically materialize payment on live-post confirmation", (
+            v2_posted.status_code == 200
+            and v2_confirmed.status_code == 200
+            and v2_confirmed.json()["transitioned"] is True
+            and stage_of(v2_deal) == "payment"
+            and v2_payments == [{
+                "source_summary_id": v2_source,
+                "amount": 48000,
+                "currency": "INR",
+            }]
+        ))
 
         # Multi-deliverable final-link concurrency produces one transition.
         multi_deal, multi_deliverables = make_deal("multi", count=2)

@@ -281,7 +281,30 @@ export function ApproverChecklist({ summary }: { summary: Summary }) {
 function displayValue(value: unknown): string {
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (typeof value === 'string' || typeof value === 'number') return String(value);
+  if (isDisclosureValue(value)) {
+    const rules = [...value.platform_rules]
+      .sort((left, right) => left.platform.localeCompare(right.platform) || left.rule.localeCompare(right.rule))
+      .map((item) => `${item.platform} — ${item.rule}`)
+      .join(', ');
+    return `Required: ${value.required ? 'Yes' : 'No'}${rules ? ` · ${rules}` : ''}`;
+  }
   return JSON.stringify(value, null, 2);
+}
+
+function isDisclosureValue(value: unknown): value is {
+  required: boolean;
+  platform_rules: { platform: string; rule: string }[];
+} {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as { required?: unknown; platform_rules?: unknown };
+  return typeof candidate.required === 'boolean'
+    && Array.isArray(candidate.platform_rules)
+    && candidate.platform_rules.every((item) => (
+      !!item
+      && typeof item === 'object'
+      && typeof (item as { platform?: unknown }).platform === 'string'
+      && typeof (item as { rule?: unknown }).rule === 'string'
+    ));
 }
 
 function roleLabel(role: string): string {

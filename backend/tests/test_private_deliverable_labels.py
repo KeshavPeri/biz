@@ -24,7 +24,7 @@ load_dotenv(BACKEND_DIR.parent / ".env")
 
 from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
-from services.term_extraction import SCHEMA_VERSION, TermsExtraction  # noqa: E402
+from services.term_extraction import PROMPT_VERSION, SCHEMA_VERSION, TermsExtraction  # noqa: E402
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
@@ -179,12 +179,21 @@ def make_deal(creator: str, label: str, participant_roles: list[tuple[str, str]]
         {"deal_id": deal_id, "profile_id": ids[actor], "participant_role": role}
         for actor, role in participant_roles
     ]).execute()
-    admin.table("ai_summaries").insert({
+    summary = admin.table("ai_summaries").insert({
         "deal_id": deal_id,
         "raw_output": {"source": "fictional private-label fixture"},
         "structured_terms": terms(),
         "status": "approved",
         "schema_version": SCHEMA_VERSION,
+        "prompt_version": PROMPT_VERSION,
+    }).execute().data[0]
+    admin.table("contracts").insert({
+        "deal_id": deal_id,
+        "version": 1,
+        "storage_path": f"{deal_id}/executed-fictional-v1.pdf",
+        "generated_from_summary_id": summary["id"],
+        "status": "executed",
+        "draft_source_sha256": "0" * 64,
     }).execute()
     deal_ids.append(deal_id)
     return deal_id

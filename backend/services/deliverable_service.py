@@ -13,7 +13,7 @@ from supabase import Client
 
 from core.supabase_client import get_supabase
 from services.stage_engine import DealError, _load_deal_for_transition, _participant_role
-from services.term_extraction import TermsExtraction
+from services.term_extraction import TermsExtractionV1, TermsExtractionV2, validate_chat_terms_row
 from services.content_service import participant_content_view
 
 
@@ -64,33 +64,43 @@ def _raise_rpc_error(exc: Exception) -> NoReturn:
     raise DealError(409, 'The deliverable plan could not be initialized safely. Nothing was changed.') from exc
 
 
-def _latest_approved_summary(client: Client, deal_id: str) -> dict[str, Any]:
+def _executed_summary(client: Client, deal_id: str) -> dict[str, Any]:
     rows = (
-        client.table('ai_summaries')
-        .select('id,deal_id,structured_terms,status,generated_at')
+        client.table('contracts')
+        .select(
+            'generated_from_summary_id,ai_summaries!inner('
+            'id,deal_id,structured_terms,status,schema_version,prompt_version)'
+        )
         .eq('deal_id', deal_id)
-        .eq('status', 'approved')
-        .order('generated_at', desc=True)
-        .order('id', desc=True)
-        .limit(1)
+        .eq('status', 'executed')
+        .eq('version', 1)
+        .limit(2)
         .execute()
         .data
     )
-    if not rows:
+    if len(rows) != 1:
         raise DealError(409, 'An approved terms summary is required for the deliverable plan.')
-    return rows[0]
+    summary = rows[0].get('ai_summaries')
+    if (
+        not isinstance(summary, dict)
+        or summary.get('deal_id') != deal_id
+        or summary.get('status') != 'approved'
+        or rows[0].get('generated_from_summary_id') != summary.get('id')
+    ):
+        raise DealError(409, 'An approved terms summary is required for the deliverable plan.')
+    return summary
 
 
-def _found_value(terms: TermsExtraction, field: str) -> Any:
+def _found_value(terms: TermsExtractionV1 | TermsExtractionV2, field: str) -> Any:
     envelope = getattr(terms, field)
     if envelope.status != 'found' or envelope.value is None:
         raise DealError(409, 'The approved terms do not contain a complete deliverable plan.')
     return envelope.value
 
 
-def _canonical_items(raw_terms: Any) -> tuple[int, list[dict[str, Any]]]:
+def _canonical_items(summary: dict[str, Any]) -> tuple[int, list[dict[str, Any]]]:
     try:
-        terms = TermsExtraction.model_validate(raw_terms)
+        terms = validate_chat_terms_row(summary)
     except (TypeError, ValueError) as exc:
         raise DealError(409, 'The approved terms do not contain a valid deliverable plan.') from exc
 
@@ -147,8 +157,8 @@ def _materialize(
     if deal['stage'] not in allowed_stages:
         raise DealError(409, 'The deliverable plan is available once the deal reaches Creating.')
 
-    summary = _latest_approved_summary(client, deal_id)
-    count, items = _canonical_items(summary['structured_terms'])
+    summary = _executed_summary(client, deal_id)
+    count, items = _canonical_items(summary)
     existing = (
         client.table('deliverables')
         .select(

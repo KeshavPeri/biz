@@ -7,7 +7,7 @@ from typing import Any, NoReturn
 from supabase import Client
 
 from services.stage_engine import DealError, _load_deal_for_transition, _participant_role
-from services.term_extraction import TermsExtraction
+from services.term_extraction import validate_chat_terms_row
 
 
 _RPC_ERRORS: dict[str, tuple[int, str]] = {
@@ -31,7 +31,10 @@ def _raise_rpc_error(exc: Exception) -> NoReturn:
 def _source_summary(client: Client, deal_id: str) -> dict[str, Any]:
     rows = (
         client.table("contracts")
-        .select("id,generated_from_summary_id,status,version,ai_summaries!inner(id,deal_id,status,structured_terms)")
+        .select(
+            "id,generated_from_summary_id,status,version,"
+            "ai_summaries!inner(id,deal_id,status,structured_terms,schema_version,prompt_version)"
+        )
         .eq("deal_id", deal_id)
         .eq("status", "executed")
         .eq("version", 1)
@@ -42,10 +45,15 @@ def _source_summary(client: Client, deal_id: str) -> dict[str, Any]:
     if not rows:
         raise DealError(409, "The executed contract does not contain trusted calendar terms.")
     summary = rows[0].get("ai_summaries")
-    if not isinstance(summary, dict) or summary.get("status") != "approved" or summary.get("deal_id") != deal_id:
+    if (
+        not isinstance(summary, dict)
+        or summary.get("status") != "approved"
+        or summary.get("deal_id") != deal_id
+        or rows[0].get("generated_from_summary_id") != summary.get("id")
+    ):
         raise DealError(409, "The executed contract does not contain trusted calendar terms.")
     try:
-        terms = TermsExtraction.model_validate(summary.get("structured_terms"))
+        terms = validate_chat_terms_row(summary)
     except (TypeError, ValueError) as exc:
         raise DealError(409, "The executed contract does not contain trusted calendar terms.") from exc
     if terms.usage_rights.status != "found" or terms.blackout_window.status != "found":
@@ -68,12 +76,14 @@ def materialize_for_creating_entry(
     summary = _source_summary(client, deal_id)
     try:
         return client.rpc(
-            "materialize_canonical_calendar_terms",
+            "materialize_canonical_calendar_terms_versioned",
             {
                 "p_deal_id": deal_id,
                 "p_source_summary_id": summary["id"],
                 "p_actor_id": actor_id,
                 "p_ip_address": ip_address,
+                "p_schema_version": summary["schema_version"],
+                "p_prompt_version": summary["prompt_version"],
             },
         ).execute().data
     except Exception as exc:

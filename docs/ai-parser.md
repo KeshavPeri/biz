@@ -94,6 +94,17 @@ Blog Post · UGC Photo · Podcast Read · X/Twitter Thread · LinkedIn Post · P
 **Platform enum:** Instagram · TikTok · YouTube · LinkedIn · X/Twitter · Pinterest · Threads ·
 Podcast platform · Brand's own channel (UGC).
 
+**Versioned field-18 contract:** stored `chat-terms-22.v1` summaries keep the historical
+`{"required": bool, "platform_rules": string[]}` value and are always validated as v1. New
+summaries use `chat-terms-22.v2`, where every rule is an exact
+`{"platform": Platform, "rule": bounded non-empty text}` object. `required=false` permits only an
+empty rule list. `required=true` requires at least one rule for every distinct negotiated
+deliverable platform and rejects rules for absent platforms, normalized duplicate platform/rule
+pairs, unknown keys or enums, unsafe text, and more than 50 rules. Rule order has no contractual
+meaning. The matching contract extraction families are `contract-terms-22.v1` and
+`contract-terms-22.v2`; persisted version metadata, never payload shape, selects the validator.
+Legacy anonymous v1 rules are not assigned to a platform or rewritten.
+
 ---
 
 ## The 12 mandatory minimum fields
@@ -176,6 +187,10 @@ not a second AI judgement:
   formatting and phrasing differences disappear *before* comparison. This is how the system
   distinguishes a trivial wording difference from a substantive one without asking the AI to
   judge it.
+- Sponsored-disclosure comparison is version-pinned. V1 retains its unordered general string-list
+  comparison. V2 sorts complete platform/rule pairs by platform and normalized rule text; moving a
+  rule to another platform, adding it, or dropping it remains a conflict. Mixed or unsupported
+  schema families fail closed before an alignment result can enable signing.
 - Any genuine value mismatch is surfaced to both parties and must be resolved (or explicitly
   overridden by both) before signing is enabled.
 - **Contract takes precedence post-signing:** before signing, conflicts must be cleared; after

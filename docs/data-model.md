@@ -380,7 +380,14 @@ The AI summary generated **from chat**. Both parties approve this.
 | raw_output | jsonb | full AI summary text |
 | structured_terms | jsonb | the 22 fields as extracted from chat |
 | status | enum | `pending_approval` \| `approved` \| `issue_raised` |
+| schema_version | text | immutable validator identity (`chat-terms-22.v1` or `.v2`) |
+| prompt_version | text | matching immutable prompt identity |
 | generated_at | timestamptz | |
+
+Field 18 is versioned inside `structured_terms` without changing the 22 top-level keys. V1 keeps
+anonymous `platform_rules: string[]`; v2 stores bounded exact `{platform, rule}` objects and binds
+coverage to the distinct platforms in field 16. Existing v1 rows remain immutable and are never
+inferred into v2.
 
 ### `extracted_terms`
 The AI extraction **from the final contract**. Compared against the summary for conflicts.
@@ -394,6 +401,8 @@ The AI extraction **from the final contract**. Compared against the summary for 
 | structured_terms | jsonb | the 22 fields from the contract |
 | conflicts_detected | jsonb | list of fields where contract ≠ chat summary |
 | confirmed_by_both | bool | |
+| schema_version | text | contract family pinned from the approved summary (`contract-terms-22.v1` or `.v2`) |
+| prompt_version | text | matching immutable prompt identity |
 | extracted_at | timestamptz | |
 
 ### `term_approvals`
@@ -524,6 +533,11 @@ Revision rounds per deliverable (Round X of Y).
 | platform | enum | rules differ per platform |
 | required | bool | |
 | rule_note | text | platform-specific rule surfaced |
+
+`chat-terms-22.v2` provides the truthful platform/rule source shape needed for this table, but this
+work does not populate, read, backfill, grant access to, or otherwise change
+`disclosure_requirements`. Canonical materialization and the participant-safe tracker remain a
+separate B5-017 build. V1 anonymous rules must never be guessed into this table.
 
 ---
 

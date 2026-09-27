@@ -9,7 +9,7 @@ from supabase import Client
 
 from core.supabase_client import get_supabase
 from services.stage_engine import DealError, _load_deal_for_transition, _participant_role
-from services.term_extraction import TermsExtraction
+from services.term_extraction import TermsExtractionV1, TermsExtractionV2, validate_chat_terms_row
 
 _MAX_DEALS = 100
 _MAX_NAME = 160
@@ -40,9 +40,12 @@ def _unavailable() -> NoReturn:
     raise DealError(409, _GENERIC_UNAVAILABLE)
 
 
-def _valid_terms(raw: Any) -> TermsExtraction:
+TermsModel = TermsExtractionV1 | TermsExtractionV2
+
+
+def _valid_terms(summary: dict[str, Any]) -> TermsModel:
     try:
-        terms = TermsExtraction.model_validate(raw)
+        terms = validate_chat_terms_row(summary)
     except (TypeError, ValueError) as exc:
         raise DealError(409, "The executed contract does not contain trusted exclusivity terms.") from exc
     if terms.exclusivity.status != "found" or not isinstance(terms.exclusivity.value, bool):
@@ -57,9 +60,10 @@ def _valid_terms(raw: Any) -> TermsExtraction:
     return terms
 
 
-def _executed_source(client: Client, deal_id: str) -> tuple[dict[str, Any], dict[str, Any], TermsExtraction]:
+def _executed_source(client: Client, deal_id: str) -> tuple[dict[str, Any], dict[str, Any], TermsModel]:
     rows = client.table("contracts").select(
-        "id,generated_from_summary_id,ai_summaries!inner(id,deal_id,status,structured_terms)"
+        "id,generated_from_summary_id,"
+        "ai_summaries!inner(id,deal_id,status,structured_terms,schema_version,prompt_version)"
     ).eq("deal_id", deal_id).eq("status", "executed").eq("version", 1).limit(2).execute().data
     if len(rows) != 1:
         _unavailable()
@@ -73,7 +77,7 @@ def _executed_source(client: Client, deal_id: str) -> tuple[dict[str, Any], dict
     ):
         _unavailable()
     try:
-        terms = _valid_terms(summary.get("structured_terms"))
+        terms = _valid_terms(summary)
     except DealError:
         _unavailable()
     return contract, summary, terms
@@ -81,7 +85,8 @@ def _executed_source(client: Client, deal_id: str) -> tuple[dict[str, Any], dict
 
 def _source_summary(client: Client, deal_id: str) -> dict[str, Any]:
     rows = client.table("contracts").select(
-        "id,generated_from_summary_id,ai_summaries!inner(id,deal_id,status,structured_terms)"
+        "id,generated_from_summary_id,"
+        "ai_summaries!inner(id,deal_id,status,structured_terms,schema_version,prompt_version)"
     ).eq("deal_id", deal_id).eq("status", "executed").eq("version", 1).limit(2).execute().data
     if len(rows) != 1:
         raise DealError(409, "The executed contract does not contain trusted exclusivity terms.")
@@ -93,7 +98,7 @@ def _source_summary(client: Client, deal_id: str) -> dict[str, Any]:
         or rows[0].get("generated_from_summary_id") != summary.get("id")
     ):
         raise DealError(409, "The executed contract does not contain trusted exclusivity terms.")
-    _valid_terms(summary.get("structured_terms"))
+    _valid_terms(summary)
     return summary
 
 
@@ -106,11 +111,13 @@ def materialize_for_creating_entry(client: Client, deal_id: str, actor_id: str, 
         raise DealError(409, "Exclusivity can be initialized only while the signed deal enters Creating.")
     summary = _source_summary(client, deal_id)
     try:
-        return client.rpc("materialize_canonical_exclusivity", {
+        return client.rpc("materialize_canonical_exclusivity_versioned", {
             "p_deal_id": deal_id,
             "p_source_summary_id": summary["id"],
             "p_actor_id": actor_id,
             "p_ip_address": ip_address,
+            "p_schema_version": summary["schema_version"],
+            "p_prompt_version": summary["prompt_version"],
         }).execute().data
     except Exception as exc:
         _raise_rpc_error(exc)
@@ -204,7 +211,7 @@ def _execution_evidence(client: Client, deal_id: str, contract_id: str, *, requi
     return executed_on
 
 
-def _expected_fact(client: Client, deal_id: str, contract: dict[str, Any], terms: TermsExtraction, *, fallback: bool) -> dict[str, Any]:
+def _expected_fact(client: Client, deal_id: str, contract: dict[str, Any], terms: TermsModel, *, fallback: bool) -> dict[str, Any]:
     start = _execution_evidence(client, deal_id, contract["id"], require_transition=fallback)
     has_exclusivity = terms.exclusivity.value
     if not has_exclusivity:
@@ -227,7 +234,7 @@ def _expected_fact(client: Client, deal_id: str, contract: dict[str, Any], terms
     }
 
 
-def _fact(client: Client, deal_id: str, contract: dict[str, Any], summary: dict[str, Any], terms: TermsExtraction) -> dict[str, Any]:
+def _fact(client: Client, deal_id: str, contract: dict[str, Any], summary: dict[str, Any], terms: TermsModel) -> dict[str, Any]:
     rows = client.table("exclusivity_clauses").select(
         "source_summary_id,has_exclusivity,category,duration_days,start_date,end_date"
     ).eq("deal_id", deal_id).not_.is_("source_summary_id", "null").limit(2).execute().data

@@ -39,6 +39,7 @@ from services.stage_engine import (
     _participant_role,
     request_transition,
 )
+from services.term_extraction import normalise_contract_text, validate_chat_terms_row
 
 logger = logging.getLogger(__name__)
 BUCKET = "contracts"
@@ -89,13 +90,48 @@ def _deal(client: Any, deal_id: str, user_id: str) -> tuple[dict[str, Any], str]
 
 
 def _approved_summary(client: Any, deal_id: str, summary_id: str | None = None) -> dict[str, Any]:
-    query = client.table("ai_summaries").select("id,structured_terms,status,generated_at").eq("deal_id", deal_id)
     if summary_id:
-        query = query.eq("id", summary_id)
-    rows = query.eq("status", "approved").order("generated_at", desc=True).limit(1).execute().data
-    if not rows:
-        raise DealError(409, "An approved terms summary is required before a contract can be generated.")
-    return rows[0]
+        rows = (
+            client.table("ai_summaries")
+            .select("id,structured_terms,status,generated_at,schema_version,prompt_version")
+            .eq("deal_id", deal_id)
+            .eq("id", summary_id)
+            .eq("status", "approved")
+            .limit(1)
+            .execute()
+            .data
+        )
+        if rows:
+            try:
+                validate_chat_terms_row(rows[0])
+                return rows[0]
+            except (TypeError, ValueError):
+                pass
+    else:
+        start = 0
+        page_size = 100
+        while True:
+            rows = (
+                client.table("ai_summaries")
+                .select("id,structured_terms,status,generated_at,schema_version,prompt_version")
+                .eq("deal_id", deal_id)
+                .eq("status", "approved")
+                .order("generated_at", desc=True)
+                .order("id", desc=True)
+                .range(start, start + page_size - 1)
+                .execute()
+                .data
+            )
+            for row in rows:
+                try:
+                    validate_chat_terms_row(row)
+                    return row
+                except (TypeError, ValueError):
+                    continue
+            if len(rows) < page_size:
+                break
+            start += page_size
+    raise DealError(409, "An approved terms summary is required before a contract can be generated.")
 
 
 def _pdf(html: str) -> bytes:
@@ -128,6 +164,20 @@ def _display_value(value: Any) -> str:
             return "Not discussed" if status == "not_discussed" else "Needs clarification"
         if "value" in value:
             return _display_value(value["value"])
+        if set(value) == {"required", "platform_rules"} and isinstance(value["platform_rules"], list):
+            rules = value["platform_rules"]
+            if all(isinstance(item, dict) and set(item) == {"platform", "rule"} for item in rules):
+                rendered = ", ".join(
+                    f"{item['platform']} — {item['rule']}"
+                    for item in sorted(
+                        rules,
+                        key=lambda item: (
+                            str(item["platform"]),
+                            normalise_contract_text(str(item["rule"])),
+                        ),
+                    )
+                )
+                return f"Required: {_display_value(value['required'])}; Platform rules: {rendered or 'None'}"
         return "; ".join(f"{str(k).replace('_', ' ').title()}: {_display_value(v)}" for k, v in sorted(value.items()))
     if isinstance(value, list):
         return ", ".join(_display_value(item) for item in value) or "None"
@@ -138,12 +188,14 @@ def _display_value(value: Any) -> str:
     return str(value).strip() or "Not specified"
 
 
-def _terms_for_template(structured_terms: Any) -> list[dict[str, str]]:
-    if not isinstance(structured_terms, dict):
+def _terms_for_template(summary: dict[str, Any]) -> list[dict[str, str]]:
+    try:
+        terms = validate_chat_terms_row(summary)
+    except (TypeError, ValueError):
         raise DealError(409, "The approved terms summary is incomplete. Please review it before generating a contract.")
     return [
         {"label": str(key).replace("_", " ").strip().title(), "value": _display_value(value)}
-        for key, value in sorted(structured_terms.items())
+        for key, value in sorted(terms.model_dump(mode="json").items())
     ]
 
 
@@ -160,7 +212,7 @@ def _base_context(client: Any, deal: dict[str, Any], summary: dict[str, Any], co
         "creator_name": profiles[0]["display_name"] if profiles else "Creator",
         "brand_name": brands[0]["company_name"] if brands else "Brand",
         "approved_summary_id": summary["id"],
-        "terms": _terms_for_template(summary.get("structured_terms")),
+        "terms": _terms_for_template(summary),
     }
 
 
@@ -212,10 +264,21 @@ def generate_contract(deal_id: str, user_id: str, ip_address: str) -> dict[str, 
     if deal["stage"] != "approval":
         raise DealError(409, "Contracts can only be generated in Approval.")
     try:
-        reservation = _rpc_data(client, "reserve_contract_v1", {"p_deal_id": deal_id, "p_actor_id": user_id})
+        existing, _ = _contract_rows(client, deal_id)
+        summary = _approved_summary(
+            client,
+            deal_id,
+            existing["generated_from_summary_id"] if existing else None,
+        )
+        reservation = _rpc_data(
+            client,
+            "reserve_contract_for_summary_v1",
+            {"p_deal_id": deal_id, "p_actor_id": user_id, "p_summary_id": summary["id"]},
+        )
         contract = reservation["contract"]
         if contract["status"] == "draft":
-            summary = _approved_summary(client, deal_id, contract["generated_from_summary_id"])
+            if contract["generated_from_summary_id"] != summary["id"]:
+                raise DealError(409, "The approved terms changed while the contract was being reserved. Refresh and try again.")
             context = _base_context(client, deal, summary, contract)
             pdf = _pdf(TEMPLATES.get_template("agreement.html").render(**context, signatures=[], executed=False))
             path = _draft_path(deal_id, contract["id"])
@@ -237,6 +300,8 @@ def generate_contract(deal_id: str, user_id: str, ip_address: str) -> dict[str, 
     except Exception as exc:
         if "approved_summary_required" in str(exc):
             raise DealError(409, "An approved terms summary is required before a contract can be generated.") from exc
+        if "contract_source_conflict" in str(exc):
+            raise DealError(409, "The approved terms changed while the contract was being reserved. Refresh and try again.") from exc
         logger.exception("Contract generation failed")
         raise DealError(500, "The contract could not be generated. Please try again.") from exc
 
@@ -556,6 +621,10 @@ def decide_held_contract_signature(
     ip_address: str,
 ) -> dict[str, Any]:
     client = get_supabase()
+    contract_id = (request.get("action_payload") or {}).get("contract_id")
+    if not isinstance(contract_id, str):
+        raise DealError(409, "This signing request is no longer valid. Refresh and try again.")
+    phase10_alignment_check(client, request["deal_id"], contract_id)
     try:
         result = _rpc_data(
             client,

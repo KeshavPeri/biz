@@ -27,7 +27,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
 from services.deliverable_service import get_deliverables, materialize_for_creating_entry  # noqa: E402
 from services.stage_engine import DealError  # noqa: E402
-from services.term_extraction import SCHEMA_VERSION, TermsExtraction  # noqa: E402
+from services.term_extraction import PROMPT_VERSION, SCHEMA_VERSION, TermsExtraction  # noqa: E402
 
 SUPABASE_URL = os.environ['SUPABASE_URL']
 ANON_KEY = os.environ['SUPABASE_ANON_KEY']
@@ -154,10 +154,20 @@ def make_deal(stage: str, label: str, structured_terms: dict, *, generated_at: s
         'structured_terms': structured_terms,
         'status': 'approved',
         'schema_version': SCHEMA_VERSION,
+        'prompt_version': PROMPT_VERSION,
     }
     if generated_at:
         summary_row['generated_at'] = generated_at
     summary_id = admin.table('ai_summaries').insert(summary_row).execute().data[0]['id']
+    if stage == 'creating':
+        admin.table('contracts').insert({
+            'deal_id': deal_id,
+            'version': 1,
+            'storage_path': f'{deal_id}/fictional-executed-v1.pdf',
+            'generated_from_summary_id': summary_id,
+            'status': 'executed',
+            'draft_source_sha256': 'd' * 64,
+        }).execute()
     deal_ids.append(deal_id)
     return deal_id, summary_id
 

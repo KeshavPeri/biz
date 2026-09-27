@@ -946,6 +946,14 @@ become required the moment their parent answer is "yes".
 | 21 | Location | text | If Experience/Event deal |
 | 22 | Milestone schedule | array of {trigger, amount, due_date} | If milestone structure |
 
+Field 18 keeps one top-level field across immutable schema families. Historical
+`chat-terms-22.v1` / `contract-terms-22.v1` evidence stores general rule strings. New v2 evidence
+stores exact `{platform, rule}` pairs, with false requiring no rules and true requiring bounded
+coverage of every distinct field-16 platform. Persisted schema metadata selects validation and
+chat/contract families must match; legacy strings are never mapped to a platform. Canonical
+`disclosure_requirements` population, tracker UI, and reminders are not implied by this source
+contract.
+
 **Field status model:** `found` (shown for confirmation), `not_discussed` (in the "still needed"
 checklist; blocks the summary if it's a ★ field), `ambiguous` (flagged for clarification before it
 can be confirmed).

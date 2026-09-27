@@ -23,7 +23,14 @@ load_dotenv(BACKEND_DIR.parent / '.env')
 from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
 from services import ai_service  # noqa: E402
-from services.term_extraction import PROMPT_VERSION, SCHEMA_VERSION, TermsExtraction  # noqa: E402
+from services.term_extraction import (  # noqa: E402
+    CURRENT_CHAT_PROMPT_VERSION,
+    CURRENT_CHAT_SCHEMA_VERSION,
+    PROMPT_VERSION,
+    SCHEMA_VERSION,
+    TermsExtraction,
+    TermsExtractionV2,
+)
 
 
 SUPABASE_URL = os.environ['SUPABASE_URL']
@@ -78,7 +85,7 @@ def call(path: str, token: str):
 def clean_payload() -> dict:
     return {
         key: {'status': 'not_discussed', 'value': None, 'evidence': []}
-        for key in TermsExtraction.model_fields
+        for key in TermsExtractionV2.model_fields
     }
 
 
@@ -207,11 +214,11 @@ def main() -> None:
         ai_service.request_terms_summary_generation = fake_generation
         first = call(f'/deals/{route_deal}/confirm-summary-request', tokens['C'])
         second = call(f'/deals/{route_deal}/confirm-summary-request', tokens['C'])
-        check('confirmed Gate A returns safe pending-summary identity and provenance', first.status_code == 200 and first.json()['summary']['status'] == 'pending_approval' and first.json()['summary']['schema_version'] == SCHEMA_VERSION and 'raw_output' not in first.text)
+        check('confirmed Gate A returns safe pending-summary identity and v2 provenance', first.status_code == 200 and first.json()['summary']['status'] == 'pending_approval' and first.json()['summary']['schema_version'] == CURRENT_CHAT_SCHEMA_VERSION and 'raw_output' not in first.text)
         check('successful retry returns the same row without another provider call', second.status_code == 200 and second.json()['summary']['id'] == first.json()['summary']['id'] and second.json()['idempotent'] is True and len(provider.requests) == 1)
         summary_id = first.json()['summary']['id']
         persisted = admin.table('ai_summaries').select('*').eq('id', summary_id).single().execute().data
-        check('validated raw/canonical JSON and non-secret provenance are persisted', persisted['raw_output'] == payload and persisted['structured_terms'] == payload and persisted['prompt_version'] == PROMPT_VERSION and persisted['provider'] == 'fake')
+        check('validated raw/canonical JSON and non-secret v2 provenance are persisted', persisted['raw_output'] == payload and persisted['structured_terms'] == payload and persisted['prompt_version'] == CURRENT_CHAT_PROMPT_VERSION and persisted['provider'] == 'fake')
 
         creator = authenticated_client(USERS['C'][0])
         brand = authenticated_client(USERS['B'][0])

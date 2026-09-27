@@ -28,7 +28,14 @@ from services.contract_alignment import (  # noqa: E402
     SCHEMA_VERSION as ALIGNMENT_SCHEMA_VERSION,
 )
 from services.stage_engine import request_transition  # noqa: E402
-from services.term_extraction import PROMPT_VERSION, SCHEMA_VERSION, TermsExtraction  # noqa: E402
+from services.term_extraction import (  # noqa: E402
+    CHAT_PROMPT_VERSION_V2,
+    CHAT_SCHEMA_VERSION_V2,
+    PROMPT_VERSION,
+    SCHEMA_VERSION,
+    TermsExtraction,
+    TermsExtractionV2,
+)
 
 SUPABASE_URL = os.environ['SUPABASE_URL']
 SUPABASE_ANON_KEY = os.environ['SUPABASE_ANON_KEY']
@@ -123,6 +130,16 @@ def resolved_terms() -> dict:
     return value
 
 
+def resolved_terms_v2() -> dict:
+    value = resolved_terms()
+    value['sponsored_content_disclosure'] = found({
+        'required': True,
+        'platform_rules': [{'platform': 'Instagram', 'rule': 'Use #ad and the paid partnership label'}],
+    })
+    TermsExtractionV2.model_validate(value)
+    return value
+
+
 def create_deal(ids: dict[str, str], brand_id: str, label: str) -> str:
     deal_id = admin.table('deals').insert({
         'creator_id': ids['C'],
@@ -154,7 +171,14 @@ def create_private_outsider_deal(ids: dict[str, str], brand_id: str) -> str:
     return deal_id
 
 
-def persist_summary(deal_id: str, ids: dict[str, str], terms: dict) -> str:
+def persist_summary(
+    deal_id: str,
+    ids: dict[str, str],
+    terms: dict,
+    *,
+    schema_version: str = SCHEMA_VERSION,
+    prompt_version: str = PROMPT_VERSION,
+) -> str:
     admin.rpc('apply_summary_gate_action', {
         'p_deal_id': deal_id, 'p_action': 'request', 'p_actor_id': ids['B'],
         'p_actor_side': 'brand', 'p_ip_address': 'fictional-test',
@@ -168,8 +192,8 @@ def persist_summary(deal_id: str, ids: dict[str, str], terms: dict) -> str:
         'p_generation_id': gate['generation_id'],
         'p_raw_output': terms,
         'p_structured_terms': terms,
-        'p_schema_version': SCHEMA_VERSION,
-        'p_prompt_version': PROMPT_VERSION,
+        'p_schema_version': schema_version,
+        'p_prompt_version': prompt_version,
         'p_provider': 'fictional-test-provider',
         'p_model': 'fictional-test-model',
         'p_ip_address': 'fictional-test',
@@ -433,6 +457,52 @@ def main() -> None:
         missing_summary = persist_summary(missing_deal, ids, missing_terms)
         check('ambiguous applicable field is blocked server-side with no decision', decide(ambiguous_deal, ambiguous_summary, tokens['C']).status_code == 409 and not admin.table('term_approvals').select('id').eq('summary_id', ambiguous_summary).execute().data)
         check('applicable not-discussed field is blocked server-side with no decision', decide(missing_deal, missing_summary, tokens['C']).status_code == 409 and not admin.table('term_approvals').select('id').eq('summary_id', missing_summary).execute().data)
+
+        v2_deal = create_deal(ids, brand_id, 'v2-platform-disclosure')
+        v2_payload = resolved_terms_v2()
+        v2_summary = persist_summary(
+            v2_deal,
+            ids,
+            v2_payload,
+            schema_version=CHAT_SCHEMA_VERSION_V2,
+            prompt_version=CHAT_PROMPT_VERSION_V2,
+        )
+        v2_review = call('GET', f'/deals/{v2_deal}/terms-summary', tokens['C']).json()['summary']
+        v2_disclosure = next(row for row in v2_review['fields'] if row['key'] == 'sponsored_content_disclosure')['value']
+        immutable_before = admin.table('ai_summaries').select('structured_terms').eq('id', v2_summary).single().execute().data
+        for key in ('C', 'B', 'M', 'K'):
+            decide(v2_deal, v2_summary, tokens[key])
+        immutable_after = admin.table('ai_summaries').select('structured_terms').eq('id', v2_summary).single().execute().data
+        check(
+            'v2 summary is reviewable/approvable by persisted version without rewriting immutable evidence',
+            v2_review['schema_version'] == CHAT_SCHEMA_VERSION_V2
+            and v2_disclosure == {
+                'required': True,
+                'platform_rules': [{'platform': 'Instagram', 'rule': 'Use #ad and the paid partnership label'}],
+            }
+            and admin.table('deals').select('stage').eq('id', v2_deal).single().execute().data['stage'] == 'approval'
+            and immutable_before == immutable_after,
+        )
+        admin.table('ai_summaries').insert({
+            'deal_id': v2_deal,
+            'raw_output': {'fixture': 'unsupported newer row'},
+            'structured_terms': {},
+            'status': 'approved',
+            'schema_version': 'chat-terms-22.v999',
+            'prompt_version': 'unsupported.v999',
+            'generated_at': '2099-01-01T00:00:00+00:00',
+        }).execute()
+        admin.table('ai_summaries').insert({
+            'deal_id': v2_deal,
+            'raw_output': {'fixture': 'cross-family newer row'},
+            'structured_terms': v2_payload,
+            'status': 'approved',
+            'schema_version': CHAT_SCHEMA_VERSION_V2,
+            'prompt_version': 'contract-terms-extraction.v2',
+            'generated_at': '2100-01-01T00:00:00+00:00',
+        }).execute()
+        selected_after_bad_history = call('GET', f'/deals/{v2_deal}/terms-summary', tokens['C']).json()['summary']
+        check('newer unsupported, malformed, or cross-family history cannot shadow the authorized approved v2 summary', selected_after_bad_history['id'] == v2_summary)
 
         # Append-only decisions, latest-derived roster, full current roster, race.
         first = decide(main_deal, main_summary, tokens['C'])

@@ -27,6 +27,7 @@ load_dotenv(BACKEND_DIR.parent / ".env")
 
 from main import app  # noqa: E402
 from services.exclusivity_service import exclusivity_status  # noqa: E402
+from services.term_extraction import PROMPT_VERSION, SCHEMA_VERSION  # noqa: E402
 from test_contract_alignment_unit import payload as alignment_payload  # noqa: E402
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
@@ -112,6 +113,7 @@ def create_deal(
     source = admin.table("ai_summaries").insert({
         "deal_id": deal_id, "raw_output": {"source": "fictional exclusivity acceptance"},
         "structured_terms": terms(has_exclusivity, duration, category), "status": "approved",
+        "schema_version": SCHEMA_VERSION, "prompt_version": PROMPT_VERSION,
     }).execute().data[0]
     contract = admin.table("contracts").insert({
         "deal_id": deal_id, "version": 1, "status": "executed",

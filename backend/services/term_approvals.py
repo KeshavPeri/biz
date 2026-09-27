@@ -8,7 +8,7 @@ from supabase import Client
 
 from core.supabase_client import get_supabase
 from services.stage_engine import DealError, _load_deal_for_transition, _participant_role
-from services.term_extraction import SCHEMA_VERSION, TermsExtraction
+from services.term_extraction import TermsExtractionV1, TermsExtractionV2, validate_terms_for_provenance
 
 
 FIELD_LABELS: dict[str, str] = {
@@ -37,7 +37,10 @@ FIELD_LABELS: dict[str, str] = {
 }
 
 
-def _is_applicable(terms: TermsExtraction, key: str) -> bool:
+TermsModel = TermsExtractionV1 | TermsExtractionV2
+
+
+def _is_applicable(terms: TermsModel, key: str) -> bool:
     if key in {'exclusivity_duration_days', 'exclusivity_category'}:
         return not (terms.exclusivity.status == 'found' and terms.exclusivity.value is False)
     if key in {'usage_rights_duration', 'usage_rights_channels'}:
@@ -51,7 +54,7 @@ def _is_applicable(terms: TermsExtraction, key: str) -> bool:
     return True
 
 
-def unresolved_field_keys(terms: TermsExtraction) -> list[str]:
+def unresolved_field_keys(terms: TermsModel) -> list[str]:
     return [
         key
         for key in FIELD_LABELS
@@ -59,15 +62,15 @@ def unresolved_field_keys(terms: TermsExtraction) -> list[str]:
     ]
 
 
-def _validated_terms(raw: Any) -> TermsExtraction:
+def _validated_terms(raw: Any, schema_version: Any, prompt_version: Any) -> TermsModel:
     try:
-        return TermsExtraction.model_validate(raw)
+        return validate_terms_for_provenance(raw, schema_version, prompt_version, family='chat')
     except (ValueError, TypeError) as exc:
         raise DealError(409, 'This summary is not valid for approval. Request a new summary.') from exc
 
 
 def _selected_summary(client: Client, deal_id: str, stage: str) -> dict[str, Any] | None:
-    fields = 'id,deal_id,generation_id,status,structured_terms,generated_at,schema_version'
+    fields = 'id,deal_id,generation_id,status,structured_terms,generated_at,schema_version,prompt_version'
     if stage == 'chatting':
         gates = (
             client.table('deal_summary_gates')
@@ -79,31 +82,59 @@ def _selected_summary(client: Client, deal_id: str, stage: str) -> dict[str, Any
         )
         if not gates or gates[0]['request_status'] != 'ready_for_generation' or not gates[0].get('generation_id'):
             return None
-        rows = (
-            client.table('ai_summaries')
-            .select(fields)
-            .eq('deal_id', deal_id)
-            .eq('generation_id', gates[0]['generation_id'])
-            .eq('schema_version', SCHEMA_VERSION)
-            .eq('status', 'pending_approval')
-            .limit(1)
-            .execute()
-            .data
+        return _paged_valid_summary(
+            client,
+            fields,
+            deal_id,
+            'pending_approval',
+            generation_id=gates[0]['generation_id'],
         )
-        return rows[0] if rows else None
     if stage in {'approval', 'creating'}:
-        rows = (
+        return _paged_valid_summary(client, fields, deal_id, 'approved')
+    return None
+
+
+def _paged_valid_summary(
+    client: Client,
+    fields: str,
+    deal_id: str,
+    status: str,
+    *,
+    generation_id: str | None = None,
+) -> dict[str, Any] | None:
+    """Scan immutable history in bounded pages until a valid exact pair wins."""
+    start = 0
+    page_size = 100
+    while True:
+        query = (
             client.table('ai_summaries')
             .select(fields)
             .eq('deal_id', deal_id)
-            .eq('schema_version', SCHEMA_VERSION)
-            .eq('status', 'approved')
-            .order('generated_at', desc=True)
-            .limit(1)
+            .eq('status', status)
+        )
+        if generation_id is not None:
+            query = query.eq('generation_id', generation_id)
+        rows = (
+            query.order('generated_at', desc=True)
+            .order('id', desc=True)
+            .range(start, start + page_size - 1)
             .execute()
             .data
         )
-        return rows[0] if rows else None
+        selected = _first_valid_supported_summary(rows)
+        if selected is not None or len(rows) < page_size:
+            return selected
+        start += page_size
+
+
+def _first_valid_supported_summary(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Do not let newer malformed or unsupported history shadow a valid row."""
+    for row in rows:
+        try:
+            _validated_terms(row.get('structured_terms'), row.get('schema_version'), row.get('prompt_version'))
+        except DealError:
+            continue
+        return row
     return None
 
 
@@ -167,7 +198,9 @@ def get_terms_review(deal_id: str, user_id: str) -> dict[str, Any]:
     if summary is None:
         return {'deal_id': deal_id, 'stage': deal['stage'], 'summary': None}
 
-    terms = _validated_terms(summary['structured_terms'])
+    terms = _validated_terms(
+        summary['structured_terms'], summary.get('schema_version'), summary.get('prompt_version')
+    )
     unresolved = set(unresolved_field_keys(terms))
     fields: list[dict[str, Any]] = []
     for key, label in FIELD_LABELS.items():
@@ -218,7 +251,7 @@ def apply_gate_b_decision(
     # check under locks. This yields field-specific, user-friendly feedback.
     rows = (
         client.table('ai_summaries')
-        .select('deal_id,status,structured_terms')
+        .select('deal_id,status,structured_terms,schema_version,prompt_version')
         .eq('id', summary_id)
         .limit(1)
         .execute()
@@ -226,8 +259,10 @@ def apply_gate_b_decision(
     )
     if not rows or rows[0]['deal_id'] != deal_id:
         raise DealError(409, 'That summary does not belong to this deal.')
+    terms = _validated_terms(
+        rows[0]['structured_terms'], rows[0].get('schema_version'), rows[0].get('prompt_version')
+    )
     if decision == 'approved' and rows[0]['status'] == 'pending_approval':
-        terms = _validated_terms(rows[0]['structured_terms'])
         unresolved = unresolved_field_keys(terms)
         if unresolved:
             labels = ', '.join(FIELD_LABELS[key] for key in unresolved[:3])
