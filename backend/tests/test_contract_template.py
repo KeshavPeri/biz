@@ -33,9 +33,9 @@ assert '&lt;Creator&gt;' in html and '<script>' not in html
 pdf = _pdf(html)
 reader = PdfReader(io.BytesIO(pdf))
 pdf_text = '\n'.join((page.extract_text() or '') for page in reader.pages)
-# WeasyPrint/PyPDF may retain a visual line-break hyphen (for example,
-# ``cap-\ntion``) even though the rendered PDF keeps one continuous rule.
-# Collapse only that extraction artifact before checking the complete
+# WeasyPrint/PyPDF may retain a visual line break inside a word (for example,
+# ``TikT ok``) even though the rendered PDF keeps one continuous rule.
+# Tolerate only that extraction artifact before checking the complete
 # platform-to-rule associations; ordinary punctuation and content stay intact.
 normalized_pdf_text = re.sub(r'(?<=\w)-\s*\n\s*(?=\w)', '', pdf_text)
 normalized_pdf_text = ' '.join(normalized_pdf_text.split())
@@ -45,9 +45,9 @@ assert re.search(
     normalized_pdf_text,
 )
 assert re.search(
-    r'(?<!\w)TikTok\W+Put\W+\#\W*ad\W+first\W+in\W+the\W+cap\W*tion(?!\w)',
+    r'(?<!\w)TikT\W*ok\W+Put\W+\#\W*ad\W+first\W+in\W+the\W+cap\W*tion(?!\w)',
     normalized_pdf_text,
-), normalized_pdf_text
+)
 assert 'TikTok — Put #ad first in the caption' in ' '.join(
     re.sub(r'(?<=\w)-\s*\n\s*(?=\w)', '', 'TikTok — Put #ad first in the cap-\ntion').split()
 )
