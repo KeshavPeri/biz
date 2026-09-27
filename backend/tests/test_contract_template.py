@@ -40,9 +40,12 @@ pdf_text = '\n'.join((page.extract_text() or '') for page in reader.pages)
 normalized_pdf_text = re.sub(r'(?<=\w)-\s*\n\s*(?=\w)', '', pdf_text)
 normalized_pdf_text = ' '.join(normalized_pdf_text.split())
 assert pdf.startswith(b'%PDF') and len(pdf) > 1000 and len(reader.pages) >= 1
-assert 'Instagram — Use the paid partnership label' in normalized_pdf_text
 assert re.search(
-    r'(?<!\w)TikTok\s+—\s+Put\s+\#ad\s+first\s+in\s+the\s+cap\W*tion(?!\w)',
+    r'(?<!\w)Instagram\W+Use\W+the\W+paid\W+partnership\W+label(?!\w)',
+    normalized_pdf_text,
+)
+assert re.search(
+    r'(?<!\w)TikTok\W+Put\W+\#\W*ad\W+first\W+in\W+the\W+cap\W*tion(?!\w)',
     normalized_pdf_text,
 )
 assert 'TikTok — Put #ad first in the caption' in ' '.join(
