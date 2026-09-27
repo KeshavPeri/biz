@@ -47,7 +47,7 @@ assert re.search(
 assert re.search(
     r'(?<!\w)TikTok\W+Put\W+\#\W*ad\W+first\W+in\W+the\W+cap\W*tion(?!\w)',
     normalized_pdf_text,
-)
+), normalized_pdf_text
 assert 'TikTok — Put #ad first in the caption' in ' '.join(
     re.sub(r'(?<=\w)-\s*\n\s*(?=\w)', '', 'TikTok — Put #ad first in the cap-\ntion').split()
 )
