@@ -1,5 +1,6 @@
 """Local contract-template safety/render smoke test (no database required)."""
 import io
+import re
 import sys
 from pathlib import Path
 
@@ -32,10 +33,18 @@ assert '&lt;Creator&gt;' in html and '<script>' not in html
 pdf = _pdf(html)
 reader = PdfReader(io.BytesIO(pdf))
 pdf_text = '\n'.join((page.extract_text() or '') for page in reader.pages)
-normalized_pdf_text = ' '.join(pdf_text.split())
+# WeasyPrint/PyPDF may retain a visual line-break hyphen (for example,
+# ``cap-\ntion``) even though the rendered PDF keeps one continuous rule.
+# Collapse only that extraction artifact before checking the complete
+# platform-to-rule associations; ordinary punctuation and content stay intact.
+normalized_pdf_text = re.sub(r'(?<=\w)-\s*\n\s*(?=\w)', '', pdf_text)
+normalized_pdf_text = ' '.join(normalized_pdf_text.split())
 assert pdf.startswith(b'%PDF') and len(pdf) > 1000 and len(reader.pages) >= 1
 assert 'Instagram — Use the paid partnership label' in normalized_pdf_text
 assert 'TikTok — Put #ad first in the caption' in normalized_pdf_text
+assert 'TikTok — Put #ad first in the caption' in ' '.join(
+    re.sub(r'(?<=\w)-\s*\n\s*(?=\w)', '', 'TikTok — Put #ad first in the cap-\ntion').split()
+)
 assert "{'platform'" not in pdf_text and '"platform"' not in pdf_text
 valid = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" width="10" height="10"><path d="M 1 1 L 2 2" fill="none" stroke="#1C1B18" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 assert _safe_svg(valid).startswith('<svg')
