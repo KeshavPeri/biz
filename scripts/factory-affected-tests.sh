@@ -49,6 +49,19 @@ frontend_changed=false
 
 while IFS= read -r changed_path; do
   case "$changed_path" in
+    backend/services/disclosure_service.py|backend/api/tracking.py|backend/migrations/*disclosure*tracker*.sql|backend/tests/test_disclosure_tracker.py|frontend/src/lib/disclosures*.ts|frontend/src/components/tracker/disclosure-card.tsx|frontend/src/app/disclosures.tsx|frontend/src/app/\(tabs\)/track.tsx|frontend/src/app/_layout.tsx|frontend/tests/disclosures-state.test.mjs)
+      add_command 'backend/.venv/bin/python backend/tests/test_disclosure_tracker.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_contract_flow.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_deliverable_flow.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_term_extraction_unit.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_term_extraction_db.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_term_approvals.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_contract_alignment.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_stage_engine.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_maker_checker.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_rls.py'
+      add_command 'cd frontend && NODE_NO_WARNINGS=1 node --test --experimental-strip-types tests/disclosures-state.test.mjs tests/usage-rights-state.test.mjs tests/exclusivity-state.test.mjs tests/blackouts-state.test.mjs tests/tracker-state.test.mjs'
+      ;;
     backend/migrations/*chat*attachment*.sql|backend/services/chat_attachment_service.py|backend/api/chat_attachments.py|backend/tests/test_chat_attachments.py|frontend/src/lib/chat-attachment*.ts|frontend/src/components/deal/chat-attachment.tsx|frontend/tests/chat-attachments.test.mjs|frontend/src/app/deal/\[id\].tsx)
       add_command 'backend/.venv/bin/python backend/tests/test_chat_attachments.py'
       add_command 'backend/.venv/bin/python backend/tests/test_storage_rls.py'

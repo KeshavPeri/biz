@@ -98,6 +98,7 @@ export default function RootLayout() {
               <Stack.Screen name="usage-rights" options={{ headerShown: false }} />
               <Stack.Screen name="exclusivity" options={{ headerShown: false }} />
               <Stack.Screen name="blackouts" options={{ headerShown: false }} />
+              <Stack.Screen name="disclosures" options={{ headerShown: false }} />
             </Stack.Protected>
             <Stack.Protected guard={!!session && onboarded === false}>
               <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />

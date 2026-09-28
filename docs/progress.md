@@ -16,6 +16,38 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #79 / Workplan 11.4-E2 canonical sponsored-disclosure tracker verified candidate (2026-09-28):**
+  additive development migration `054_disclosure_tracker.sql` preserves source-null legacy rows,
+  adds strict source/version-bound true/false shapes and per-platform sequence uniqueness, removes
+  participant raw-table authority, and exposes only service-role select plus one fixed-search-path,
+  deal-locked materializer. Contract execution invokes it immediately after canonical
+  deliverables: exact v2 sources atomically create one canonical platform/rule set and one
+  metadata-only audit, while valid v1 sources return an explicit unmapped no-op and still advance.
+  Concurrent retries converge; partial, duplicate, mixed-source, wrong-source or conflicting sets
+  are never repaired or overwritten. The bearer-authenticated `/tracking/disclosures` projection
+  authorizes current creator ownership or active same-brand participation before source access,
+  validates the exact executed v2 source, execution evidence and same-source deliverables on every
+  read, and uses a strict read-only historical fallback only after the later Approval→Creating
+  transition. Valid v1 and corrupt evidence surface only as Needs review without anonymous rules;
+  explicit false remains observably Not required. Track links to a strict-parser, account/request/
+  unmount-fenced Disclosures screen with textual Required, Not required and Needs review states,
+  platform grouping, refresh/retry/empty handling and source-deal links. The deduplicated
+  affected/ticket union passed **22/22 commands**, **297 backend checks**, and **20/20 frontend
+  state tests**. Security-repair scope now uses the authoritative Python NFKC/casefold contract for
+  database validation, uniqueness and sequencing, rejects noncanonical client rule/deal order, and
+  proves direct-RPC Unicode-equivalent duplicates leave no rows or audit. Its deduplicated delta
+  passed **17/17 commands**, **231 backend checks**, and **20/20 frontend state tests**; migration
+  054 applied to development, compile/TypeScript and diff hygiene passed. A founder-authorized
+  third focused repair aligned API rule ordering with that same NFKC/whitespace/full-casefold key
+  plus raw-code-point tie-breaker; a real API `alpha rule`/`Beta rule` response parses through the
+  strict client validator. Renewed security review passed. The unchanged-fingerprint final
+  regression passed **31/31 commands**, **530/530 backend checks**, **45/45 frontend Node tests**,
+  compile, TypeScript, lint (four pre-existing warnings), Expo web export (43 routes), and diff
+  hygiene at `07d511c1022c4536697bd5c978212f752c74e681`. Fictional fixtures are cleaned up and
+  privilege/secret inspection is clean. Founder creator/brand browser/native walkthrough is
+  `LIMITED`; scheduled reminders remain deferred to Phase 12 and no legal/compliance certification
+  is claimed.
+
 - **Issue #77 / Workplan 11.4-E1 sponsored-disclosure source-contract recovery candidate (2026-09-27):**
   new chat generation uses `chat-terms-22.v2` and binds every sponsored-disclosure instruction to
   one existing parser platform, while persisted v1 summaries remain reviewable under their
@@ -1155,15 +1187,17 @@ health`, `from core.config import settings`) that only resolve with `backend/` a
 
 ## NEXT UP _(ordered)_
 
-1. **Issue #69 / Workplan 11.4-A:** review the deliverable-detail draft PR; optionally perform the
+1. **Issue #79 / Workplan 11.4-E2:** review the draft PR; optionally complete the creator-and-brand
+   browser/native Disclosures walkthrough before deciding whether to merge.
+2. **Issue #69 / Workplan 11.4-A:** review the deliverable-detail draft PR; optionally perform the
    creator-and-brand browser/native and external-link walkthrough before deciding whether to merge.
-2. **Issues #61 and #63 / Workplan 11.1:** review the pending draft PRs; optionally perform the
+3. **Issues #61 and #63 / Workplan 11.1:** review the pending draft PRs; optionally perform the
    creator-and-brand Track and monthly-summary visual walkthroughs, then decide whether to merge.
-3. **Phase 11:** after the relevant draft PRs are merged, prepare or release the next tracking ticket
+4. **Phase 11:** after the relevant draft PRs are merged, prepare or release the next tracking ticket
    when the founder requests it.
-4. **Founder manual follow-up:** revisit the deferred 9.18 two-persona/device lifecycle
+5. **Founder manual follow-up:** revisit the deferred 9.18 two-persona/device lifecycle
    walkthrough, plus the previously deferred Phase 10 manual gate; record actual outcomes.
-5. **Later phases:** implement deferred B3-037/041/042 in their mapped Phase 11/12 work;
+6. **Later phases:** implement deferred B3-037/041/042 in their mapped Phase 11/12 work;
    retain the documented B3-016 and B3-017 limitations until their later work lands.
 
 ## NEEDS MY INPUT _(blockers + anything Claude flagged per the CLAUDE.md STOP list)_
@@ -1549,6 +1583,18 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-09-28 — Issue #79: Workplan 11.4-E2 disclosure tracker verified candidate
+
+- Added canonical v2 disclosure materialization, raw-authority revocation, participant-safe
+  required/not-required/unavailable projection, and the Track → Disclosures client experience.
+- The pre-review affected/ticket union passed 22/22 commands with 297 backend checks and 20
+  frontend states. The security repair aligned database NFKC/casefold validation, uniqueness and
+  sequencing with Python, added direct-RPC duplicate no-write proof, and enforced canonical client
+  rule/deal ordering. A founder-authorized final repair aligned API serialization with the same
+  comparator and proved a real mixed-case API response parses through the strict client. Renewed
+  security passed; final regression passed 31/31 commands, 530 backend checks and 45 frontend Node
+  tests at `07d511c1022c4536697bd5c978212f752c74e681`. Founder visual walkthrough remains LIMITED.
 
 ### 2026-09-25 — Issue #71: Workplan 11.4-B usage-rights tracker verified candidate
 
