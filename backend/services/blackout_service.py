@@ -10,7 +10,7 @@ from supabase import Client
 from core.supabase_client import get_supabase
 from services.exclusivity_service import _authorized_deals, _executed_source, _execution_evidence
 from services.stage_engine import DealError
-from services.term_extraction import TermsExtraction
+from services.term_extraction import TermsExtractionV1, TermsExtractionV2, validate_chat_terms_row
 
 _MAX_DEALS = 100
 _MAX_DELIVERABLES = 100
@@ -30,9 +30,12 @@ def _safe_text(value: Any, maximum: int = _MAX_NAME) -> str:
     return value
 
 
-def _terms(raw: Any) -> TermsExtraction:
+TermsModel = TermsExtractionV1 | TermsExtractionV2
+
+
+def _terms(summary: dict[str, Any]) -> TermsModel:
     try:
-        terms = TermsExtraction.model_validate(raw)
+        terms = validate_chat_terms_row(summary)
     except (TypeError, ValueError) as exc:
         raise DealError(409, _GENERIC_UNAVAILABLE) from exc
     if terms.usage_rights.status != "found" or terms.blackout_window.status != "found" or not isinstance(terms.usage_rights.value, bool) or not isinstance(terms.blackout_window.value, bool):
@@ -42,7 +45,7 @@ def _terms(raw: Any) -> TermsExtraction:
     return terms
 
 
-def _canonical_pair(client: Client, deal_id: str, source_id: str, contract: dict[str, Any], terms: TermsExtraction) -> tuple[bool, str | None, int | None]:
+def _canonical_pair(client: Client, deal_id: str, source_id: str, contract: dict[str, Any], terms: TermsModel) -> tuple[bool, str | None, int | None]:
     """Validate the all-or-nothing calendar pair; historical source is read-only."""
     usage = client.table("usage_rights").select("source_summary_id,has_usage_rights,channels,duration_days,is_perpetual,start_date,end_date").eq("deal_id", deal_id).not_.is_("source_summary_id", "null").limit(2).execute().data
     blackouts = client.table("blackout_windows").select("source_summary_id,has_blackout,timing,duration_days,start_date,end_date").eq("deal_id", deal_id).not_.is_("source_summary_id", "null").limit(2).execute().data
@@ -72,7 +75,7 @@ def _canonical_pair(client: Client, deal_id: str, source_id: str, contract: dict
     return expected
 
 
-def _blackout_terms(terms: TermsExtraction) -> tuple[bool, str | None, int | None]:
+def _blackout_terms(terms: TermsModel) -> tuple[bool, str | None, int | None]:
     if not terms.blackout_window.value:
         return False, None, None
     detail = terms.blackout_duration_timing.value
@@ -81,7 +84,7 @@ def _blackout_terms(terms: TermsExtraction) -> tuple[bool, str | None, int | Non
     return True, detail.timing, detail.duration_days
 
 
-def _canonical_deliverables(client: Client, deal_id: str, source_id: str, terms: TermsExtraction) -> list[tuple[date, date]]:
+def _canonical_deliverables(client: Client, deal_id: str, source_id: str, terms: TermsModel) -> list[tuple[date, date]]:
     rows = client.table("deliverables").select("id,sequence,source_summary_id,posting_date,posting_window_start,posting_window_end").eq("deal_id", deal_id).limit(_MAX_DELIVERABLES + 1).execute().data
     expected_count = terms.deliverable_count.value
     if not isinstance(expected_count, int) or not 1 <= expected_count <= _MAX_DELIVERABLES or len(rows) != expected_count:
@@ -153,8 +156,7 @@ def get_blackout_snapshot(user_id: str, *, _client: Client | None = None, _now: 
             deal_id = deal["id"]
             if deal.get("brand_id") not in brand_names:
                 _unavailable()
-            contract, summary, _ = _executed_source(client, deal_id)
-            terms = _terms(summary.get("structured_terms"))
+            contract, summary, terms = _executed_source(client, deal_id)
             has_blackout, timing, duration = _canonical_pair(client, deal_id, summary["id"], contract, terms)
             if not has_blackout:
                 continue

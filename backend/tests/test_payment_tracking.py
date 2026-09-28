@@ -20,7 +20,14 @@ load_dotenv(BACKEND_DIR.parent / ".env")
 
 from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
-from services.term_extraction import TermsExtraction  # noqa: E402
+from services.term_extraction import (  # noqa: E402
+    CHAT_PROMPT_VERSION_V2,
+    CHAT_SCHEMA_VERSION_V2,
+    PROMPT_VERSION,
+    SCHEMA_VERSION,
+    TermsExtraction,
+    TermsExtractionV2,
+)
 
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
@@ -132,6 +139,16 @@ def terms(kind: str, *, amount: int = 72000) -> dict:
     return value
 
 
+def terms_v2(kind: str = "on_posting") -> dict:
+    value = terms(kind)
+    value["sponsored_content_disclosure"] = found({
+        "required": True,
+        "platform_rules": [{"platform": "Instagram", "rule": "Use #ad in the caption"}],
+    })
+    TermsExtractionV2.model_validate(value)
+    return value
+
+
 def make_deal(
     label: str,
     kind: str,
@@ -139,6 +156,8 @@ def make_deal(
     stage: str = "payment",
     initialize: bool = True,
     terms_override: dict | None = None,
+    schema_version: str = SCHEMA_VERSION,
+    prompt_version: str = PROMPT_VERSION,
 ) -> str:
     deal_id = admin.table("deals").insert({
         "creator_id": ids["C"],
@@ -161,6 +180,8 @@ def make_deal(
         "raw_output": {"source": "fictional payment tracking fixture"},
         "structured_terms": terms_override or terms(kind),
         "status": "approved",
+        "schema_version": schema_version,
+        "prompt_version": prompt_version,
     }).execute().data[0]["id"]
     admin.table("contracts").insert({
         "deal_id": deal_id,
@@ -228,6 +249,42 @@ def main() -> None:
         ))
         check("outsider is denied before availability details leak", (
             call("GET", f"/deals/{prepayment}/payment-tracking", "O").status_code == 403
+        ))
+
+        v2_payment = make_deal(
+            "v2-initialization",
+            "on_posting",
+            terms_override=terms_v2(),
+            schema_version=CHAT_SCHEMA_VERSION_V2,
+            prompt_version=CHAT_PROMPT_VERSION_V2,
+        )
+        v2_projection = call("GET", f"/deals/{v2_payment}/payment-tracking", "C")
+        check("valid v2 executed terms initialize payment tracking through exact persisted provenance", (
+            v2_projection.status_code == 200
+            and v2_projection.json()["available"] is True
+            and v2_projection.json()["amount"] in {"72000", "72000.0"}
+        ))
+
+        mismatched_v2 = make_deal(
+            "v2-mismatched-provenance",
+            "on_posting",
+            initialize=False,
+            terms_override=terms_v2(),
+            schema_version=CHAT_SCHEMA_VERSION_V2,
+            prompt_version=PROMPT_VERSION,
+        )
+        mismatched_blocked = False
+        try:
+            admin.rpc("initialize_payment_tracking", {
+                "p_deal_id": mismatched_v2,
+                "p_actor_id": ids["B"],
+                "p_ip_address": "127.0.0.1",
+            }).execute()
+        except Exception:
+            mismatched_blocked = True
+        check("v2 payment initialization fails closed for a mismatched persisted pair", (
+            mismatched_blocked
+            and admin.table("payments").select("id").eq("deal_id", mismatched_v2).execute().data == []
         ))
 
         partial_terms = terms("on_posting")

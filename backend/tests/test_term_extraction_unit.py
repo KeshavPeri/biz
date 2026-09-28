@@ -18,17 +18,24 @@ os.environ.setdefault('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key')
 from services import ai_service  # noqa: E402
 from services import term_extraction  # noqa: E402
 from services.term_extraction import (  # noqa: E402
+    CHAT_SCHEMA_VERSION_V1,
+    CHAT_SCHEMA_VERSION_V2,
+    CHAT_PROMPT_VERSION_V1,
+    CHAT_PROMPT_VERSION_V2,
+    CURRENT_CHAT_PROMPT_VERSION,
+    CURRENT_CHAT_SCHEMA_VERSION,
     MAX_CHAT_MESSAGES,
+    MAX_DISCLOSURE_RULES,
     MAX_MESSAGE_BODY_CHARS,
-    PROMPT_VERSION,
-    SCHEMA_VERSION,
     ChatMessage,
     SummaryGenerationError,
     TermsExtraction,
+    TermsExtractionV2,
     _ordered_chat_messages,
     build_extraction_prompt,
     extract_terms,
     parse_terms,
+    validate_terms_for_provenance,
 )
 
 
@@ -74,6 +81,14 @@ def rejected(value: dict, messages=MESSAGES) -> bool:
         TermsExtraction.model_validate(value)
         # Evidence validation is a separate, source-aware boundary.
         parse_terms(json.dumps(value), messages)
+    except (ValidationError, ValueError):
+        return True
+    return False
+
+
+def rejected_v2(value: dict) -> bool:
+    try:
+        TermsExtractionV2.model_validate(value)
     except (ValidationError, ValueError):
         return True
     return False
@@ -235,6 +250,74 @@ def main() -> None:
     bad_date['posting_window_per_deliverable']['value'][0]['posting_date'] = '2026-02-30'
     check('invalid calendar dates are rejected', rejected(bad_date))
 
+    disclosure = copy.deepcopy(base)
+    disclosure['platform_per_deliverable'] = found([
+        {'deliverable_index': 1, 'platform': 'Instagram'},
+        {'deliverable_index': 2, 'platform': 'TikTok'},
+    ])
+    disclosure['sponsored_content_disclosure'] = found({
+        'required': True,
+        'platform_rules': [
+            {'platform': 'TikTok', 'rule': 'Use #ad in the caption'},
+            {'platform': 'Instagram', 'rule': 'Use the paid partnership label'},
+        ],
+    })
+    v2 = TermsExtractionV2.model_validate(disclosure)
+    check('v2 keeps exactly 22 fields and binds each disclosure rule to a platform', len(TermsExtractionV2.model_fields) == 22 and len(v2.sponsored_content_disclosure.value.platform_rules) == 2)
+    false_disclosure = copy.deepcopy(disclosure)
+    false_disclosure['sponsored_content_disclosure'] = found({'required': False, 'platform_rules': []})
+    check('v2 explicit false accepts only an empty rule list', not rejected_v2(false_disclosure))
+    false_disclosure['sponsored_content_disclosure']['value']['platform_rules'] = [{'platform': 'Instagram', 'rule': 'Use #ad'}]
+    check('v2 false with rules is rejected', rejected_v2(false_disclosure))
+    malformed_disclosures = []
+    missing = copy.deepcopy(disclosure)
+    missing['sponsored_content_disclosure']['value']['platform_rules'].pop(0)
+    malformed_disclosures.append(missing)
+    extra_platform = copy.deepcopy(disclosure)
+    extra_platform['sponsored_content_disclosure']['value']['platform_rules'].append({'platform': 'YouTube', 'rule': 'Declare sponsorship'})
+    malformed_disclosures.append(extra_platform)
+    unknown_key = copy.deepcopy(disclosure)
+    unknown_key['sponsored_content_disclosure']['value']['platform_rules'][0]['note'] = 'invented'
+    malformed_disclosures.append(unknown_key)
+    unknown_enum = copy.deepcopy(disclosure)
+    unknown_enum['sponsored_content_disclosure']['value']['platform_rules'][0]['platform'] = 'Other'
+    malformed_disclosures.append(unknown_enum)
+    blank = copy.deepcopy(disclosure)
+    blank['sponsored_content_disclosure']['value']['platform_rules'][0]['rule'] = '  '
+    malformed_disclosures.append(blank)
+    control = copy.deepcopy(disclosure)
+    control['sponsored_content_disclosure']['value']['platform_rules'][0]['rule'] = 'Use #ad\u0000'
+    malformed_disclosures.append(control)
+    oversized = copy.deepcopy(disclosure)
+    oversized['sponsored_content_disclosure']['value']['platform_rules'][0]['rule'] = 'x' * 501
+    malformed_disclosures.append(oversized)
+    duplicate = copy.deepcopy(disclosure)
+    duplicate['sponsored_content_disclosure']['value']['platform_rules'].append({'platform': 'Instagram', 'rule': '  USE THE PAID PARTNERSHIP LABEL  '})
+    malformed_disclosures.append(duplicate)
+    overflow = copy.deepcopy(disclosure)
+    overflow['sponsored_content_disclosure']['value']['platform_rules'] = [
+        {'platform': 'Instagram', 'rule': f'Rule {index}'} for index in range(MAX_DISCLOSURE_RULES + 1)
+    ]
+    malformed_disclosures.append(overflow)
+    check('v2 rejects missing/extra platforms, unknown shape/enums, unsafe text, normalized duplicates, and overflow', all(rejected_v2(item) for item in malformed_disclosures))
+    legacy = copy.deepcopy(disclosure)
+    legacy['sponsored_content_disclosure'] = found({'required': True, 'platform_rules': ['General #ad rule']})
+    check('persisted exact pairs select v1 strings or v2 objects', isinstance(validate_terms_for_provenance(legacy, CHAT_SCHEMA_VERSION_V1, CHAT_PROMPT_VERSION_V1), TermsExtraction) and isinstance(validate_terms_for_provenance(disclosure, CHAT_SCHEMA_VERSION_V2, CHAT_PROMPT_VERSION_V2), TermsExtractionV2))
+    invalid_pairs = [
+        (CHAT_SCHEMA_VERSION_V2, CHAT_PROMPT_VERSION_V1),
+        (CHAT_SCHEMA_VERSION_V2, None),
+        ('contract-terms-22.v2', 'contract-terms-extraction.v2'),
+        ('chat-terms-22.v999', 'chat-terms-extraction.v999'),
+    ]
+    unsupported_closed = True
+    for schema_version, prompt_version in invalid_pairs:
+        try:
+            validate_terms_for_provenance(disclosure, schema_version, prompt_version)
+            unsupported_closed = False
+        except ValueError:
+            pass
+    check('missing, cross-version, cross-family, or unsupported provenance cannot select a validator', unsupported_closed)
+
     milestone = copy.deepcopy(base)
     milestone['payment_amount'] = found({'amount': 50000, 'currency': 'INR'})
     milestone['payment_terms_type'] = found('milestone')
@@ -250,7 +333,7 @@ def main() -> None:
     check('combination schedules must also reconcile exactly', rejected(combination))
 
     prompt = build_extraction_prompt(MESSAGES)
-    check('prompt versions the contract and includes every field', SCHEMA_VERSION in prompt and PROMPT_VERSION in prompt and all(field in prompt for field in EXPECTED_FIELDS))
+    check('prompt versions the new v2 contract and includes every field', CURRENT_CHAT_SCHEMA_VERSION in prompt and CURRENT_CHAT_PROMPT_VERSION in prompt and all(field in prompt for field in EXPECTED_FIELDS))
     prompt_lower = prompt.lower()
     check('prompt locks never-guess, evidence, normalisation, JSON-only, and untrusted delimiters', all(term in prompt_lower for term in ('never guess', 'verbatim substring', 'relative dates', 'strict json only', 'begin_untrusted_deal_chat_json', 'end_untrusted_deal_chat_json')))
 

@@ -5,12 +5,11 @@ from __future__ import annotations
 from typing import Any, Literal, NoReturn
 from uuid import UUID
 
-from pydantic import ValidationError
 from supabase import Client
 
 from core.supabase_client import get_supabase
 from services.stage_engine import DealError, _participant_role
-from services.term_extraction import TermsExtraction
+from services.term_extraction import TermsExtractionV1, TermsExtractionV2, validate_chat_terms_row
 
 
 _REPORTABLE_STATES = {
@@ -104,7 +103,7 @@ def _authorize(
     return deal, role, active_brand
 
 
-def validate_approved_payment_terms(client: Client, deal_id: str) -> TermsExtraction:
+def validate_approved_payment_terms(client: Client, deal_id: str) -> TermsExtractionV1 | TermsExtractionV2:
     """Validate the exact approved summary bound to the executed contract."""
     contracts = (
         client.table("contracts")
@@ -120,7 +119,7 @@ def validate_approved_payment_terms(client: Client, deal_id: str) -> TermsExtrac
         raise DealError(409, "The approved payment terms are inconsistent. Nothing was changed.")
     summaries = (
         client.table("ai_summaries")
-        .select("structured_terms")
+        .select("structured_terms,schema_version,prompt_version")
         .eq("id", contracts[0]["generated_from_summary_id"])
         .eq("deal_id", deal_id)
         .eq("status", "approved")
@@ -131,8 +130,8 @@ def validate_approved_payment_terms(client: Client, deal_id: str) -> TermsExtrac
     if not summaries:
         raise DealError(409, "The approved payment terms are inconsistent. Nothing was changed.")
     try:
-        terms = TermsExtraction.model_validate(summaries[0]["structured_terms"])
-    except (ValidationError, TypeError, ValueError) as exc:
+        terms = validate_chat_terms_row(summaries[0])
+    except (TypeError, ValueError) as exc:
         raise DealError(409, "The approved payment terms are inconsistent. Nothing was changed.") from exc
     required = (terms.payment_amount, terms.payment_terms_type)
     if any(field.status != "found" or field.value is None for field in required):

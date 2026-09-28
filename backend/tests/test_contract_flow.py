@@ -29,8 +29,18 @@ load_dotenv(BACKEND_DIR.parent / ".env")
 from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
 from services.contract_service import _pdf  # noqa: E402
-from services.contract_alignment import PROMPT_VERSION, SCHEMA_VERSION  # noqa: E402
-from test_contract_alignment_unit import payload as alignment_payload  # noqa: E402
+from services.blackout_service import get_blackout_snapshot  # noqa: E402
+from services.deliverable_detail_service import get_deliverable_detail  # noqa: E402
+from services.exclusivity_service import get_exclusivity_snapshot  # noqa: E402
+from services.payment_tracking_service import validate_approved_payment_terms  # noqa: E402
+from services.term_extraction import (  # noqa: E402
+    CHAT_PROMPT_VERSION_V1,
+    CHAT_PROMPT_VERSION_V2,
+    CHAT_SCHEMA_VERSION_V1,
+    CHAT_SCHEMA_VERSION_V2,
+    contract_provenance_for_chat,
+)
+from test_contract_alignment_unit import payload as alignment_payload, payload_v2 as alignment_payload_v2  # noqa: E402
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
@@ -91,7 +101,13 @@ def call(method: str, path: str, key: str, json: dict[str, Any] | None = None):
     return api.request(method, path, headers=headers(key), json=json)
 
 
-def make_deal(label: str) -> str:
+def make_deal(
+    label: str,
+    *,
+    structured_terms: dict[str, Any] | None = None,
+    schema_version: str = CHAT_SCHEMA_VERSION_V1,
+    prompt_version: str = CHAT_PROMPT_VERSION_V1,
+) -> str:
     deal_id = admin.table("deals").insert(
         {
             "creator_id": ids["creator"],
@@ -112,7 +128,7 @@ def make_deal(label: str) -> str:
             {"deal_id": deal_id, "profile_id": ids["checker"], "participant_role": "brand_checker"},
         ]
     ).execute()
-    structured_terms = alignment_payload()
+    structured_terms = structured_terms or alignment_payload()
     structured_terms["payment_amount"]["value"]["amount"] = 42000
     structured_terms["milestone_schedule"]["value"][0]["amount"]["amount"] = 12000
     structured_terms["creative_guidance"]["value"]["text"] = "Show <script>alert('x')</script> safely"
@@ -122,6 +138,8 @@ def make_deal(label: str) -> str:
             "raw_output": {"source": "fictional integration test"},
             "structured_terms": structured_terms,
             "status": "approved",
+            "schema_version": schema_version,
+            "prompt_version": prompt_version,
         }
     ).execute()
     return deal_id
@@ -133,9 +151,12 @@ def contract_for(deal_id: str) -> dict[str, Any]:
 
 def mark_contract_aligned(deal_id: str) -> None:
     contract = contract_for(deal_id)
-    summary = admin.table("ai_summaries").select("id,structured_terms").eq(
+    summary = admin.table("ai_summaries").select(
+        "id,structured_terms,schema_version,prompt_version"
+    ).eq(
         "id", contract["generated_from_summary_id"]
     ).single().execute().data
+    provenance = contract_provenance_for_chat(summary["schema_version"], summary["prompt_version"])
     source = admin.storage.from_("contracts").download(contract["storage_path"])
     reserved = admin.rpc(
         "reserve_contract_alignment",
@@ -156,8 +177,8 @@ def mark_contract_aligned(deal_id: str) -> None:
                 "p_raw_output": summary["structured_terms"],
                 "p_structured_terms": summary["structured_terms"],
                 "p_conflicts": [],
-                "p_schema_version": SCHEMA_VERSION,
-                "p_prompt_version": PROMPT_VERSION,
+                "p_schema_version": provenance.schema_version,
+                "p_prompt_version": provenance.prompt_version,
                 "p_provider": "deterministic-regression-fixture",
                 "p_model": "deterministic-regression-fixture",
                 "p_ip_address": IP,
@@ -283,6 +304,47 @@ def main() -> None:
         admin.table("ai_summaries").delete().eq("deal_id", missing).execute()
         check("generation requires an approved summary", call("POST", f"/deals/{missing}/contract", "creator", {}).status_code == 409)
 
+        shadow = make_deal("Invalid-newer summary reservation")
+        valid_shadow_summary = admin.table("ai_summaries").select("id").eq("deal_id", shadow).single().execute().data["id"]
+        invalid_shadow_summary = admin.table("ai_summaries").insert({
+            "deal_id": shadow,
+            "raw_output": {"source": "unsupported newer fictional history"},
+            "structured_terms": {},
+            "status": "approved",
+            "schema_version": "chat-terms-22.v999",
+            "prompt_version": "chat-terms-extraction.v999",
+            "generated_at": "2099-01-01T00:00:00+00:00",
+        }).execute().data[0]["id"]
+        shadow_generation = call("POST", f"/deals/{shadow}/contract", "creator", {})
+        shadow_contract = contract_for(shadow)
+        conflict_blocked = False
+        try:
+            admin.rpc("reserve_contract_for_summary_v1", {
+                "p_deal_id": shadow,
+                "p_actor_id": ids["creator"],
+                "p_summary_id": invalid_shadow_summary,
+            }).execute()
+        except Exception as exc:
+            conflict_blocked = "contract_source_conflict" in str(exc)
+        direct_client_blocked = False
+        direct_only = make_deal("Direct-client reservation denial")
+        direct_summary = admin.table("ai_summaries").select("id").eq("deal_id", direct_only).single().execute().data["id"]
+        try:
+            auth_client("creator").rpc("reserve_contract_for_summary_v1", {
+                "p_deal_id": direct_only,
+                "p_actor_id": ids["creator"],
+                "p_summary_id": direct_summary,
+            }).execute()
+        except Exception:
+            direct_client_blocked = True
+        check(
+            "validated exact-summary reservation skips invalid newer history and refuses rebinding",
+            shadow_generation.status_code == 200
+            and shadow_contract["generated_from_summary_id"] == valid_shadow_summary
+            and conflict_blocked,
+        )
+        check("new reservation RPC adds no client-writable contract path", direct_client_blocked)
+
         deal_a = make_deal("Concurrent digital signing campaign")
         with ThreadPoolExecutor(max_workers=4) as pool:
             generated = list(pool.map(lambda _: call("POST", f"/deals/{deal_a}/contract", "creator", {}), range(4)))
@@ -336,6 +398,43 @@ def main() -> None:
         check("stored and drawn signing execute the contract", brand_drawn.status_code == 200 and row_a["status"] == "executed")
         check("executed PDF is newly rendered with completed evidence", executed_a != draft and "EXECUTED" in executed_text and "Signature evidence ID" in executed_text)
         check("Approval advances to Creating exactly once", len(transition_a) == 1 and admin.table("deals").select("stage").eq("id", deal_a).single().execute().data["stage"] == "creating")
+
+        v2_deal = make_deal(
+            "V2 signed Creating materialization",
+            structured_terms=alignment_payload_v2(),
+            schema_version=CHAT_SCHEMA_VERSION_V2,
+            prompt_version=CHAT_PROMPT_VERSION_V2,
+        )
+        v2_generated = call("POST", f"/deals/{v2_deal}/contract", "creator", {})
+        mark_contract_aligned(v2_deal)
+        v2_creator_sign = call("POST", f"/deals/{v2_deal}/contract/sign", "creator", {"mode": "stored"})
+        v2_brand_sign = call("POST", f"/deals/{v2_deal}/contract/sign", "maker", {"mode": "stored"})
+        v2_source = contract_for(v2_deal)["generated_from_summary_id"]
+        v2_deliverables = admin.table("deliverables").select("source_summary_id").eq("deal_id", v2_deal).execute().data
+        v2_usage = admin.table("usage_rights").select("source_summary_id").eq("deal_id", v2_deal).execute().data
+        v2_blackout = admin.table("blackout_windows").select("source_summary_id").eq("deal_id", v2_deal).execute().data
+        v2_exclusivity = admin.table("exclusivity_clauses").select("source_summary_id").eq("deal_id", v2_deal).execute().data
+        check(
+            "valid v2 signing materializes existing canonical facts and reaches Creating",
+            v2_generated.status_code == 200
+            and v2_creator_sign.status_code == 200
+            and v2_brand_sign.status_code == 200
+            and admin.table("deals").select("stage").eq("id", v2_deal).single().execute().data["stage"] == "creating"
+            and len(v2_deliverables) == 2
+            and all(row["source_summary_id"] == v2_source for row in v2_deliverables + v2_usage + v2_blackout + v2_exclusivity),
+        )
+        v2_detail = get_deliverable_detail(v2_deal, v2_deliverables[0].get("id") or admin.table(
+            "deliverables"
+        ).select("id").eq("deal_id", v2_deal).order("sequence").limit(1).single().execute().data["id"], ids["creator"], _client=admin)
+        v2_blackout_projection = get_blackout_snapshot(ids["creator"], _client=admin)
+        v2_exclusivity_projection = get_exclusivity_snapshot(ids["creator"], _client=admin)
+        check(
+            "v2 executed-source detail, payment, blackout, and exclusivity readers keep exact provenance",
+            v2_detail["usage_rights"]["status"] == "none"
+            and validate_approved_payment_terms(admin, v2_deal).sponsored_content_disclosure.value.platform_rules[0].platform == "Instagram"
+            and v2_blackout_projection["integrity_unavailable_count"] == 0
+            and v2_exclusivity_projection["integrity_unavailable_count"] == 0,
+        )
 
         # Print bypass: fake uploaded bytes rejected, real private PDF accepted and appended.
         deal_b = make_deal("Wet-sign fictional campaign")

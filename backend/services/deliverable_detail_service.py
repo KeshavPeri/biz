@@ -12,7 +12,7 @@ from services.content_service import participant_content_view
 from services.deliverable_service import _canonical_items
 from services.posting_service import participant_post_state
 from services.stage_engine import DealError
-from services.term_extraction import TermsExtraction
+from services.term_extraction import TermsExtractionV1, TermsExtractionV2, validate_chat_terms_row
 
 _NOT_FOUND = "This deliverable could not be found."
 
@@ -48,9 +48,13 @@ def _authorized_deal(client: Client, deal_id: str, user_id: str) -> tuple[dict[s
     return deal, role
 
 
-def _executed_source(client: Client, deal_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
+TermsModel = TermsExtractionV1 | TermsExtractionV2
+
+
+def _executed_source(client: Client, deal_id: str) -> tuple[dict[str, Any], dict[str, Any], TermsModel]:
     rows = client.table("contracts").select(
-        "id,generated_from_summary_id,ai_summaries!inner(id,deal_id,status,structured_terms)"
+        "id,generated_from_summary_id,"
+        "ai_summaries!inner(id,deal_id,status,structured_terms,schema_version,prompt_version)"
     ).eq("deal_id", deal_id).eq("status", "executed").eq("version", 1).limit(2).execute().data
     if len(rows) != 1:
         _unavailable()
@@ -61,18 +65,18 @@ def _executed_source(client: Client, deal_id: str) -> tuple[dict[str, Any], dict
     if contract.get("generated_from_summary_id") != summary.get("id"):
         _unavailable()
     try:
-        TermsExtraction.model_validate(summary.get("structured_terms"))
-        _canonical_items(summary.get("structured_terms"))
+        terms = validate_chat_terms_row(summary)
+        _canonical_items(summary)
     except (TypeError, ValueError, DealError):
         _unavailable()
-    return contract, summary
+    return contract, summary, terms
 
 
 def _utc_date(value: str) -> str:
     return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc).date().isoformat()
 
 
-def _rights_from_fallback(client: Client, deal_id: str, contract: dict[str, Any], terms: TermsExtraction) -> dict[str, Any]:
+def _rights_from_fallback(client: Client, deal_id: str, contract: dict[str, Any], terms: TermsModel) -> dict[str, Any]:
     audits = client.table("audit_log").select("created_at,metadata").eq(
         "entity_type", "deal"
     ).eq("entity_id", deal_id).eq("action", "contract_executed").contains(
@@ -101,7 +105,7 @@ def _rights_from_fallback(client: Client, deal_id: str, contract: dict[str, Any]
     return {"present": True, "has_usage_rights": True, "channels": channels.value, "start_date": start, "end_date": end, "is_perpetual": perpetual}
 
 
-def _rights(client: Client, deal_id: str, source_id: str, contract: dict[str, Any], summary: dict[str, Any], today: str) -> dict[str, Any]:
+def _rights(client: Client, deal_id: str, source_id: str, contract: dict[str, Any], terms: TermsModel, today: str) -> dict[str, Any]:
     rows = client.table("usage_rights").select(
         "id,source_summary_id,has_usage_rights,channels,start_date,end_date,is_perpetual"
     ).eq("deal_id", deal_id).not_.is_("source_summary_id", "null").limit(2).execute().data
@@ -111,7 +115,7 @@ def _rights(client: Client, deal_id: str, source_id: str, contract: dict[str, An
         fact = {"present": True, **{key: rows[0].get(key) for key in ("has_usage_rights", "channels", "start_date", "end_date", "is_perpetual")}}
     else:
         try:
-            fact = _rights_from_fallback(client, deal_id, contract, TermsExtraction.model_validate(summary["structured_terms"]))
+            fact = _rights_from_fallback(client, deal_id, contract, terms)
         except (KeyError, TypeError, ValueError):
             _unavailable()
     status = rights_status(fact, today)
@@ -148,7 +152,7 @@ def get_deliverable_detail(
     """Return one source-bound detail payload; never fetch private annotations."""
     client = _client or get_supabase()
     deal, _ = _authorized_deal(client, deal_id, user_id)
-    contract, summary = _executed_source(client, deal_id)
+    contract, summary, terms = _executed_source(client, deal_id)
     source_id = summary["id"]
     canonical = client.table("deliverables").select(
         "id,sequence,content_format,platform,posting_date,posting_window_start,posting_window_end,location,"
@@ -161,7 +165,7 @@ def get_deliverable_detail(
     projected, _ = participant_post_state(client, deal_id, user_id, deal["stage"], enriched)
     item = projected[0]
     now = (_now or datetime.now(timezone.utc)).astimezone(timezone.utc)
-    rights = _rights(client, deal_id, source_id, contract, summary, now.date().isoformat())
+    rights = _rights(client, deal_id, source_id, contract, terms, now.date().isoformat())
     approval = item["content_approval"]
     safe_approval = None if approval is None else {key: approval.get(key) for key in (
         "status", "maker_name", "checker_name", "round_number", "comment", "created_at", "decided_at",

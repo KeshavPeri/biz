@@ -29,12 +29,21 @@ def create_deal(label: str, participant_roles: list[tuple[str, str]], *, brand: 
         {'deal_id': deal_id, 'profile_id': fixture.ids[key], 'participant_role': role}
         for key, role in participant_roles
     ]).execute()
-    fixture.admin.table('ai_summaries').insert({
+    summary = fixture.admin.table('ai_summaries').insert({
         'deal_id': deal_id,
         'raw_output': {'source': 'fictional content-approval acceptance fixture'},
         'structured_terms': fixture.terms(count=1, revision_max=3),
         'status': 'approved',
         'schema_version': fixture.SCHEMA_VERSION,
+        'prompt_version': fixture.PROMPT_VERSION,
+    }).execute().data[0]
+    fixture.admin.table('contracts').insert({
+        'deal_id': deal_id,
+        'version': 1,
+        'storage_path': f'{deal_id}/executed-fictional-v1.pdf',
+        'generated_from_summary_id': summary['id'],
+        'status': 'executed',
+        'draft_source_sha256': '0' * 64,
     }).execute()
     fixture.deal_ids.append(deal_id)
     return deal_id

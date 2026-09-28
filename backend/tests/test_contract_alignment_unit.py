@@ -17,6 +17,8 @@ os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 
 from services import ai_service  # noqa: E402
 from services.contract_alignment import (  # noqa: E402
+    CONTRACT_PROMPT_VERSION_V2,
+    CONTRACT_SCHEMA_VERSION_V2,
     MAX_PDF_BYTES,
     PROMPT_VERSION,
     SCHEMA_VERSION,
@@ -29,7 +31,13 @@ from services.contract_alignment import (  # noqa: E402
 )
 from services.contract_service import _pdf  # noqa: E402
 from services.stage_engine import DealError  # noqa: E402
-from services.term_extraction import SummaryGenerationError, TermsExtraction  # noqa: E402
+from services.term_extraction import (  # noqa: E402
+    CHAT_PROMPT_VERSION_V2,
+    CHAT_SCHEMA_VERSION_V2,
+    SummaryGenerationError,
+    TermsExtraction,
+    TermsExtractionV2,
+)
 
 
 SOURCE_ID = "contract-page-1"
@@ -94,6 +102,19 @@ def payload() -> dict:
             {"trigger": "Post live", "amount": {"amount": 30000, "currency": "INR"}, "due_date": "2026-09-15"},
         ]),
     }
+
+
+def payload_v2() -> dict:
+    value = payload()
+    value["platform_per_deliverable"]["value"][1]["platform"] = "TikTok"
+    value["sponsored_content_disclosure"] = found({
+        "required": True,
+        "platform_rules": [
+            {"platform": "Instagram", "rule": "Use the paid partnership label"},
+            {"platform": "TikTok", "rule": "Put #ad first in the caption"},
+        ],
+    })
+    return value
 
 
 class Provider:
@@ -200,6 +221,71 @@ def main() -> None:
     unresolved["content_ownership"] = {"status": "ambiguous", "value": None, "evidence": evidence()}
     unresolved_conflicts = compare_terms(terms, TermsExtraction.model_validate(unresolved))
     check("applicable ambiguous contract fields remain explicit conflicts", unresolved_conflicts[0]["reason"] == "contract_field_unresolved")
+
+    v2_data = payload_v2()
+    v2_terms = TermsExtractionV2.model_validate(v2_data)
+    v2_prompt = build_contract_prompt(
+        pages,
+        summary_schema_version=CHAT_SCHEMA_VERSION_V2,
+        summary_prompt_version=CHAT_PROMPT_VERSION_V2,
+    )
+    parsed_v2, _ = parse_contract_terms(
+        json.dumps(v2_data),
+        pages,
+        summary_schema_version=CHAT_SCHEMA_VERSION_V2,
+        summary_prompt_version=CHAT_PROMPT_VERSION_V2,
+    )
+    check(
+        "v2 contract extraction pins the approved chat family and exact 22-field object schema",
+        CONTRACT_SCHEMA_VERSION_V2 in v2_prompt
+        and CONTRACT_PROMPT_VERSION_V2 in v2_prompt
+        and isinstance(parsed_v2, TermsExtractionV2)
+        and len(TermsExtractionV2.model_fields) == 22,
+    )
+    v2_provider = Provider([json.dumps(v2_data)])
+    v2_result = asyncio.run(extract_contract_terms(
+        pages,
+        summary_schema_version=CHAT_SCHEMA_VERSION_V2,
+        summary_prompt_version=CHAT_PROMPT_VERSION_V2,
+        provider=v2_provider,
+    ))
+    check(
+        "v2 provider request and result remain in the approved schema family",
+        isinstance(v2_result.terms, TermsExtractionV2)
+        and v2_provider.requests[0].context == {
+            "schema_version": CONTRACT_SCHEMA_VERSION_V2,
+            "prompt_version": CONTRACT_PROMPT_VERSION_V2,
+        },
+    )
+    reordered = copy.deepcopy(v2_data)
+    reordered["sponsored_content_disclosure"]["value"]["platform_rules"].reverse()
+    reordered["sponsored_content_disclosure"]["value"]["platform_rules"][0]["rule"] = "  PUT #AD FIRST IN THE CAPTION "
+    check(
+        "v2 platform rules compare order-independently with permitted text normalization",
+        compare_terms(v2_terms, TermsExtractionV2.model_validate(reordered)) == [],
+    )
+    reassigned = copy.deepcopy(v2_data)
+    reassigned["sponsored_content_disclosure"]["value"]["platform_rules"][0]["rule"], reassigned["sponsored_content_disclosure"]["value"]["platform_rules"][1]["rule"] = (
+        reassigned["sponsored_content_disclosure"]["value"]["platform_rules"][1]["rule"],
+        reassigned["sponsored_content_disclosure"]["value"]["platform_rules"][0]["rule"],
+    )
+    added = copy.deepcopy(v2_data)
+    added["sponsored_content_disclosure"]["value"]["platform_rules"].append({
+        "platform": "Instagram",
+        "rule": "Put #sponsored after #ad",
+    })
+    check(
+        "v2 platform reassignment and rule addition/removal produce exact disclosure conflicts",
+        [row["field_key"] for row in compare_terms(v2_terms, TermsExtractionV2.model_validate(reassigned))] == ["sponsored_content_disclosure"]
+        and [row["field_key"] for row in compare_terms(v2_terms, TermsExtractionV2.model_validate(added))] == ["sponsored_content_disclosure"]
+        and [row["field_key"] for row in compare_terms(TermsExtractionV2.model_validate(added), v2_terms)] == ["sponsored_content_disclosure"],
+    )
+    try:
+        compare_terms(terms, v2_terms)
+        mixed_closed = False
+    except ValueError:
+        mixed_closed = True
+    check("mixed v1/v2 comparison fails closed before persistence", mixed_closed)
 
     for invalid in (b"%PDF tiny", b"x" * (MAX_PDF_BYTES + 1)):
         try:

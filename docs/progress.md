@@ -16,6 +16,36 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #77 / Workplan 11.4-E1 sponsored-disclosure source-contract recovery candidate (2026-09-27):**
+  new chat generation uses `chat-terms-22.v2` and binds every sponsored-disclosure instruction to
+  one existing parser platform, while persisted v1 summaries remain reviewable under their
+  immutable string-list contract. Strict version dispatch rejects absent, unsupported and mixed
+  families; v2 enforces exact object keys/enums, false/empty and true/coverage rules, normalized
+  duplicate rejection, safe bounded text and a 50-rule ceiling. Terms Review and generated PDFs
+  render stable `Platform — rule` text. Contract extraction derives v1/v2 schema and prompt identity
+  from the exact approved summary, compares v2 rule pairs order-independently but
+  platform-sensitively, and cannot persist a mixed-family clear result. Additive development
+  migration `053_contract_summary_reservation.sql` now reserves the exact backend-validated
+  approved summary under the existing deal lock and version-enables the existing calendar and
+  exclusivity materializers; its new RPCs are backend-only. The same deal-locked boundary now binds
+  exact persisted provenance before payment initialization, so valid v2 execution reaches both
+  Creating and the existing Posted-to-Payment path. Deliverable/detail/calendar/exclusivity/
+  blackout/payment source reads retain exact persisted provenance. No canonical disclosure
+  materialization, tracker, reminder, RLS, client grant,
+  immutable-row rewrite, provider call, or production action was added. The de-duplicated
+  ticket/affected candidate union passed **31/31 commands** and **506 counted backend checks** plus
+  the URL-verifier safety command: parser generation/persistence, Gate A/B, exact-summary
+  reservation, v1/v2 alignment/signing/Creating, canonical readers, content/posting/payment,
+  maker-checker, stage and RLS; backend compile, strict TypeScript, lint, Expo web export and diff
+  hygiene also pass. Fictional development fixtures cleaned up; secret/privilege inspection is
+  clean at non-documentation fingerprint `270f5366e7aa3f1899e368d950bc60dc0ed8294c`.
+  Independent QA and security reviews both passed after a focused payment-provenance repair; the
+  required post-review full regression passed **35/35 commands**, **621 counted backend checks**,
+  URL-verifier safety, and **59/59 frontend Node tests** at the same fingerprint. The branch is
+  ready for founder draft-PR review.
+  Founder browser/native/live-provider walkthrough is `LIMITED`; B5-017 canonical
+  table/UI/reminders remain Not started.
+
 - **Issue #75 / Workplan 11.4-D blackout tracker verified candidate (2026-09-26):** a read-only,
   bearer-authenticated `/tracking/blackouts` projection now authorizes current creator participation
   or active same-brand membership before reading any source data. It validates one executed v1

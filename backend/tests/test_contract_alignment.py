@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import io
 import json
 import os
 import re
@@ -18,6 +19,7 @@ from typing import Any
 import httpx
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
+from pypdf import PdfReader
 from supabase import Client, create_client
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -26,13 +28,21 @@ load_dotenv(BACKEND_DIR.parent / ".env")
 
 from main import app  # noqa: E402
 from services.contract_alignment import (  # noqa: E402
+    CONTRACT_PROMPT_VERSION_V2,
+    CONTRACT_SCHEMA_VERSION_V2,
     PROMPT_VERSION,
     SCHEMA_VERSION,
     confirm_contract_alignment,
     start_contract_alignment,
 )
 from services.stage_engine import DealError  # noqa: E402
-from test_contract_alignment_unit import Provider, payload  # noqa: E402
+from services.term_extraction import (  # noqa: E402
+    CHAT_PROMPT_VERSION_V1,
+    CHAT_PROMPT_VERSION_V2,
+    CHAT_SCHEMA_VERSION_V1,
+    CHAT_SCHEMA_VERSION_V2,
+)
+from test_contract_alignment_unit import Provider, payload, payload_v2  # noqa: E402
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
@@ -89,7 +99,13 @@ def call(method: str, path: str, key: str, body: dict[str, Any] | None = None):
     return api.request(method, path, headers={"Authorization": f"Bearer {tokens[key]}"}, json=body)
 
 
-def make_deal(label: str) -> tuple[str, str]:
+def make_deal(
+    label: str,
+    *,
+    terms_payload: dict[str, Any] | None = None,
+    schema_version: str = CHAT_SCHEMA_VERSION_V1,
+    prompt_version: str = CHAT_PROMPT_VERSION_V1,
+) -> tuple[str, str]:
     deal_id = admin.table("deals").insert(
         {
             "creator_id": ids["creator"],
@@ -114,8 +130,10 @@ def make_deal(label: str) -> tuple[str, str]:
         {
             "deal_id": deal_id,
             "raw_output": {"fixture": "fictional-approved-summary"},
-            "structured_terms": payload(),
+            "structured_terms": terms_payload or payload(),
             "status": "approved",
+            "schema_version": schema_version,
+            "prompt_version": prompt_version,
         }
     ).execute().data[0]["id"]
     generated = call("POST", f"/deals/{deal_id}/contract", "creator", {})
@@ -135,6 +153,15 @@ def provider_payload(*, conflict: bool = False) -> dict[str, Any]:
             item["quote"] = "Inflo collaboration agreement"
     if conflict:
         value["content_ownership"]["value"] = "brand"
+    return value
+
+
+def provider_payload_v2() -> dict[str, Any]:
+    value = payload_v2()
+    for envelope in value.values():
+        for item in envelope["evidence"]:
+            item["quote"] = "Inflo collaboration agreement"
+    value["sponsored_content_disclosure"]["value"]["platform_rules"].reverse()
     return value
 
 
@@ -255,6 +282,57 @@ def main() -> None:
         extracted = admin.table("extracted_terms").select("*").eq("contract_id", clear_contract["id"]).execute().data
         attempt = admin.table("contract_alignment_attempts").select("*").eq("contract_id", clear_contract["id"]).single().execute().data
         check("success binds contract/version/summary/hash/schema/prompt/provider/model", len(extracted) == 1 and extracted[0]["generated_from_summary_id"] == clear_summary and extracted[0]["contract_version"] == 1 and extracted[0]["source_sha256"] == attempt["source_sha256"] and extracted[0]["schema_version"] == SCHEMA_VERSION and extracted[0]["prompt_version"] == PROMPT_VERSION)
+
+        v2_deal, v2_summary = make_deal(
+            "V2 platform disclosure fictional campaign",
+            terms_payload=payload_v2(),
+            schema_version=CHAT_SCHEMA_VERSION_V2,
+            prompt_version=CHAT_PROMPT_VERSION_V2,
+        )
+        v2_contract = contract_for(v2_deal)
+        v2_pdf = admin.storage.from_("contracts").download(v2_contract["storage_path"])
+        v2_text = "\n".join((page.extract_text() or "") for page in PdfReader(io.BytesIO(v2_pdf)).pages)
+        normalized_v2_text = " ".join(v2_text.split())
+        v2_state = asyncio.run(start_contract_alignment(
+            v2_deal,
+            ids["creator"],
+            IP,
+            provider=Provider([json.dumps(provider_payload_v2())]),
+        ))
+        v2_rows = admin.table("extracted_terms").select("generated_from_summary_id,schema_version,prompt_version,conflicts_detected").eq("contract_id", v2_contract["id"]).execute().data
+        check(
+            "v2 generated contract renders stable platform-rule text and aligned extraction persists the matching family",
+            "Instagram — Use the paid partnership label" in normalized_v2_text
+            and "TikTok — Put #ad first in the caption" in normalized_v2_text
+            and "{'platform'" not in v2_text
+            and v2_state["status"] == "clear"
+            and v2_rows == [{
+                "generated_from_summary_id": v2_summary,
+                "schema_version": CONTRACT_SCHEMA_VERSION_V2,
+                "prompt_version": CONTRACT_PROMPT_VERSION_V2,
+                "conflicts_detected": [],
+            }],
+        )
+
+        mixed_deal, _ = make_deal(
+            "Mixed family rejection fictional campaign",
+            terms_payload=payload_v2(),
+            schema_version=CHAT_SCHEMA_VERSION_V2,
+            prompt_version=CHAT_PROMPT_VERSION_V2,
+        )
+        mixed_contract = contract_for(mixed_deal)
+        mixed_provider = Provider([json.dumps(provider_payload()), json.dumps(provider_payload())])
+        try:
+            asyncio.run(start_contract_alignment(mixed_deal, ids["creator"], IP, provider=mixed_provider))
+            mixed_closed = False
+        except DealError as exc:
+            mixed_closed = exc.status_code == 502
+        check(
+            "v1-shaped extraction cannot enter a v2 alignment or signing result",
+            mixed_closed
+            and len(mixed_provider.requests) == 2
+            and admin.table("extracted_terms").select("id").eq("contract_id", mixed_contract["id"]).execute().data == [],
+        )
 
         creator_client = auth_client("creator")
         raw_blocked = contract_hash_blocked = storage_path_blocked = direct_rpc_blocked = direct_write_blocked = False
