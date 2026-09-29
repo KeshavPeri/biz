@@ -513,6 +513,12 @@ Revision rounds per deliverable (Round X of Y).
 | start_date | date | nullable |
 | end_date | date | nullable |
 
+The v3 chat/contract source may contain multiple complete arrangements. Migration 055 validates
+that evidence for the existing post-signing lifecycle but intentionally writes zero rows here.
+V1/v2 booleans remain valid historical evidence and are never expanded. Canonical insertion,
+participant-safe reads, derived status, and replacement of the table's legacy client authority are
+owned by 11.4-F2/B5-015.
+
 ### `blackout_windows`
 | Column | Type | Notes |
 |---|---|---|

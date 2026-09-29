@@ -30,11 +30,14 @@ from services.contract_alignment import (  # noqa: E402
 from services.stage_engine import request_transition  # noqa: E402
 from services.term_extraction import (  # noqa: E402
     CHAT_PROMPT_VERSION_V2,
+    CHAT_PROMPT_VERSION_V3,
     CHAT_SCHEMA_VERSION_V2,
+    CHAT_SCHEMA_VERSION_V3,
     PROMPT_VERSION,
     SCHEMA_VERSION,
     TermsExtraction,
     TermsExtractionV2,
+    TermsExtractionV3,
 )
 
 SUPABASE_URL = os.environ['SUPABASE_URL']
@@ -137,6 +140,18 @@ def resolved_terms_v2() -> dict:
         'platform_rules': [{'platform': 'Instagram', 'rule': 'Use #ad and the paid partnership label'}],
     })
     TermsExtractionV2.model_validate(value)
+    return value
+
+
+def resolved_terms_v3() -> dict:
+    value = resolved_terms_v2()
+    value['whitelisting'] = found({
+        'enabled': True,
+        'arrangements': [
+            {'platform': 'Instagram', 'ad_account': 'Fictional Brand Ads', 'start_date': '2027-01-01', 'end_date': '2027-01-31', 'budget': {'amount': 0, 'currency': 'INR'}},
+        ],
+    })
+    TermsExtractionV3.model_validate(value)
     return value
 
 
@@ -482,6 +497,43 @@ def main() -> None:
             }
             and admin.table('deals').select('stage').eq('id', v2_deal).single().execute().data['stage'] == 'approval'
             and immutable_before == immutable_after,
+        )
+        v3_deal = create_deal(ids, brand_id, 'v3-whitelisting-arrangements')
+        v3_payload = resolved_terms_v3()
+        v3_summary = persist_summary(
+            v3_deal, ids, v3_payload,
+            schema_version=CHAT_SCHEMA_VERSION_V3,
+            prompt_version=CHAT_PROMPT_VERSION_V3,
+        )
+        v3_review = call('GET', f'/deals/{v3_deal}/terms-summary', tokens['C']).json()['summary']
+        v3_whitelisting = next(row for row in v3_review['fields'] if row['key'] == 'whitelisting')
+        for key in ('C', 'B', 'M', 'K'):
+            decide(v3_deal, v3_summary, tokens[key])
+        check(
+            'v3 complete whitelisting arrangements are reviewable and approvable without rewriting evidence',
+            v3_review['schema_version'] == CHAT_SCHEMA_VERSION_V3
+            and v3_whitelisting['value'] == v3_payload['whitelisting']['value']
+            and not v3_whitelisting['blocks_approval']
+            and admin.table('deals').select('stage').eq('id', v3_deal).single().execute().data['stage'] == 'approval',
+        )
+        unsafe_evidence_deal = create_deal(ids, brand_id, 'v3-unsafe-whitelisting-evidence')
+        unsafe_evidence_payload = resolved_terms_v3()
+        unsafe_evidence_payload['whitelisting'] = {
+            'status': 'ambiguous', 'value': None,
+            'evidence': [{'message_id': 'fictional-message', 'quote': 'login:creator@example.test / FictionalPass123!'}],
+        }
+        unsafe_evidence_summary = persist_summary(
+            unsafe_evidence_deal, ids, unsafe_evidence_payload,
+            schema_version=CHAT_SCHEMA_VERSION_V3,
+            prompt_version=CHAT_PROMPT_VERSION_V3,
+        )
+        unsafe_review = call('GET', f'/deals/{unsafe_evidence_deal}/terms-summary', tokens['C'])
+        check(
+            'credential-like ambiguous v3 evidence is neither displayed nor approvable',
+            unsafe_review.status_code == 200
+            and unsafe_review.json()['summary'] is None
+            and 'FictionalPass123' not in unsafe_review.text
+            and decide(unsafe_evidence_deal, unsafe_evidence_summary, tokens['C']).status_code == 409,
         )
         admin.table('ai_summaries').insert({
             'deal_id': v2_deal,

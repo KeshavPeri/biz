@@ -13,7 +13,7 @@ from supabase import Client
 
 from core.supabase_client import get_supabase
 from services.stage_engine import DealError, _load_deal_for_transition, _participant_role
-from services.term_extraction import TermsExtractionV1, TermsExtractionV2, validate_chat_terms_row
+from services.term_extraction import TermsExtractionV1, TermsExtractionV2, TermsExtractionV3, validate_chat_terms_row
 from services.content_service import participant_content_view
 
 
@@ -91,7 +91,7 @@ def _executed_summary(client: Client, deal_id: str) -> dict[str, Any]:
     return summary
 
 
-def _found_value(terms: TermsExtractionV1 | TermsExtractionV2, field: str) -> Any:
+def _found_value(terms: TermsExtractionV1 | TermsExtractionV2 | TermsExtractionV3, field: str) -> Any:
     envelope = getattr(terms, field)
     if envelope.status != 'found' or envelope.value is None:
         raise DealError(409, 'The approved terms do not contain a complete deliverable plan.')

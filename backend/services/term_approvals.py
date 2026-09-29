@@ -8,7 +8,7 @@ from supabase import Client
 
 from core.supabase_client import get_supabase
 from services.stage_engine import DealError, _load_deal_for_transition, _participant_role
-from services.term_extraction import TermsExtractionV1, TermsExtractionV2, validate_terms_for_provenance
+from services.term_extraction import TermsExtractionV1, TermsExtractionV2, TermsExtractionV3, validate_terms_for_provenance
 
 
 FIELD_LABELS: dict[str, str] = {
@@ -37,7 +37,7 @@ FIELD_LABELS: dict[str, str] = {
 }
 
 
-TermsModel = TermsExtractionV1 | TermsExtractionV2
+TermsModel = TermsExtractionV1 | TermsExtractionV2 | TermsExtractionV3
 
 
 def _is_applicable(terms: TermsModel, key: str) -> bool:

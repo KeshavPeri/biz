@@ -1,4 +1,5 @@
 """Local contract-template safety/render smoke test (no database required)."""
+import copy
 import io
 import re
 import sys
@@ -7,7 +8,10 @@ from pathlib import Path
 from pypdf import PdfReader
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from services.contract_service import TEMPLATES, _display_value, _pdf, _safe_svg
+from services.contract_service import TEMPLATES, _display_value, _pdf, _safe_svg, _terms_for_template
+from services.stage_engine import DealError
+from services.term_extraction import CHAT_PROMPT_VERSION_V3, CHAT_SCHEMA_VERSION_V3, WhitelistingTermsV3, format_whitelisting_terms
+from test_contract_alignment_unit import payload_v3
 
 disclosure_text = _display_value({
     'required': True,
@@ -16,6 +20,13 @@ disclosure_text = _display_value({
         {'platform': 'Instagram', 'rule': 'Use the paid partnership label'},
     ],
 })
+whitelisting_text = format_whitelisting_terms(WhitelistingTermsV3.model_validate({
+    'enabled': True,
+    'arrangements': [
+        {'platform': 'YouTube', 'ad_account': 'Fictional Video Ads', 'start_date': '2027-02-01', 'end_date': '2027-02-28', 'budget': None},
+        {'platform': 'Instagram', 'ad_account': 'Fictional Brand Ads', 'start_date': '2027-01-01', 'end_date': '2027-01-31', 'budget': {'amount': 0, 'currency': 'INR'}},
+    ],
+}))
 
 html = TEMPLATES.get_template('agreement.html').render(
     contract_id='00000000-0000-0000-0000-000000000001', version=1,
@@ -26,6 +37,7 @@ html = TEMPLATES.get_template('agreement.html').render(
         {'label': 'Payment amount', 'value': '25,000'},
         {'label': 'Deliverables', 'value': 'One Reel'},
         {'label': 'Sponsored content disclosure', 'value': disclosure_text},
+        {'label': 'Whitelisting', 'value': whitelisting_text},
     ],
     signatures=[], executed=False,
 )
@@ -52,6 +64,26 @@ assert 'TikTok — Put #ad first in the caption' in ' '.join(
     re.sub(r'(?<=\w)-\s*\n\s*(?=\w)', '', 'TikTok — Put #ad first in the cap-\ntion').split()
 )
 assert "{'platform'" not in pdf_text and '"platform"' not in pdf_text
+assert 'Fictional Brand Ads' in normalized_pdf_text and '2027-01-01 to 2027-01-31 inclusive' in normalized_pdf_text
+assert 'budget INR 0' in normalized_pdf_text and '{' not in whitelisting_text
+for credential_text in (
+    'login=creator@example.test; pwd=fictional-secret',
+    'token=ghp_fictionalexampletoken',
+    'authorization: bearer:fictional-token',
+    'login:creator@example.test / FictionalPass123!',
+):
+    unsafe_terms = copy.deepcopy(payload_v3())
+    unsafe_terms['whitelisting']['value']['arrangements'][0]['ad_account'] = credential_text
+    try:
+        _terms_for_template({
+            'structured_terms': unsafe_terms,
+            'schema_version': CHAT_SCHEMA_VERSION_V3,
+            'prompt_version': CHAT_PROMPT_VERSION_V3,
+        })
+    except DealError as exc:
+        assert credential_text not in exc.detail
+    else:
+        raise AssertionError('credential-like whitelisting account rendered into a contract')
 valid = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" width="10" height="10"><path d="M 1 1 L 2 2" fill="none" stroke="#1C1B18" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 assert _safe_svg(valid).startswith('<svg')
 for bad in (

@@ -430,6 +430,13 @@ detection.
 | 21 | Location (if applicable) | `deliverables.location` |
 | 22 | Milestone schedule (if applicable) | `payment_milestones` |
 
+Field 10 is provenance-versioned. V1/v2 store only the historical boolean. V3 keeps the same 22
+top-level fields and represents whitelisting as `enabled` plus complete, order-insensitive
+platform/account/inclusive-date arrangements and an optional deal-currency budget. Missing or
+credential-like account detail blocks approval; no adjacent fact may fill it. Migration 055 admits
+exact v3 sources through existing Creating-entry materializers without creating or changing any
+`whitelisting_arrangements` row; canonical whitelisting authority remains B5-015 follow-up scope.
+
 ### 6.6 Derived, not stored
 
 Computed at query time, never kept as columns: the **calendar** (a query across deliverable posting

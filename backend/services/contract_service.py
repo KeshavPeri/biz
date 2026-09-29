@@ -39,7 +39,12 @@ from services.stage_engine import (
     _participant_role,
     request_transition,
 )
-from services.term_extraction import normalise_contract_text, validate_chat_terms_row
+from services.term_extraction import (
+    TermsExtractionV3,
+    format_whitelisting_terms,
+    normalise_contract_text,
+    validate_chat_terms_row,
+)
 
 logger = logging.getLogger(__name__)
 BUCKET = "contracts"
@@ -193,10 +198,13 @@ def _terms_for_template(summary: dict[str, Any]) -> list[dict[str, str]]:
         terms = validate_chat_terms_row(summary)
     except (TypeError, ValueError):
         raise DealError(409, "The approved terms summary is incomplete. Please review it before generating a contract.")
-    return [
-        {"label": str(key).replace("_", " ").strip().title(), "value": _display_value(value)}
-        for key, value in sorted(terms.model_dump(mode="json").items())
-    ]
+    rows: list[dict[str, str]] = []
+    for key, value in sorted(terms.model_dump(mode="json").items()):
+        rendered = _display_value(value)
+        if key == "whitelisting" and isinstance(terms, TermsExtractionV3) and terms.whitelisting.value is not None:
+            rendered = format_whitelisting_terms(terms.whitelisting.value)
+        rows.append({"label": str(key).replace("_", " ").strip().title(), "value": rendered})
+    return rows
 
 
 def _base_context(client: Any, deal: dict[str, Any], summary: dict[str, Any], contract: dict[str, Any]) -> dict[str, Any]:

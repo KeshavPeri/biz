@@ -37,7 +37,7 @@ function instant(value: unknown): string {
 function oneOf<T extends string>(value: unknown, values: readonly T[]): T {
   if (typeof value !== 'string' || !values.includes(value as T)) invalid(); return value as T;
 }
-function normalized(value: string): string {
+export function normaliseContractText(value: string): string {
   const collapsed = value.normalize('NFKC').replace(PYTHON_WHITESPACE, ' ').replace(/^ | $/g, '');
   return Array.from(collapsed, (character) => CASEFOLD_OVERRIDES[character] ?? character.toLowerCase()).join('');
 }
@@ -49,14 +49,17 @@ function compareCodePoints(left: string, right: string): number {
   return a.length - b.length;
 }
 function compareRules(left: string, right: string): number {
-  return compareCodePoints(normalized(left), normalized(right)) || compareCodePoints(left, right);
+  return compareContractText(left, right);
+}
+export function compareContractText(left: string, right: string): number {
+  return compareCodePoints(normaliseContractText(left), normaliseContractText(right)) || compareCodePoints(left, right);
 }
 function group(value: unknown): DisclosurePlatformGroup {
   const row = record(value, ['platform', 'rules']);
   const platform = oneOf(row.platform, DISCLOSURE_PLATFORMS);
   if (!Array.isArray(row.rules) || row.rules.length > 50) invalid();
   const rules = row.rules.map((rule) => text(rule, 500, true));
-  if (new Set(rules.map(normalized)).size !== rules.length) invalid();
+  if (new Set(rules.map(normaliseContractText)).size !== rules.length) invalid();
   for (let index = 1; index < rules.length; index += 1) if (compareRules(rules[index - 1], rules[index]) >= 0) invalid();
   return { platform, rules };
 }
