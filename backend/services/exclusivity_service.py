@@ -9,7 +9,7 @@ from supabase import Client
 
 from core.supabase_client import get_supabase
 from services.stage_engine import DealError, _load_deal_for_transition, _participant_role
-from services.term_extraction import TermsExtractionV1, TermsExtractionV2, validate_chat_terms_row
+from services.term_extraction import TermsExtractionV1, TermsExtractionV2, TermsExtractionV3, validate_chat_terms_row
 
 _MAX_DEALS = 100
 _MAX_NAME = 160
@@ -40,7 +40,7 @@ def _unavailable() -> NoReturn:
     raise DealError(409, _GENERIC_UNAVAILABLE)
 
 
-TermsModel = TermsExtractionV1 | TermsExtractionV2
+TermsModel = TermsExtractionV1 | TermsExtractionV2 | TermsExtractionV3
 
 
 def _valid_terms(summary: dict[str, Any]) -> TermsModel:

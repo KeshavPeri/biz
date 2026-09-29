@@ -13,6 +13,7 @@ from services.stage_engine import DealError, _load_deal_for_transition, _partici
 from services.term_extraction import (
     TermsExtractionV1,
     TermsExtractionV2,
+    TermsExtractionV3,
     normalise_contract_text,
     validate_chat_terms_row,
 )
@@ -37,7 +38,7 @@ _RPC_ERRORS: dict[str, tuple[int, str]] = {
     "DISCLOSURE_INVALID_REQUEST": (409, "Disclosure requirements could not be initialized safely. Nothing was changed."),
 }
 
-TermsModel = TermsExtractionV1 | TermsExtractionV2
+TermsModel = TermsExtractionV1 | TermsExtractionV2 | TermsExtractionV3
 
 
 def _raise_rpc_error(exc: Exception) -> NoReturn:

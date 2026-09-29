@@ -16,6 +16,17 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #81 / Workplan 11.4-F1 truthful whitelisting source foundation (2026-09-28):** fresh
+  chat and contract extraction use exact v3 provenance while immutable v1/v2 readers retain their
+  historical boolean meaning. V3 records complete bounded platform/account/inclusive-date
+  arrangements with optional deal-currency budget, rejects unsafe or incomplete account evidence
+  and normalized duplicates, renders deterministic plain language in review/PDF, and aligns
+  arrangement order independently. Additive migration 055 extends only existing version-aware
+  validation/materializer boundaries; valid v3 signing preserves the established Creating facts
+  and creates no whitelisting rows. QA/security passed; the 35-command final regression passed
+  701 assertions at `67fa47e2fb457864e567659f98a0ec29f5bb2402`. B5-015
+  tracker/materialization remains not started for 11.4-F2.
+
 - **Issue #79 / Workplan 11.4-E2 canonical sponsored-disclosure tracker verified candidate (2026-09-28):**
   additive development migration `054_disclosure_tracker.sql` preserves source-null legacy rows,
   adds strict source/version-bound true/false shapes and per-platform sequence uniqueness, removes
@@ -1187,17 +1198,19 @@ health`, `from core.config import settings`) that only resolve with `backend/` a
 
 ## NEXT UP _(ordered)_
 
-1. **Issue #79 / Workplan 11.4-E2:** review the draft PR; optionally complete the creator-and-brand
+1. **Issue #81 / Workplan 11.4-F1:** review the draft PR; optionally inspect Terms Review and PDF
+   for disabled, one and multiple fictional arrangements before deciding whether to merge.
+2. **Issue #79 / Workplan 11.4-E2:** review the draft PR; optionally complete the creator-and-brand
    browser/native Disclosures walkthrough before deciding whether to merge.
-2. **Issue #69 / Workplan 11.4-A:** review the deliverable-detail draft PR; optionally perform the
+3. **Issue #69 / Workplan 11.4-A:** review the deliverable-detail draft PR; optionally perform the
    creator-and-brand browser/native and external-link walkthrough before deciding whether to merge.
-3. **Issues #61 and #63 / Workplan 11.1:** review the pending draft PRs; optionally perform the
+4. **Issues #61 and #63 / Workplan 11.1:** review the pending draft PRs; optionally perform the
    creator-and-brand Track and monthly-summary visual walkthroughs, then decide whether to merge.
-4. **Phase 11:** after the relevant draft PRs are merged, prepare or release the next tracking ticket
+5. **Phase 11:** after the relevant draft PRs are merged, prepare or release the next tracking ticket
    when the founder requests it.
-5. **Founder manual follow-up:** revisit the deferred 9.18 two-persona/device lifecycle
+6. **Founder manual follow-up:** revisit the deferred 9.18 two-persona/device lifecycle
    walkthrough, plus the previously deferred Phase 10 manual gate; record actual outcomes.
-6. **Later phases:** implement deferred B3-037/041/042 in their mapped Phase 11/12 work;
+7. **Later phases:** implement deferred B3-037/041/042 in their mapped Phase 11/12 work;
    retain the documented B3-016 and B3-017 limitations until their later work lands.
 
 ## NEEDS MY INPUT _(blockers + anything Claude flagged per the CLAUDE.md STOP list)_
@@ -1205,6 +1218,10 @@ health`, `from core.config import settings`) that only resolve with `backend/` a
 _Claude: when you hit a STOP-and-flag situation (destructive ops, anything paid, live/prod,
 real secrets, big architectural change, irreversible + low confidence), describe it here and
 do not proceed. I'll resolve these at the start of my next session._
+
+- **2026-09-29 — OPTIONAL founder review for Issue #81:** inspect Terms Review and generated PDF
+  for disabled, one and multiple fictional whitelisting arrangements; confirm account, platform,
+  inclusive dates and optional budget are readable and no credential-like text is displayed.
 
 - **2026-09-24 — OPTIONAL founder review for Issue #61:** open Track as one creator and one
   active brand participant; check the six facts, Red/Amber/Green ordering, filters and a deal
@@ -1583,6 +1600,17 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-09-29 — Issue #81: Workplan 11.4-F1 whitelisting source candidate
+
+- Added exact v3 chat/contract provenance for complete whitelisting arrangements, deterministic
+  review/PDF display and alignment, plus additive migration 055 so a valid v3 signed contract
+  reaches Creating without materializing whitelisting rows. Legacy v1/v2 boolean evidence remains
+  immutable.
+- QA was LIMITED only for the founder presentation walkthrough; security passed after credential
+  boundary repairs. The final regression passed 35/35 commands and 701/701 assertions at
+  `67fa47e2fb457864e567659f98a0ec29f5bb2402`; migration 055 applied to development and fixtures
+  were cleaned up.
 
 ### 2026-09-28 — Issue #79: Workplan 11.4-E2 disclosure tracker verified candidate
 

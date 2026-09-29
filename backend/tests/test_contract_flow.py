@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 import hashlib
+import json
 import os
 import re
 import sys
@@ -36,11 +37,13 @@ from services.payment_tracking_service import validate_approved_payment_terms  #
 from services.term_extraction import (  # noqa: E402
     CHAT_PROMPT_VERSION_V1,
     CHAT_PROMPT_VERSION_V2,
+    CHAT_PROMPT_VERSION_V3,
     CHAT_SCHEMA_VERSION_V1,
     CHAT_SCHEMA_VERSION_V2,
+    CHAT_SCHEMA_VERSION_V3,
     contract_provenance_for_chat,
 )
-from test_contract_alignment_unit import payload as alignment_payload, payload_v2 as alignment_payload_v2  # noqa: E402
+from test_contract_alignment_unit import payload as alignment_payload, payload_v2 as alignment_payload_v2, payload_v3 as alignment_payload_v3  # noqa: E402
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
@@ -85,6 +88,19 @@ def mgmt_sql(sql: str) -> Any:
     )
     response.raise_for_status()
     return response.json()
+
+
+def sql_v3_terms_valid(payload: dict[str, Any]) -> bool:
+    encoded = json.dumps(payload, separators=(",", ":")).replace("'", "''")
+    rows = mgmt_sql(
+        "WITH settings AS MATERIALIZED ("
+        "SELECT set_config('biz.terms_schema_version','chat-terms-22.v3',true), "
+        "set_config('biz.terms_prompt_version','chat-terms-extraction.v3',true)) "
+        "SELECT public.payment_tracking_valid_terms_extraction('"
+        + encoded
+        + "'::jsonb) AS valid FROM settings;"
+    )
+    return rows == [{"valid": True}]
 
 
 def auth_client(key: str) -> Client:
@@ -295,6 +311,35 @@ def main() -> None:
             {"brand_id": brand_id, "action_type": "contract_signing", "requires_checker": False}
         ).execute()
 
+        whitelisting_before = mgmt_sql("SELECT count(*)::integer AS count FROM public.whitelisting_arrangements;")
+        credential_forms = (
+            "login=creator@example.test; pwd=fictional-secret",
+            "token=ghp_fictionalexampletoken",
+            "authorization: bearer:fictional-token",
+            "ghp_fictionalexampletoken",
+            "login creator@example.test password fictional-secret",
+            "login:creator@example.test / FictionalPass123!",
+            "Fictional\u200bBrand Ads",
+        )
+        rejected_by_sql = []
+        for credential_text in credential_forms:
+            unsafe_account = alignment_payload_v3()
+            unsafe_account["whitelisting"]["value"]["arrangements"][0]["ad_account"] = credential_text
+            rejected_by_sql.append(not sql_v3_terms_valid(unsafe_account))
+            unsafe_evidence = alignment_payload_v3()
+            unsafe_evidence["whitelisting"] = {
+                "status": "ambiguous", "value": None,
+                "evidence": [{"message_id": "contract-page-1", "quote": credential_text}],
+            }
+            rejected_by_sql.append(not sql_v3_terms_valid(unsafe_evidence))
+        whitelisting_after = mgmt_sql("SELECT count(*)::integer AS count FROM public.whitelisting_arrangements;")
+        check(
+            "v3 SQL rejects credential-like account and ambiguous evidence without whitelisting writes",
+            sql_v3_terms_valid(alignment_payload_v3())
+            and all(rejected_by_sql)
+            and whitelisting_before == whitelisting_after,
+        )
+
         # Generation: wrong stage/missing approval rejected; concurrent generation is one v1.
         wrong = make_deal("Wrong-stage fictional contract")
         admin.table("deals").update({"stage": "chatting"}).eq("id", wrong).execute()
@@ -436,6 +481,38 @@ def main() -> None:
             and v2_exclusivity_projection["integrity_unavailable_count"] == 0,
         )
 
+        v3_deal = make_deal(
+            "V3 whitelisting source lifecycle",
+            structured_terms=alignment_payload_v3(),
+            schema_version=CHAT_SCHEMA_VERSION_V3,
+            prompt_version=CHAT_PROMPT_VERSION_V3,
+        )
+        v3_generated = call("POST", f"/deals/{v3_deal}/contract", "creator", {})
+        mark_contract_aligned(v3_deal)
+        v3_creator_sign = call("POST", f"/deals/{v3_deal}/contract/sign", "creator", {"mode": "stored"})
+        v3_brand_sign = call("POST", f"/deals/{v3_deal}/contract/sign", "maker", {"mode": "stored"})
+        v3_source = contract_for(v3_deal)["generated_from_summary_id"]
+        v3_deliverables = admin.table("deliverables").select("source_summary_id").eq("deal_id", v3_deal).execute().data
+        v3_usage = admin.table("usage_rights").select("source_summary_id").eq("deal_id", v3_deal).execute().data
+        v3_blackout = admin.table("blackout_windows").select("source_summary_id").eq("deal_id", v3_deal).execute().data
+        v3_exclusivity = admin.table("exclusivity_clauses").select("source_summary_id").eq("deal_id", v3_deal).execute().data
+        v3_disclosures = admin.table("disclosure_requirements").select("source_summary_id").eq("deal_id", v3_deal).execute().data
+        v3_whitelisting = admin.table("whitelisting_arrangements").select("id").eq("deal_id", v3_deal).execute().data
+        check(
+            "valid v3 signing preserves every existing Creating materializer and creates no whitelisting rows",
+            v3_generated.status_code == 200
+            and v3_creator_sign.status_code == 200
+            and v3_brand_sign.status_code == 200
+            and admin.table("deals").select("stage").eq("id", v3_deal).single().execute().data["stage"] == "creating"
+            and len(v3_deliverables) == 2
+            and len(v3_usage) == 1
+            and len(v3_blackout) == 1
+            and len(v3_exclusivity) == 1
+            and len(v3_disclosures) == 2
+            and all(row["source_summary_id"] == v3_source for row in v3_deliverables + v3_usage + v3_blackout + v3_exclusivity + v3_disclosures)
+            and v3_whitelisting == [],
+        )
+
         # Print bypass: fake uploaded bytes rejected, real private PDF accepted and appended.
         deal_b = make_deal("Wet-sign fictional campaign")
         check("second contract generates", call("POST", f"/deals/{deal_b}/contract", "creator", {}).status_code == 200)
@@ -512,8 +589,8 @@ def main() -> None:
         audits = admin.table("audit_log").select("action,metadata,ip_address").in_("entity_id", [deal_a, deal_b, deal_c]).execute().data
         actions = [row["action"] for row in audits]
         check("generation, signing, execution, download and IP audit records exist", all(action in actions for action in ["contract_generated", "contract_signature_applied", "contract_executed", "contract_download_link_issued"]) and all(row["ip_address"] for row in audits))
-        extracted = admin.table("extracted_terms").select("id,conflicts_detected").in_("deal_id", [deal_a, deal_b, deal_c]).execute().data
-        check("contract flow uses one clear immutable alignment per generated v1", len(extracted) == 3 and all(row["conflicts_detected"] == [] for row in extracted))
+        extracted = admin.table("extracted_terms").select("id,conflicts_detected").in_("deal_id", [deal_a, v2_deal, v3_deal, deal_b, deal_c]).execute().data
+        check("contract flow uses one clear immutable alignment per generated contract", len(extracted) == 5 and all(row["conflicts_detected"] == [] for row in extracted))
     finally:
         cleanup()
 

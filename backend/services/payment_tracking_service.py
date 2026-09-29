@@ -9,7 +9,7 @@ from supabase import Client
 
 from core.supabase_client import get_supabase
 from services.stage_engine import DealError, _participant_role
-from services.term_extraction import TermsExtractionV1, TermsExtractionV2, validate_chat_terms_row
+from services.term_extraction import TermsExtractionV1, TermsExtractionV2, TermsExtractionV3, validate_chat_terms_row
 
 
 _REPORTABLE_STATES = {
@@ -103,7 +103,7 @@ def _authorize(
     return deal, role, active_brand
 
 
-def validate_approved_payment_terms(client: Client, deal_id: str) -> TermsExtractionV1 | TermsExtractionV2:
+def validate_approved_payment_terms(client: Client, deal_id: str) -> TermsExtractionV1 | TermsExtractionV2 | TermsExtractionV3:
     """Validate the exact approved summary bound to the executed contract."""
     contracts = (
         client.table("contracts")

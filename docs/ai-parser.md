@@ -105,6 +105,16 @@ meaning. The matching contract extraction families are `contract-terms-22.v1` an
 `contract-terms-22.v2`; persisted version metadata, never payload shape, selects the validator.
 Legacy anonymous v1 rules are not assigned to a platform or rewritten.
 
+**Versioned field-10 contract:** v1/v2 summaries retain the historical boolean whitelisting value
+and are never inferred into detailed records. Fresh summaries use `chat-terms-22.v3`; only the
+nested value of the existing field changes to `{enabled, arrangements}`. Disabled means an empty
+list. Enabled requires 1–50 complete arrangements, each with a supported platform, bounded
+non-secret ad-account label/ID, explicit ordered inclusive ISO dates, and optional non-negative
+budget in the found deal-payment currency. Exact normalized duplicates are rejected; the same
+platform/account is allowed for distinct periods. Credentials, missing details, or ambiguity leave
+the whole field unresolved. Arrangement order is non-substantive. The matching
+`contract-terms-22.v3` family is selected only by the exact persisted schema/prompt pair.
+
 ---
 
 ## The 12 mandatory minimum fields

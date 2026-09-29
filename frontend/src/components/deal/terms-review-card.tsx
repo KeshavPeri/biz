@@ -5,6 +5,7 @@ import CheckIcon from '@/assets/icons/check.svg';
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import type { TermsReviewState } from '@/lib/deals';
+import { formatWhitelistingTerms, isWhitelistingTerms } from '@/lib/terms-display';
 
 type Summary = NonNullable<TermsReviewState['summary']>;
 
@@ -288,6 +289,7 @@ function displayValue(value: unknown): string {
       .join(', ');
     return `Required: ${value.required ? 'Yes' : 'No'}${rules ? ` · ${rules}` : ''}`;
   }
+  if (isWhitelistingTerms(value)) return formatWhitelistingTerms(value);
   return JSON.stringify(value, null, 2);
 }
 

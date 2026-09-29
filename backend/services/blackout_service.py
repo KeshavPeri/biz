@@ -10,7 +10,7 @@ from supabase import Client
 from core.supabase_client import get_supabase
 from services.exclusivity_service import _authorized_deals, _executed_source, _execution_evidence
 from services.stage_engine import DealError
-from services.term_extraction import TermsExtractionV1, TermsExtractionV2, validate_chat_terms_row
+from services.term_extraction import TermsExtractionV1, TermsExtractionV2, TermsExtractionV3, validate_chat_terms_row
 
 _MAX_DEALS = 100
 _MAX_DELIVERABLES = 100
@@ -30,7 +30,7 @@ def _safe_text(value: Any, maximum: int = _MAX_NAME) -> str:
     return value
 
 
-TermsModel = TermsExtractionV1 | TermsExtractionV2
+TermsModel = TermsExtractionV1 | TermsExtractionV2 | TermsExtractionV3
 
 
 def _terms(summary: dict[str, Any]) -> TermsModel:

@@ -20,8 +20,10 @@ from services import term_extraction  # noqa: E402
 from services.term_extraction import (  # noqa: E402
     CHAT_SCHEMA_VERSION_V1,
     CHAT_SCHEMA_VERSION_V2,
+    CHAT_SCHEMA_VERSION_V3,
     CHAT_PROMPT_VERSION_V1,
     CHAT_PROMPT_VERSION_V2,
+    CHAT_PROMPT_VERSION_V3,
     CURRENT_CHAT_PROMPT_VERSION,
     CURRENT_CHAT_SCHEMA_VERSION,
     MAX_CHAT_MESSAGES,
@@ -31,6 +33,7 @@ from services.term_extraction import (  # noqa: E402
     SummaryGenerationError,
     TermsExtraction,
     TermsExtractionV2,
+    TermsExtractionV3,
     _ordered_chat_messages,
     build_extraction_prompt,
     extract_terms,
@@ -89,6 +92,14 @@ def rejected(value: dict, messages=MESSAGES) -> bool:
 def rejected_v2(value: dict) -> bool:
     try:
         TermsExtractionV2.model_validate(value)
+    except (ValidationError, ValueError):
+        return True
+    return False
+
+
+def rejected_v3(value: dict) -> bool:
+    try:
+        TermsExtractionV3.model_validate(value)
     except (ValidationError, ValueError):
         return True
     return False
@@ -303,6 +314,64 @@ def main() -> None:
     legacy = copy.deepcopy(disclosure)
     legacy['sponsored_content_disclosure'] = found({'required': True, 'platform_rules': ['General #ad rule']})
     check('persisted exact pairs select v1 strings or v2 objects', isinstance(validate_terms_for_provenance(legacy, CHAT_SCHEMA_VERSION_V1, CHAT_PROMPT_VERSION_V1), TermsExtraction) and isinstance(validate_terms_for_provenance(disclosure, CHAT_SCHEMA_VERSION_V2, CHAT_PROMPT_VERSION_V2), TermsExtractionV2))
+
+    v3_data = copy.deepcopy(disclosure)
+    v3_data['payment_amount'] = found({'amount': 50000, 'currency': 'INR'})
+    v3_data['whitelisting'] = found({
+        'enabled': True,
+        'arrangements': [
+            {'platform': 'Instagram', 'ad_account': 'Fictional Brand Ads', 'start_date': '2027-01-01', 'end_date': '2027-01-31', 'budget': {'amount': 0, 'currency': 'INR'}},
+            {'platform': 'Instagram', 'ad_account': 'Fictional Brand Ads', 'start_date': '2027-02-01', 'end_date': '2027-02-28', 'budget': None},
+        ],
+    })
+    v3 = TermsExtractionV3.model_validate(v3_data)
+    check('v3 keeps 22 fields and accepts explicit zero plus repeated account with distinct periods', len(TermsExtractionV3.model_fields) == 22 and v3.whitelisting.value.arrangements[0].budget.amount == 0)
+    disabled_v3 = copy.deepcopy(v3_data)
+    disabled_v3['whitelisting'] = found({'enabled': False, 'arrangements': []})
+    check('v3 disabled whitelisting requires no arrangements', not rejected_v3(disabled_v3))
+    invalid_v3 = []
+    for mutation in ('duplicate', 'reversed', 'currency', 'unsafe', 'missing', 'unknown'):
+        candidate = copy.deepcopy(v3_data)
+        if mutation == 'duplicate':
+            duplicate_item = copy.deepcopy(candidate['whitelisting']['value']['arrangements'][0])
+            duplicate_item['ad_account'] = '  FICTIONAL   BRAND ADS '
+            candidate['whitelisting']['value']['arrangements'].append(duplicate_item)
+        elif mutation == 'reversed':
+            candidate['whitelisting']['value']['arrangements'][0]['end_date'] = '2026-12-31'
+        elif mutation == 'currency':
+            candidate['whitelisting']['value']['arrangements'][0]['budget']['currency'] = 'USD'
+        elif mutation == 'unsafe':
+            candidate['whitelisting']['value']['arrangements'][0]['ad_account'] = 'access token abc123'
+        elif mutation == 'missing':
+            del candidate['whitelisting']['value']['arrangements'][0]['start_date']
+        else:
+            candidate['whitelisting']['value']['arrangements'][0]['platform'] = 'Other'
+        invalid_v3.append(candidate)
+    check('v3 rejects normalized duplicates, invalid dates, currency mismatch, unsafe/missing detail, and unknown platforms', all(rejected_v3(item) for item in invalid_v3))
+    credential_forms = (
+        'login=creator@example.test; pwd=fictional-secret',
+        'token=ghp_fictionalexampletoken',
+        'authorization: bearer:fictional-token',
+        'ghp_fictionalexampletoken',
+        'login creator@example.test password fictional-secret',
+        'login:creator@example.test / FictionalPass123!',
+        'Fictional\u200bBrand Ads',
+    )
+    unsafe_accounts = []
+    unsafe_evidence = []
+    for unsafe_text in credential_forms:
+        account_candidate = copy.deepcopy(v3_data)
+        account_candidate['whitelisting']['value']['arrangements'][0]['ad_account'] = unsafe_text
+        unsafe_accounts.append(account_candidate)
+        evidence_candidate = copy.deepcopy(v3_data)
+        evidence_candidate['whitelisting'] = {
+            'status': 'ambiguous', 'value': None,
+            'evidence': [{'message_id': 'm1', 'quote': unsafe_text}],
+        }
+        unsafe_evidence.append(evidence_candidate)
+    check('v3 rejects reproduced credential syntax, token signatures, authorization values, and format characters in accounts', all(rejected_v3(item) for item in unsafe_accounts))
+    check('v3 rejects credential-like ambiguous whitelisting evidence before persistence or review', all(rejected_v3(item) for item in unsafe_evidence))
+    check('v3 exact provenance selects only the v3 model', isinstance(validate_terms_for_provenance(v3_data, CHAT_SCHEMA_VERSION_V3, CHAT_PROMPT_VERSION_V3), TermsExtractionV3))
     invalid_pairs = [
         (CHAT_SCHEMA_VERSION_V2, CHAT_PROMPT_VERSION_V1),
         (CHAT_SCHEMA_VERSION_V2, None),

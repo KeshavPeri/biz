@@ -8,6 +8,7 @@ fixed 22-field contract, and delegates the final idempotency decision to Postgre
 from __future__ import annotations
 
 import json
+import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import date
@@ -21,20 +22,25 @@ from core.supabase_client import get_supabase
 
 CHAT_SCHEMA_VERSION_V1 = 'chat-terms-22.v1'
 CHAT_SCHEMA_VERSION_V2 = 'chat-terms-22.v2'
+CHAT_SCHEMA_VERSION_V3 = 'chat-terms-22.v3'
 CHAT_PROMPT_VERSION_V1 = 'chat-terms-extraction.v1'
 CHAT_PROMPT_VERSION_V2 = 'chat-terms-extraction.v2'
+CHAT_PROMPT_VERSION_V3 = 'chat-terms-extraction.v3'
 CONTRACT_SCHEMA_VERSION_V1 = 'contract-terms-22.v1'
 CONTRACT_SCHEMA_VERSION_V2 = 'contract-terms-22.v2'
+CONTRACT_SCHEMA_VERSION_V3 = 'contract-terms-22.v3'
 CONTRACT_PROMPT_VERSION_V1 = 'contract-terms-extraction.v1'
 CONTRACT_PROMPT_VERSION_V2 = 'contract-terms-extraction.v2'
+CONTRACT_PROMPT_VERSION_V3 = 'contract-terms-extraction.v3'
 # Historical aliases stay v1 so legacy source readers never change meaning when
 # the fresh-generation default advances.
 SCHEMA_VERSION = CHAT_SCHEMA_VERSION_V1
 PROMPT_VERSION = CHAT_PROMPT_VERSION_V1
-CURRENT_CHAT_SCHEMA_VERSION = CHAT_SCHEMA_VERSION_V2
-CURRENT_CHAT_PROMPT_VERSION = CHAT_PROMPT_VERSION_V2
+CURRENT_CHAT_SCHEMA_VERSION = CHAT_SCHEMA_VERSION_V3
+CURRENT_CHAT_PROMPT_VERSION = CHAT_PROMPT_VERSION_V3
 MAX_EVIDENCE_REFERENCES = 5
 MAX_DISCLOSURE_RULES = 50
+MAX_WHITELISTING_ARRANGEMENTS = 50
 MAX_CHAT_MESSAGES = 500
 MAX_MESSAGE_BODY_CHARS = 8_000
 MAX_TOTAL_CHAT_CHARS = 100_000
@@ -66,6 +72,10 @@ Platform = Literal[
     'Threads',
     'Podcast platform',
     "Brand's own channel (UGC)",
+]
+WhitelistingPlatform = Literal[
+    'Instagram', 'TikTok', 'YouTube', 'LinkedIn', 'X/Twitter',
+    'Pinterest', 'Threads', 'Podcast platform',
 ]
 
 NonEmptyString = Annotated[StrictStr, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
@@ -210,6 +220,110 @@ class SponsoredContentDisclosureV2(StrictModel):
         ]
         if len(pairs) != len(set(pairs)):
             raise ValueError('duplicate normalized disclosure platform/rule pair')
+        return self
+
+
+SafeAccountText = Annotated[StrictStr, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+
+_CREDENTIAL_KEY_VALUE = re.compile(
+    r'(?<![\w])(?:password|passwd|passcode|pwd|token|access[ _-]?token|refresh[ _-]?token|'
+    r'api[ _-]?key|secret[ _-]?key|recovery[ _-]?code|backup[ _-]?code|authorization|auth|bearer)'
+    r'\s*[:=]\s*\S+',
+)
+_BEARER_VALUE = re.compile(r'(?<![\w])bearer(?:\s*[:=])?\s+[a-z0-9._~+/-]{8,}')
+_NAMED_SECRET_VALUE = re.compile(
+    r'(?<![\w])(?:password|passwd|passcode|pwd|access[ _-]?token|refresh[ _-]?token|api[ _-]?key|'
+    r'secret[ _-]?key|recovery[ _-]?code|backup[ _-]?code)\s+\S{4,}',
+)
+_COMMON_TOKEN_SIGNATURE = re.compile(
+    r'(?<![\w])(?:gh[pousr]_[a-z0-9]{10,}|sk-[a-z0-9_-]{16,}|xox[baprs]-[a-z0-9-]{10,}|'
+    r'eyj[a-z0-9_-]{10,}\.[a-z0-9_-]{10,}\.[a-z0-9_-]{5,}|akia[a-z0-9]{16})(?![\w])',
+)
+_LOGIN_VALUE = re.compile(r'(?<![\w])(?:login|email|user|username)(?:\s*[:=]\s*|\s+)\S+')
+_PASSWORD_VALUE = re.compile(r'(?<![\w])(?:password|passwd|passcode|pwd)(?:\s*[:=]\s*|\s+)\S+')
+_LOGIN_WITH_UNLABELLED_SECRET = re.compile(
+    r'(?<![\w])(?:login|email|user|username)\s*[:=]\s*[^/|;\s][^/|;]*(?:/|\||;)\s*\S+',
+)
+
+
+def credential_like_contract_text(value: str) -> bool:
+    """Detect secrets before whitelisting text can be persisted or rendered."""
+    if any(unicodedata.category(character) in {'Cc', 'Cf'} for character in value):
+        return True
+    normalized = normalise_contract_text(value)
+    return bool(
+        _CREDENTIAL_KEY_VALUE.search(normalized)
+        or _BEARER_VALUE.search(normalized)
+        or _NAMED_SECRET_VALUE.search(normalized)
+        or _COMMON_TOKEN_SIGNATURE.search(normalized)
+        or _LOGIN_WITH_UNLABELLED_SECRET.search(normalized)
+        or (_LOGIN_VALUE.search(normalized) and _PASSWORD_VALUE.search(normalized))
+    )
+
+
+class WhitelistingArrangementV3(StrictModel):
+    platform: WhitelistingPlatform
+    ad_account: SafeAccountText
+    start_date: ISODate
+    end_date: ISODate
+    budget: PaymentAmount | None
+
+    @field_validator('ad_account')
+    @classmethod
+    def reject_credentials(cls, value: str) -> str:
+        if credential_like_contract_text(value):
+            raise ValueError('ad account must be a non-secret label or identifier')
+        return value
+
+    @model_validator(mode='after')
+    def validate_period(self) -> 'WhitelistingArrangementV3':
+        start = date.fromisoformat(self.start_date)
+        end = date.fromisoformat(self.end_date)
+        if start > end:
+            raise ValueError('whitelisting period must be inclusive and ordered')
+        return self
+
+
+def whitelisting_arrangement_identity(arrangement: WhitelistingArrangementV3) -> tuple[str, str, str, str, str, str]:
+    budget = arrangement.budget
+    return (
+        normalise_contract_text(arrangement.platform),
+        normalise_contract_text(arrangement.ad_account),
+        arrangement.start_date,
+        arrangement.end_date,
+        '' if budget is None else str(Decimal(str(budget.amount)).normalize()),
+        '' if budget is None else budget.currency,
+    )
+
+
+def format_whitelisting_terms(value: WhitelistingTermsV3) -> str:
+    """Render validated v3 terms without exposing JSON or evidence metadata."""
+    if not value.enabled:
+        return 'No'
+    rendered: list[str] = []
+    for item in sorted(value.arrangements, key=whitelisting_arrangement_identity):
+        budget = ''
+        if item.budget is not None:
+            budget = f'; budget {item.budget.currency} {item.budget.amount:,}'
+        rendered.append(
+            f'{item.platform} — {item.ad_account}; {item.start_date} to {item.end_date} inclusive{budget}'
+        )
+    return 'Yes — ' + ' | '.join(rendered)
+
+
+class WhitelistingTermsV3(StrictModel):
+    enabled: StrictBool
+    arrangements: list[WhitelistingArrangementV3] = Field(max_length=MAX_WHITELISTING_ARRANGEMENTS)
+
+    @model_validator(mode='after')
+    def validate_enabled_shape_and_duplicates(self) -> 'WhitelistingTermsV3':
+        if self.enabled and not self.arrangements:
+            raise ValueError('enabled whitelisting requires at least one complete arrangement')
+        if not self.enabled and self.arrangements:
+            raise ValueError('disabled whitelisting cannot carry arrangements')
+        identities = [whitelisting_arrangement_identity(item) for item in self.arrangements]
+        if len(identities) != len(set(identities)):
+            raise ValueError('duplicate normalized whitelisting arrangement')
         return self
 
 
@@ -361,13 +475,34 @@ class TermsExtractionV2(TermsExtractionV1):
         return self
 
 
+class TermsExtractionV3(TermsExtractionV2):
+    whitelisting: FieldEnvelope[WhitelistingTermsV3]
+
+    @model_validator(mode='after')
+    def validate_whitelisting_budget_currency(self) -> 'TermsExtractionV3':
+        envelope = self.whitelisting
+        if any(credential_like_contract_text(item.quote) for item in envelope.evidence):
+            raise ValueError('whitelisting evidence cannot contain credentials')
+        if envelope.status != 'found' or envelope.value is None:
+            return self
+        budgets = [item.budget for item in envelope.value.arrangements if item.budget is not None]
+        if not budgets:
+            return self
+        payment = self.payment_amount
+        if payment.status != 'found' or payment.value is None:
+            raise ValueError('whitelisting budgets require the found deal payment currency')
+        if any(budget.currency != payment.value.currency for budget in budgets):
+            raise ValueError('whitelisting budget currency must equal the deal currency')
+        return self
+
+
 @dataclass(frozen=True)
 class TermsProvenance:
     family: Literal['chat', 'contract']
-    version: Literal[1, 2]
+    version: Literal[1, 2, 3]
     schema_version: str
     prompt_version: str
-    model: type[TermsExtractionV1] | type[TermsExtractionV2]
+    model: type[TermsExtractionV1] | type[TermsExtractionV2] | type[TermsExtractionV3]
 
 
 SUPPORTED_TERMS_PROVENANCE: dict[tuple[str, str], TermsProvenance] = {
@@ -377,11 +512,17 @@ SUPPORTED_TERMS_PROVENANCE: dict[tuple[str, str], TermsProvenance] = {
     (CHAT_SCHEMA_VERSION_V2, CHAT_PROMPT_VERSION_V2): TermsProvenance(
         'chat', 2, CHAT_SCHEMA_VERSION_V2, CHAT_PROMPT_VERSION_V2, TermsExtractionV2
     ),
+    (CHAT_SCHEMA_VERSION_V3, CHAT_PROMPT_VERSION_V3): TermsProvenance(
+        'chat', 3, CHAT_SCHEMA_VERSION_V3, CHAT_PROMPT_VERSION_V3, TermsExtractionV3
+    ),
     (CONTRACT_SCHEMA_VERSION_V1, CONTRACT_PROMPT_VERSION_V1): TermsProvenance(
         'contract', 1, CONTRACT_SCHEMA_VERSION_V1, CONTRACT_PROMPT_VERSION_V1, TermsExtractionV1
     ),
     (CONTRACT_SCHEMA_VERSION_V2, CONTRACT_PROMPT_VERSION_V2): TermsProvenance(
         'contract', 2, CONTRACT_SCHEMA_VERSION_V2, CONTRACT_PROMPT_VERSION_V2, TermsExtractionV2
+    ),
+    (CONTRACT_SCHEMA_VERSION_V3, CONTRACT_PROMPT_VERSION_V3): TermsProvenance(
+        'contract', 3, CONTRACT_SCHEMA_VERSION_V3, CONTRACT_PROMPT_VERSION_V3, TermsExtractionV3
     ),
 }
 
@@ -418,11 +559,11 @@ def validate_terms_for_provenance(
     prompt_version: Any,
     *,
     family: Literal['chat', 'contract'] = 'chat',
-) -> TermsExtractionV1 | TermsExtractionV2:
+) -> TermsExtractionV1 | TermsExtractionV2 | TermsExtractionV3:
     return terms_provenance(schema_version, prompt_version, family=family).model.model_validate(raw)
 
 
-def validate_chat_terms_row(row: dict[str, Any]) -> TermsExtractionV1 | TermsExtractionV2:
+def validate_chat_terms_row(row: dict[str, Any]) -> TermsExtractionV1 | TermsExtractionV2 | TermsExtractionV3:
     return validate_terms_for_provenance(
         row.get('structured_terms'),
         row.get('schema_version'),
@@ -442,7 +583,7 @@ class ChatMessage:
 
 @dataclass(frozen=True)
 class ExtractionResult:
-    terms: TermsExtractionV1 | TermsExtractionV2
+    terms: TermsExtractionV1 | TermsExtractionV2 | TermsExtractionV3
     raw_output: dict[str, Any]
     provider: str
     model: str
@@ -474,7 +615,7 @@ def _json_object_without_duplicates(text: str) -> dict[str, Any]:
     return value
 
 
-def validate_evidence_sources(terms: TermsExtractionV1 | TermsExtractionV2, sources: dict[str, str]) -> None:
+def validate_evidence_sources(terms: TermsExtractionV1 | TermsExtractionV2 | TermsExtractionV3, sources: dict[str, str]) -> None:
     """Require every evidence quote to be an exact substring of its source.
 
     The envelope key remains ``message_id`` to preserve the locked chat schema.
@@ -489,13 +630,13 @@ def validate_evidence_sources(terms: TermsExtractionV1 | TermsExtractionV2, sour
                 raise ValueError('evidence must quote a supplied source verbatim')
 
 
-def _validate_evidence(terms: TermsExtractionV1 | TermsExtractionV2, messages: list[ChatMessage]) -> None:
+def _validate_evidence(terms: TermsExtractionV1 | TermsExtractionV2 | TermsExtractionV3, messages: list[ChatMessage]) -> None:
     validate_evidence_sources(terms, {message.message_id: message.body for message in messages})
 
 
-def parse_terms(text: str, messages: list[ChatMessage]) -> tuple[TermsExtractionV2, dict[str, Any]]:
+def parse_terms(text: str, messages: list[ChatMessage]) -> tuple[TermsExtractionV3, dict[str, Any]]:
     raw = _json_object_without_duplicates(text)
-    terms = TermsExtractionV2.model_validate(raw)
+    terms = TermsExtractionV3.model_validate(raw)
     _validate_evidence(terms, messages)
     return terms, raw
 
@@ -517,7 +658,7 @@ def build_extraction_prompt(messages: list[ChatMessage], *, corrective: bool = F
         if corrective
         else ''
     )
-    schema = json.dumps(TermsExtractionV2.model_json_schema(), separators=(',', ':'), ensure_ascii=False)
+    schema = json.dumps(TermsExtractionV3.model_json_schema(), separators=(',', ':'), ensure_ascii=False)
     chat_json = json.dumps(conversation, separators=(',', ':'), ensure_ascii=False)
     return f'''{correction}You extract structured deal terms from an influencer-marketing negotiation.
 Prompt version: {CURRENT_CHAT_PROMPT_VERSION}
@@ -536,6 +677,7 @@ Normalise amounts such as 50k to 50000 with an uppercase ISO currency code; dura
 Resolve relative dates against the timestamp of the cited message, never the server's current date, and output ISO YYYY-MM-DD dates.
 Keep per-deliverable indices unique, contiguous from 1, and consistent across format, platform, and posting fields.
 For sponsored_content_disclosure, false requires no rules; true requires platform/rule objects covering every distinct platform_per_deliverable platform and no absent platform or normalized duplicate pair.
+For whitelisting, disabled requires an empty arrangements list. Enabled requires one or more complete platform/ad_account/start_date/end_date arrangements. Dates are inclusive and explicit. ad_account is a non-secret display label or platform-issued ID only: never copy passwords, tokens, recovery codes, login credentials, or other secrets. Keep the whole field ambiguous when any required detail is missing or unsafe. Optional budget uses payment_amount currency; never infer it. Preserve explicit zero. Reject exact normalized duplicate arrangements, but allow the same platform/account for different periods.
 Complete milestone amounts, currencies, triggers, and due dates; a full milestone consideration must reconcile exactly to payment_amount.
 
 JSON SCHEMA:

@@ -18,7 +18,9 @@ os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 from services import ai_service  # noqa: E402
 from services.contract_alignment import (  # noqa: E402
     CONTRACT_PROMPT_VERSION_V2,
+    CONTRACT_PROMPT_VERSION_V3,
     CONTRACT_SCHEMA_VERSION_V2,
+    CONTRACT_SCHEMA_VERSION_V3,
     MAX_PDF_BYTES,
     PROMPT_VERSION,
     SCHEMA_VERSION,
@@ -33,10 +35,13 @@ from services.contract_service import _pdf  # noqa: E402
 from services.stage_engine import DealError  # noqa: E402
 from services.term_extraction import (  # noqa: E402
     CHAT_PROMPT_VERSION_V2,
+    CHAT_PROMPT_VERSION_V3,
     CHAT_SCHEMA_VERSION_V2,
+    CHAT_SCHEMA_VERSION_V3,
     SummaryGenerationError,
     TermsExtraction,
     TermsExtractionV2,
+    TermsExtractionV3,
 )
 
 
@@ -112,6 +117,18 @@ def payload_v2() -> dict:
         "platform_rules": [
             {"platform": "Instagram", "rule": "Use the paid partnership label"},
             {"platform": "TikTok", "rule": "Put #ad first in the caption"},
+        ],
+    })
+    return value
+
+
+def payload_v3() -> dict:
+    value = payload_v2()
+    value["whitelisting"] = found({
+        "enabled": True,
+        "arrangements": [
+            {"platform": "YouTube", "ad_account": "Fictional Video Ads", "start_date": "2027-02-01", "end_date": "2027-02-28", "budget": None},
+            {"platform": "Instagram", "ad_account": "Fictional Brand Ads", "start_date": "2027-01-01", "end_date": "2027-01-31", "budget": {"amount": 0, "currency": "INR"}},
         ],
     })
     return value
@@ -286,6 +303,38 @@ def main() -> None:
     except ValueError:
         mixed_closed = True
     check("mixed v1/v2 comparison fails closed before persistence", mixed_closed)
+
+    v3_data = payload_v3()
+    v3_terms = TermsExtractionV3.model_validate(v3_data)
+    v3_prompt = build_contract_prompt(
+        pages,
+        summary_schema_version=CHAT_SCHEMA_VERSION_V3,
+        summary_prompt_version=CHAT_PROMPT_VERSION_V3,
+    )
+    parsed_v3, _ = parse_contract_terms(
+        json.dumps(v3_data), pages,
+        summary_schema_version=CHAT_SCHEMA_VERSION_V3,
+        summary_prompt_version=CHAT_PROMPT_VERSION_V3,
+    )
+    check(
+        "v3 extraction binds the exact contract family",
+        CONTRACT_SCHEMA_VERSION_V3 in v3_prompt
+        and CONTRACT_PROMPT_VERSION_V3 in v3_prompt
+        and isinstance(parsed_v3, TermsExtractionV3),
+    )
+    reordered_v3 = copy.deepcopy(v3_data)
+    reordered_v3["whitelisting"]["value"]["arrangements"].reverse()
+    reordered_v3["whitelisting"]["value"]["arrangements"][0]["ad_account"] = "  FICTIONAL   BRAND ADS "
+    check(
+        "v3 arrangement ordering and harmless account display differences do not conflict",
+        compare_terms(v3_terms, TermsExtractionV3.model_validate(reordered_v3)) == [],
+    )
+    changed_v3 = copy.deepcopy(v3_data)
+    changed_v3["whitelisting"]["value"]["arrangements"][0]["end_date"] = "2027-03-01"
+    check(
+        "v3 substantive arrangement changes remain explicit conflicts",
+        [row["field_key"] for row in compare_terms(v3_terms, TermsExtractionV3.model_validate(changed_v3))] == ["whitelisting"],
+    )
 
     for invalid in (b"%PDF tiny", b"x" * (MAX_PDF_BYTES + 1)):
         try:

@@ -12,7 +12,7 @@ from services.content_service import participant_content_view
 from services.deliverable_service import _canonical_items
 from services.posting_service import participant_post_state
 from services.stage_engine import DealError
-from services.term_extraction import TermsExtractionV1, TermsExtractionV2, validate_chat_terms_row
+from services.term_extraction import TermsExtractionV1, TermsExtractionV2, TermsExtractionV3, validate_chat_terms_row
 
 _NOT_FOUND = "This deliverable could not be found."
 
@@ -48,7 +48,7 @@ def _authorized_deal(client: Client, deal_id: str, user_id: str) -> tuple[dict[s
     return deal, role
 
 
-TermsModel = TermsExtractionV1 | TermsExtractionV2
+TermsModel = TermsExtractionV1 | TermsExtractionV2 | TermsExtractionV3
 
 
 def _executed_source(client: Client, deal_id: str) -> tuple[dict[str, Any], dict[str, Any], TermsModel]:
