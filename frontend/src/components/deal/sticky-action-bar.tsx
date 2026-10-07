@@ -107,6 +107,7 @@ import {
   type PrivateDeliverableLabelMap,
 } from '@/lib/private-deliverable-labels';
 import { PostCloseContextFence, forPostCloseContext } from '@/lib/post-close-context-fence';
+import { ConflictWarningFence, type ConflictWarning } from '@/lib/exclusivity-conflict-warning';
 
 /**
  * Stages whose bar stacks several cards (deliverables, payment, dispute, close…).
@@ -158,7 +159,13 @@ export function StickyActionBar({
   // The bar is a peek row until asked to open (B2-13), so the chat keeps the screen.
   const [expanded, setExpanded] = useState(false);
   // Set when accept returns a warn-only exclusivity notice (needs re-confirm).
-  const [exclusivityWarning, setExclusivityWarning] = useState<string | null>(null);
+  const [exclusivityWarning, setExclusivityWarning] = useState<{
+    context: string; warning: ConflictWarning | { legacy: string };
+  } | null>(null);
+  const exclusivityFenceRef = useRef(new ConflictWarningFence());
+  const exclusivityContext = `${userId}:${thread.dealId}:${thread.category ?? 'legacy'}:${thread.stage}:${thread.createdBy ?? ''}`;
+  exclusivityFenceRef.current.switchContext(exclusivityContext);
+  const currentExclusivityWarning = exclusivityWarning?.context === exclusivityContext ? exclusivityWarning.warning : null;
   const [summary, setSummary] = useState<SummaryChecklist | null>(null);
   const [terms, setTerms] = useState<TermsReviewState | null>(null);
   const [termsLoading, setTermsLoading] = useState(false);
@@ -235,6 +242,20 @@ export function StickyActionBar({
   useEffect(() => {
     setExpanded(false);
   }, [thread.stage]);
+
+  useEffect(() => {
+    exclusivityFenceRef.current.invalidate();
+    setExclusivityWarning(null);
+  }, [thread, userId]);
+
+  useEffect(() => {
+    if (!expanded) {
+      exclusivityFenceRef.current.invalidate();
+      setExclusivityWarning(null);
+    }
+  }, [expanded]);
+
+  useEffect(() => () => { exclusivityFenceRef.current.invalidate(); }, []);
 
   // Errors are rendered inside the panel, so an error has to open it.
   useEffect(() => {
@@ -569,22 +590,34 @@ export function StickyActionBar({
   );
 
   const onAccept = useCallback(
-    async (acknowledge: boolean) => {
+    async (acknowledge: ConflictWarning | { legacy: string } | null) => {
       if (acting) return;
+      const ticket = exclusivityFenceRef.current.begin(exclusivityContext);
       setActing(true);
       setError(null);
-      const res = await acceptDeal(thread.dealId, acknowledge);
-      if (!res.ok) setError(res.message);
+      const res = await acceptDeal(
+        thread.dealId,
+        acknowledge && 'digest' in acknowledge ? acknowledge.digest : undefined,
+        Boolean(acknowledge && 'legacy' in acknowledge),
+      );
+      if (!exclusivityFenceRef.current.isCurrent(ticket)) {
+        setActing(false);
+        return;
+      }
+      if (!res.ok) {
+        setExclusivityWarning(null);
+        setError(res.message);
+      }
       else if (res.transitioned) {
         setExclusivityWarning(null);
         notifyTransitionSuccess();
         onTransitioned();
       } else {
-        setExclusivityWarning(res.exclusivityWarning); // warn-only → re-confirm
+        setExclusivityWarning({ context: exclusivityContext, warning: res.warning });
       }
       setActing(false);
     },
-    [acting, thread.dealId, onTransitioned, notifyTransitionSuccess],
+    [acting, thread.dealId, exclusivityContext, onTransitioned, notifyTransitionSuccess],
   );
 
   const runSummary = useCallback(
@@ -1313,21 +1346,33 @@ export function StickyActionBar({
         if (!isInitiator && canRespond) {
           return (
             <Actions label="Connection request" error={error}>
-              {exclusivityWarning ? (
-                <View className="mb-2 flex-row items-start gap-2 rounded-panel bg-surface-recess px-3 py-2">
-                  <View className="mt-1.5 h-2 w-2 rounded-full bg-status-critical" />
-                  <Text className="flex-1 font-geist-medium text-[13px] text-status-critical">{exclusivityWarning}</Text>
-                  <Text className="mt-0.5 font-geist text-[12px] text-ink-2">
-                    You can still accept — this is a heads-up, not a block.
+              {currentExclusivityWarning ? (
+                <View className="mb-2 rounded-panel bg-surface-recess px-3 py-2" accessibilityRole="alert">
+                  <Text className="font-geist-medium text-[13px] text-ink">Exclusivity warning — warn only</Text>
+                  {'legacy' in currentExclusivityWarning ? (
+                    <Text className="mt-1 font-geist text-[12px] text-ink-2">
+                      {currentExclusivityWarning.legacy} This older deal has no campaign category, so no category comparison was made.
+                    </Text>
+                  ) : currentExclusivityWarning.conflicts.map((item, index) => (
+                    <Text key={`${item.brand}:${item.category}:${item.expiry}:${index}`} className="mt-1 font-geist text-[12px] text-ink-2">
+                      {item.brand} · {item.category} · through {item.expiry} (inclusive)
+                    </Text>
+                  ))}
+                  <Text className="mt-1 font-geist text-[12px] text-ink-2">
+                    You can still accept. Review these agreements before choosing Accept anyway.
                   </Text>
                 </View>
               ) : null}
               <ButtonRow>
-                <GhostButton className="flex-1 px-3" label="Decline" onPress={() => run(() => declineDeal(thread.dealId))} disabled={acting} />
+                <GhostButton className="flex-1 px-3" label="Decline" onPress={() => {
+                  exclusivityFenceRef.current.invalidate();
+                  setExclusivityWarning(null);
+                  void run(() => declineDeal(thread.dealId));
+                }} disabled={acting} />
                 <PrimaryButton
                   className="flex-1 px-3"
-                  label={exclusivityWarning ? 'Accept anyway' : 'Accept'}
-                  onPress={() => onAccept(exclusivityWarning != null)}
+                  label={currentExclusivityWarning ? 'Accept anyway' : 'Accept'}
+                  onPress={() => onAccept(currentExclusivityWarning)}
                   disabled={acting}
                 />
               </ButtonRow>

@@ -108,13 +108,26 @@ router = APIRouter(prefix="/deals", tags=["deals"])
 
 
 class ConnectBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     target_type: Literal["creator", "brand"]
-    target_id: str
+    target_id: UUID
+    category: str
+    acknowledgement_digest: str | None = Field(default=None, min_length=64, max_length=64,
+                                               pattern=r'^[a-f0-9]{64}$')
+
+    @field_validator('category')
+    @classmethod
+    def validate_category(cls, value: str) -> str:
+        from services.exclusivity_conflicts import valid_category
+        return valid_category(value, trim=False)
 
 
 class AcceptBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     # The recipient re-confirms after seeing a warn-only exclusivity notice.
     acknowledge_exclusivity: bool = False
+    acknowledgement_digest: str | None = Field(default=None, min_length=64, max_length=64,
+                                               pattern=r'^[a-f0-9]{64}$')
 
 
 class ContractSignBody(BaseModel):
@@ -320,7 +333,8 @@ def connect(
     user_id: str = Depends(get_current_user_id),
 ) -> dict[str, Any]:
     try:
-        return connect_deal(user_id, body.target_type, body.target_id, _client_ip(request))
+        return connect_deal(user_id, body.target_type, str(body.target_id), _client_ip(request),
+                            body.category, body.acknowledgement_digest)
     except DealError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
@@ -333,7 +347,8 @@ def accept(
     user_id: str = Depends(get_current_user_id),
 ) -> dict[str, Any]:
     try:
-        return accept_deal(user_id, deal_id, _client_ip(request), body.acknowledge_exclusivity)
+        return accept_deal(user_id, deal_id, _client_ip(request), body.acknowledge_exclusivity,
+                           body.acknowledgement_digest)
     except DealError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 

@@ -6,6 +6,7 @@ import type { DocumentPickerAsset } from 'expo-document-picker';
 import { supabase } from '@/lib/supabase';
 import { getJson, postJson, putJson } from '@/lib/api';
 import { parseChatAttachment, type ChatAttachment } from '@/lib/chat-attachment-core';
+import { parseConflictWarning, type ConflictWarning } from '@/lib/exclusivity-conflict-warning';
 
 /**
  * Deal actions that change deal state → routed through FastAPI (service_role),
@@ -17,11 +18,11 @@ export type ConnectResult = {
   deal_id: string;
   stage: string;
   created: boolean;
-  exclusivity_warning?: string;
 };
 
 export type ConnectOutcome =
-  | { ok: true; result: ConnectResult }
+  | { ok: true; needsAck: false; result: ConnectResult }
+  | { ok: true; needsAck: true; warning: ConflictWarning }
   | { ok: false; message: string };
 
 /**
@@ -31,6 +32,8 @@ export type ConnectOutcome =
 export async function connectDeal(
   targetType: 'creator' | 'brand',
   targetId: string,
+  category: string,
+  acknowledgementDigest?: string,
 ): Promise<ConnectOutcome> {
   if (!supabase) return { ok: false, message: 'Not signed in.' };
 
@@ -38,13 +41,17 @@ export async function connectDeal(
   const token = data.session?.access_token;
   if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
 
-  const res = await postJson<ConnectResult>(
+  const res = await postJson<ConnectResult & { requires_acknowledgement?: boolean; exclusivity_conflicts?: unknown }>(
     '/deals/connect',
-    { target_type: targetType, target_id: targetId },
+    { target_type: targetType, target_id: targetId, category, acknowledgement_digest: acknowledgementDigest ?? null },
     token,
   );
   if (!res.ok) return { ok: false, message: res.message };
-  return { ok: true, result: res.data };
+  if (res.data.requires_acknowledgement) {
+    try { return { ok: true, needsAck: true, warning: parseConflictWarning(res.data.exclusivity_conflicts) }; }
+    catch { return { ok: false, message: 'The conflict warning could not be shown. Refresh and try again.' }; }
+  }
+  return { ok: true, needsAck: false, result: res.data };
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -60,14 +67,16 @@ export async function connectDeal(
  *  - needsAck → a warn-only exclusivity notice; re-call with acknowledge=true.
  */
 export type AcceptOutcome =
-  | { ok: true; transitioned: true; exclusivityWarning?: string }
-  | { ok: true; transitioned: false; needsAck: true; exclusivityWarning: string }
+  | { ok: true; transitioned: true }
+  | { ok: true; transitioned: false; needsAck: true; warning: ConflictWarning | { legacy: string } }
   | { ok: false; message: string };
 
 type AcceptResponse = {
   transitioned: boolean;
   requires_acknowledgement?: boolean;
   exclusivity_warning?: string;
+  exclusivity_conflicts?: unknown;
+  legacy_exclusivity_warning?: boolean;
   stage?: string;
 };
 
@@ -78,26 +87,33 @@ async function sessionToken(): Promise<string | null> {
 }
 
 /** Recipient accepts a Pending connection (→ Chatting). */
-export async function acceptDeal(dealId: string, acknowledgeExclusivity = false): Promise<AcceptOutcome> {
+export async function acceptDeal(dealId: string, acknowledgementDigest?: string, acknowledgeLegacy = false): Promise<AcceptOutcome> {
   const token = await sessionToken();
   if (!token) return { ok: false, message: 'Your session has expired. Please sign in again.' };
 
   const res = await postJson<AcceptResponse>(
     `/deals/${dealId}/accept`,
-    { acknowledge_exclusivity: acknowledgeExclusivity },
+    { acknowledge_exclusivity: acknowledgeLegacy, acknowledgement_digest: acknowledgementDigest ?? null },
     token,
   );
   if (!res.ok) return { ok: false, message: res.message };
 
   if (res.data.requires_acknowledgement) {
+    if (res.data.exclusivity_conflicts) {
+      try { return { ok: true, transitioned: false, needsAck: true, warning: parseConflictWarning(res.data.exclusivity_conflicts) }; }
+      catch { return { ok: false, message: 'The conflict warning could not be shown. Refresh and try again.' }; }
+    }
+    if (res.data.legacy_exclusivity_warning !== true || typeof res.data.exclusivity_warning !== 'string') {
+      return { ok: false, message: 'The conflict warning could not be shown. Refresh and try again.' };
+    }
     return {
       ok: true,
       transitioned: false,
       needsAck: true,
-      exclusivityWarning: res.data.exclusivity_warning ?? 'This creator has an active exclusivity arrangement.',
+      warning: { legacy: res.data.exclusivity_warning },
     };
   }
-  return { ok: true, transitioned: true, exclusivityWarning: res.data.exclusivity_warning };
+  return { ok: true, transitioned: true };
 }
 
 /** Recipient declines a Pending connection (→ Declined, terminal). */
@@ -1646,6 +1662,7 @@ export type ChatMessage = {
 export type DealThread = {
   dealId: string;
   dealName: string;
+  category: string | null;
   /** Null fails closed while a local schema is still missing migration 045. */
   dealNameVersion: number | null;
   stage: DealStage;
@@ -1776,7 +1793,7 @@ export async function fetchDealThread(dealId: string, userId: string): Promise<D
 
   let { data: deal, error: eDeal } = await supabase
     .from('deals')
-    .select('id, deal_name, deal_name_version, stage, is_disputed, created_by, expires_at')
+    .select('id, deal_name, deal_name_version, stage, is_disputed, created_by, expires_at, category')
     .eq('id', dealId)
     .is('deleted_at', null)
     .maybeSingle();
@@ -1785,7 +1802,7 @@ export async function fetchDealThread(dealId: string, userId: string): Promise<D
   if (eDeal && String(eDeal.message).includes('deal_name_version')) {
     const fallback = await supabase
       .from('deals')
-      .select('id, deal_name, stage, is_disputed, created_by, expires_at')
+      .select('id, deal_name, stage, is_disputed, created_by, expires_at, category')
       .eq('id', dealId)
       .is('deleted_at', null)
       .maybeSingle();
@@ -1829,6 +1846,7 @@ export async function fetchDealThread(dealId: string, userId: string): Promise<D
   return {
     dealId: deal.id as string,
     dealName: (deal.deal_name as string) ?? 'Deal',
+    category: (deal.category as string | null) ?? null,
     dealNameVersion: Number.isInteger(deal.deal_name_version) ? Number(deal.deal_name_version) : null,
     stage: deal.stage as DealStage,
     isDisputed: Boolean(deal.is_disputed),

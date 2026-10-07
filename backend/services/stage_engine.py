@@ -46,7 +46,7 @@ class DealError(Exception):
 def _load_deal_for_transition(client: Client, deal_id: str) -> dict[str, Any]:
     resp = (
         client.table("deals")
-        .select("id, stage, created_by, creator_id, brand_id, deal_name, currency, expires_at")
+        .select("id, stage, created_by, creator_id, brand_id, deal_name, currency, expires_at, category")
         .eq("id", deal_id)
         .is_("deleted_at", "null")
         .execute()
@@ -155,11 +155,38 @@ def _guard_accept(ctx: GuardContext) -> GuardOutcome:
     """pending → chatting. Within 72h + warn-only exclusivity (deal-engine.md §1)."""
     if _is_expired(ctx.deal["expires_at"]):
         return deny(410, "This connection request has expired.")
+    if ctx.role == "creator" and ctx.deal.get("category") is not None:
+        from services.exclusivity_conflicts import project_conflicts
+
+        projection = project_conflicts(ctx.client, ctx.deal["creator_id"], ctx.deal["category"])
+        conflicts = projection["warning"]["conflicts"]
+        digest = ctx.params.get("acknowledgement_digest")
+        if conflicts and digest != projection["digest"]:
+            return needs_input({"requires_acknowledgement": True,
+                                "exclusivity_conflicts": projection["warning"]})
+        if not conflicts and digest is not None:
+            return deny(409, "The conflict warning changed. Refresh and try again.")
+        try:
+            result = ctx.client.rpc("accept_with_category_conflicts", {
+                "p_deal_id": ctx.deal["id"], "p_actor_id": ctx.user_id,
+                "p_expected_snapshot": projection["snapshot"],
+                "p_override_metadata": projection["audit"] if conflicts else None,
+                "p_ip_address": ctx.params.get("ip_address", "unknown"),
+            }).execute().data
+        except Exception as exc:
+            message = getattr(exc, "message", "") or str(exc)
+            if "ACCEPT_EXPIRED" in message:
+                return deny(410, "This connection request has expired.")
+            if "ACCEPT_ROLE" in message:
+                return deny(403, "Your role can't take this action on this deal.")
+            return deny(409, "The connection or conflict information changed. Refresh and try again.")
+        return handled(result[0] if isinstance(result, list) else result)
     warning: str | None = None
     if ctx.role == "creator":  # the clause is the creator's; only warn when they accept
         warning = _exclusivity_warning(ctx.client, ctx.deal["creator_id"])
         if warning and not ctx.params.get("acknowledge_exclusivity"):
-            return needs_input({"requires_acknowledgement": True, "exclusivity_warning": warning})
+            return needs_input({"requires_acknowledgement": True, "exclusivity_warning": warning,
+                                "legacy_exclusivity_warning": True})
     return allow(
         {
             "from_stage": "pending",

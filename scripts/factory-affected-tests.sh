@@ -49,6 +49,15 @@ frontend_changed=false
 
 while IFS= read -r changed_path; do
   case "$changed_path" in
+    backend/services/exclusivity_conflicts.py|backend/services/deals.py|backend/migrations/*exclusivity*conflict*.sql|backend/tests/test_connect.py|backend/tests/test_accept_decline.py|backend/tests/test_exclusivity_conflicts_unit.py|frontend/src/lib/exclusivity-conflict-warning.ts|frontend/src/lib/deals.ts|frontend/src/components/discovery/connect-sheet.tsx|frontend/tests/exclusivity-conflict-warning.test.mjs)
+      add_command 'backend/.venv/bin/python backend/tests/test_exclusivity_conflicts_unit.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_connect.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_accept_decline.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_exclusivity_tracker.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_stage_engine.py'
+      add_command 'backend/.venv/bin/python backend/tests/test_rls.py'
+      add_command 'cd frontend && NODE_NO_WARNINGS=1 node --test --experimental-strip-types tests/exclusivity-conflict-warning.test.mjs'
+      ;;
     backend/services/disclosure_service.py|backend/api/tracking.py|backend/migrations/*disclosure*tracker*.sql|backend/tests/test_disclosure_tracker.py|frontend/src/lib/disclosures*.ts|frontend/src/components/tracker/disclosure-card.tsx|frontend/src/app/disclosures.tsx|frontend/src/app/\(tabs\)/track.tsx|frontend/src/app/_layout.tsx|frontend/tests/disclosures-state.test.mjs)
       add_command 'backend/.venv/bin/python backend/tests/test_disclosure_tracker.py'
       add_command 'backend/.venv/bin/python backend/tests/test_contract_flow.py'

@@ -36,6 +36,7 @@ load_dotenv(BACKEND_DIR.parent / ".env")
 from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
 from test_contract_alignment_unit import payload as alignment_payload  # noqa: E402
+from services.term_extraction import SCHEMA_VERSION, PROMPT_VERSION  # noqa: E402
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
@@ -78,10 +79,10 @@ def token_for(email: str) -> str:
     return c.auth.sign_in_with_password({"email": email, "password": TEST_PASSWORD}).session.access_token
 
 
-def accept(token: str, deal_id: str, acknowledge: bool = False):
+def accept(token: str, deal_id: str, acknowledge: bool = False, digest: str | None = None):
     return api.post(
         f"/deals/{deal_id}/accept",
-        json={"acknowledge_exclusivity": acknowledge},
+        json={"acknowledge_exclusivity": acknowledge, "acknowledgement_digest": digest},
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -90,7 +91,7 @@ def decline(token: str, deal_id: str):
     return api.post(f"/deals/{deal_id}/decline", headers={"Authorization": f"Bearer {token}"})
 
 
-def make_pending_deal(creator_id: str, brand_id: str, created_by: str, brand_admin_id: str, expires_hours: int) -> str:
+def make_pending_deal(creator_id: str, brand_id: str, created_by: str, brand_admin_id: str, expires_hours: int, category: str | None = None) -> str:
     """Seed a Pending deal + its two participants directly (service_role), so each
     test case gets an independent deal with a controlled expiry."""
     expires_at = (datetime.now(timezone.utc) + timedelta(hours=expires_hours)).isoformat()
@@ -103,10 +104,11 @@ def make_pending_deal(creator_id: str, brand_id: str, created_by: str, brand_adm
                 "deal_name": "Accept/Decline test deal",
                 "deal_type": "campaign",
                 "stage": "pending",
-                "direction": "inbound",
+                "direction": "outbound" if created_by == creator_id else "inbound",
                 "currency": "INR",
                 "created_by": created_by,
                 "expires_at": expires_at,
+                "category": category,
             }
         )
         .execute()
@@ -190,7 +192,7 @@ def main() -> None:
         prior_terms["exclusivity"] = {"status": "found", "value": True, "evidence": evidence}
         prior_terms["exclusivity_duration_days"] = {"status": "found", "value": 36500, "evidence": evidence}
         prior_terms["exclusivity_category"] = {"status": "found", "value": "skincare", "evidence": evidence}
-        prior_source = admin.table("ai_summaries").insert({"deal_id": prior, "raw_output": {"source": "fictional accept warning"}, "structured_terms": prior_terms, "status": "approved"}).execute().data[0]
+        prior_source = admin.table("ai_summaries").insert({"deal_id": prior, "raw_output": {"source": "fictional accept warning"}, "structured_terms": prior_terms, "status": "approved", "schema_version": SCHEMA_VERSION, "prompt_version": PROMPT_VERSION}).execute().data[0]
         prior_contract = admin.table("contracts").insert({"deal_id": prior, "version": 1, "status": "executed", "storage_path": f"{prior}/fictional-v1.pdf", "generated_from_summary_id": prior_source["id"], "draft_source_sha256": "0" * 64}).execute().data[0]
         admin.table("audit_log").insert({"actor_id": ids["C2"], "action": "contract_executed", "entity_type": "deal", "entity_id": prior, "metadata": {"contract_id": prior_contract["id"], "version": 1}, "ip_address": "127.0.0.1"}).execute()
         admin.rpc("materialize_canonical_exclusivity", {"p_deal_id": prior, "p_source_summary_id": prior_source["id"], "p_actor_id": ids["C2"], "p_ip_address": "127.0.0.1"}).execute()
@@ -208,6 +210,10 @@ def main() -> None:
         d_nonpart = make_pending_deal(ids["C"], brand_id, ids["B"], ids["B"], 72)
         d_expired = make_pending_deal(ids["C"], brand_id, ids["B"], ids["B"], -1)
         d_excl = make_pending_deal(ids["C2"], brand_id, ids["B"], ids["B"], 72)
+        d_excl_category = make_pending_deal(ids["C2"], brand_id, ids["B"], ids["B"], 72, "SKINCARE")
+        d_creator_initiated = make_pending_deal(ids["C2"], brand_id, ids["C2"], ids["B"], 72, "skincare")
+        d_no_conflict = make_pending_deal(ids["C"], brand_id, ids["B"], ids["B"], 72, "skincare")
+        d_membership_loss = make_pending_deal(ids["C2"], brand_id, ids["B"], ids["B"], 72, "skincare")
 
         # ── 1. Recipient accepts → Chatting ──────────────────────────────────────
         r1 = accept(token_c, d_accept)
@@ -254,11 +260,41 @@ def main() -> None:
         r7 = accept(token_c2, d_excl, acknowledge=False)
         b7 = r7.json()
         check("exclusivity: 200 with requires_acknowledgement (no transition)", r7.status_code == 200 and b7.get("requires_acknowledgement") is True and b7.get("transitioned") is False)
+        check("null-category Pending warning is explicitly legacy", b7.get("legacy_exclusivity_warning") is True)
         check("exclusivity: warning names the category", "skincare" in (b7.get("exclusivity_warning") or ""))
         check("exclusivity: deal NOT advanced before ack (still pending)", admin.table("deals").select("stage").eq("id", d_excl).execute().data[0]["stage"] == "pending")
         r7b = accept(token_c2, d_excl, acknowledge=True)
         b7b = r7b.json()
         check("exclusivity: acknowledged accept transitions to chatting", r7b.status_code == 200 and b7b.get("transitioned") is True and b7b.get("stage") == "chatting")
+
+        # New category-bearing Pending deals use the exact, structured digest.
+        first = accept(token_c2, d_excl_category)
+        conflict = first.json().get("exclusivity_conflicts", {})
+        check("category-bearing accept warns before transition", first.status_code == 200 and
+              first.json().get("requires_acknowledgement") is True and len(conflict.get("conflicts", [])) == 1)
+        check("category warning has no audit or stage mutation", admin.table("deals").select("stage").eq("id", d_excl_category).execute().data[0]["stage"] == "pending" and
+              not admin.table("audit_log").select("id").eq("entity_id", d_excl_category).eq("action", "deal_accept").execute().data)
+        boolean_only = accept(token_c2, d_excl_category, acknowledge=True)
+        check("boolean-only acknowledgement cannot bypass category warning", boolean_only.json().get("requires_acknowledgement") is True)
+        forged = accept(token_c2, d_excl_category, digest="0" * 64)
+        check("forged digest cannot advance Pending", forged.json().get("requires_acknowledgement") is True)
+        current = accept(token_c2, d_excl_category, digest=conflict["digest"])
+        check("current digest advances once", current.status_code == 200 and current.json().get("transitioned") is True)
+        audit = admin.table("audit_log").select("metadata").eq("entity_id", d_excl_category).eq("action", "deal_accept").execute().data
+        check("accept audit binds exact digest and conflict count", len(audit) == 1 and audit[0]["metadata"].get("digest") == conflict["digest"] and audit[0]["metadata"].get("conflict_count") == 1)
+
+        brand_reply = accept(token_b, d_creator_initiated)
+        check("brand recipient accepts without creator cross-deal disclosure", brand_reply.status_code == 200 and
+              brand_reply.json().get("transitioned") is True and "exclusivity_conflicts" not in brand_reply.json())
+        unrelated_category = accept(token_c, d_no_conflict)
+        check("creator with no canonical clause accepts without warning", unrelated_category.status_code == 200 and
+              unrelated_category.json().get("transitioned") is True)
+        membership_warning = accept(token_c2, d_membership_loss).json()["exclusivity_conflicts"]
+        admin.table("deal_participants").delete().eq("deal_id", d_membership_loss).eq("profile_id", ids["C2"]).execute()
+        no_longer_member = accept(token_c2, d_membership_loss, digest=membership_warning["digest"])
+        check("membership loss rejects stale confirmation without stage or audit", no_longer_member.status_code == 403 and
+              admin.table("deals").select("stage").eq("id", d_membership_loss).execute().data[0]["stage"] == "pending" and
+              not admin.table("audit_log").select("id").eq("entity_id", d_membership_loss).eq("action", "deal_accept").execute().data)
 
     finally:
         print()

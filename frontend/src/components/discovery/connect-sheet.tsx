@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Text, TextInput, View } from 'react-native';
 
 import { WinSpring } from '@/components/motion/win-spring';
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { EditSheet } from '@/components/ui/edit-sheet';
 import { connectDeal } from '@/lib/deals';
+import { supabase } from '@/lib/supabase';
+import { campaignCategory, ConflictWarningFence, runConnectWithSessionFence, type ConflictWarning } from '@/lib/exclusivity-conflict-warning';
 
 import CheckIcon from '@/assets/icons/check.svg';
-import ShieldIcon from '@/assets/icons/shield.svg';
 
 type Phase = 'confirm' | 'sending' | 'done';
 
@@ -32,7 +33,9 @@ export function ConnectSheet({
 }) {
   const [phase, setPhase] = useState<Phase>('confirm');
   const [error, setError] = useState<string | null>(null);
-  const [warning, setWarning] = useState<string | null>(null);
+  const [warning, setWarning] = useState<ConflictWarning | null>(null);
+  const [category, setCategory] = useState('');
+  const fence = useRef(new ConflictWarningFence());
   const [reused, setReused] = useState(false);
 
   // Reset each time the sheet opens.
@@ -41,20 +44,68 @@ export function ConnectSheet({
       setPhase('confirm');
       setError(null);
       setWarning(null);
+      setCategory('');
       setReused(false);
     }
-  }, [visible]);
+    fence.current.invalidate();
+  }, [visible, targetType, targetId]);
+
+  useEffect(() => {
+    const warningFence = fence.current;
+    const subscription = supabase?.auth.onAuthStateChange(() => {
+      warningFence.invalidate();
+      setWarning(null);
+    });
+    return () => { subscription?.data.subscription.unsubscribe(); warningFence.invalidate(); };
+  }, []);
+
+  const changeCategory = (value: string) => {
+    fence.current.invalidate();
+    setPhase('confirm');
+    setCategory(value);
+    setWarning(null);
+    setError(null);
+  };
+
+  const close = () => {
+    fence.current.invalidate();
+    setWarning(null);
+    onClose();
+  };
 
   const submit = async () => {
+    let display: string;
+    try { display = campaignCategory(category); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Enter a campaign category.'); return; }
+    const context = `${targetType}:${targetId}:${display}`;
+    const digest = warning?.digest;
     setPhase('sending');
     setError(null);
-    const res = await connectDeal(targetType, targetId);
+    const outcome = await runConnectWithSessionFence(
+      fence.current,
+      context,
+      async () => (await supabase?.auth.getSession())?.data.session?.user.id,
+      () => connectDeal(targetType, targetId, display, digest),
+    );
+    if (outcome.state === 'stale') return;
+    if (outcome.state === 'signed-out') {
+      setError('Sign in again to start this deal.');
+      setPhase('confirm');
+      return;
+    }
+    const res = outcome.result;
     if (!res.ok) {
+      setWarning(null);
       setError(res.message);
       setPhase('confirm');
       return;
     }
-    setWarning(res.result.exclusivity_warning ?? null);
+    if (res.needsAck) {
+      setWarning(res.warning);
+      setPhase('confirm');
+      return;
+    }
+    setWarning(null);
     setReused(!res.result.created);
     setPhase('done');
   };
@@ -62,8 +113,8 @@ export function ConnectSheet({
   return (
     <EditSheet
       visible={visible}
-      onClose={onClose}
-      title={phase === 'done' ? 'Request sent' : `Start a deal with ${targetName}?`}
+      onClose={close}
+      title={phase === 'done' ? 'Request sent' : warning ? 'Review exclusivity conflicts' : `Start a deal with ${targetName}?`}
       subtitle={
         phase === 'done'
           ? undefined
@@ -71,7 +122,7 @@ export function ConnectSheet({
       }
       footer={
         phase === 'done' ? (
-          <Button action="primary" size="lg" className="w-full" onPress={onClose}>
+          <Button action="primary" size="lg" className="w-full" onPress={close}>
             <ButtonText>Done</ButtonText>
           </Button>
         ) : (
@@ -83,7 +134,7 @@ export function ConnectSheet({
             onPress={submit}
           >
             {phase === 'sending' ? <ButtonSpinner /> : null}
-            <ButtonText>Connect</ButtonText>
+            <ButtonText>{warning ? 'Connect anyway' : 'Connect'}</ButtonText>
           </Button>
         )
       }
@@ -100,22 +151,40 @@ export function ConnectSheet({
               </Text>
             </View>
           </WinSpring>
-          {warning ? (
-            <View className="flex-row items-start gap-2 rounded-panel bg-surface-recess p-3 shadow-recessInset">
-              <ShieldIcon width={16} height={16} color="#847F78" />
-              <Text className="flex-1 font-geist text-secondary leading-[18px] text-ink-2">
-                {warning}
-              </Text>
-            </View>
-          ) : null}
           <Text className="mt-3 font-geist text-secondary text-ink-3">
             The proposal, terms and chat open with the deal engine.
           </Text>
         </View>
       ) : (
-        <Text className="font-geist text-body text-ink-2">
-          No commitment yet — this just starts the conversation.
-        </Text>
+        <View>
+          <Text className="font-geist text-body text-ink-2">Campaign category</Text>
+          <TextInput
+            accessibilityLabel="Campaign category"
+            value={category}
+            onChangeText={changeCategory}
+            editable={phase !== 'sending'}
+            maxLength={400}
+            placeholder="e.g. skincare"
+            autoCapitalize="sentences"
+            className="mt-2 rounded-panel border border-outline bg-surface px-3 py-3 font-geist text-body text-ink"
+          />
+          <Text className="mt-2 font-geist text-secondary text-ink-3">
+            Name one category for this campaign. No commitment yet — this starts a conversation.
+          </Text>
+          {warning ? (
+            <View className="mt-4 rounded-panel bg-surface-recess p-3" accessibilityRole="alert">
+              <Text className="font-geist-medium text-body text-ink">Exclusivity conflicts — warn only</Text>
+              <Text className="mt-1 font-geist text-secondary text-ink-2">
+                You can continue. Review each agreement before you choose Connect anyway.
+              </Text>
+              {warning.conflicts.map((item, index) => (
+                <Text key={`${item.brand}:${item.category}:${item.expiry}:${index}`} className="mt-2 font-geist text-secondary text-ink-2">
+                  {item.brand} · {item.category} · through {item.expiry} (inclusive)
+                </Text>
+              ))}
+            </View>
+          ) : null}
+        </View>
       )}
 
       {error ? (

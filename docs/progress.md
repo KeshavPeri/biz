@@ -16,7 +16,29 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
-- **Issue #83 / Workplan 11.4-F2 canonical whitelisting tracker candidate (2026-10-07):** additive
+- **Issue #85 / Workplan 11.5 category-specific exclusivity warning verified candidate (2026-10-07):**
+  additive development migration 057 adds an immutable nullable deal category and backend-only
+  inventory, atomic Connect and Pending accept boundaries. Connect now requires an explicit safe
+  category. Creator initiation and creator acceptance of a brand request use one source-validated
+  canonical-clause projection with exact NFKC/full-casefold identity, inclusive server UTC dates,
+  a bounded ordered warning and digest-bound confirmation. Brand Connect and brand acceptance
+  do not receive the creator's cross-deal list. Confirmed overrides record metadata only within
+  the deal creation or stage transition transaction; a stale digest returns a fresh warning or a
+  generic retry, and category-null Pending deals retain an explicitly legacy generic warning.
+  Migration 057 applied to development. Connect passed 38/38, accept/decline 28/28,
+  conflict projection 18/18, and stage engine 23/23; delayed-session client tests cover
+  category edit and close/reopen after QA's one fence repair. QA and security re-review passed.
+  The complete post-review regression passed 35/35 commands at unchanged source fingerprint
+  `b6ed60e06b26e37f74a79e40c251ca3e9d52a9738a28d1d72b1c9178fa54229d`.
+  Content approval initially hit a repeated HTTP/2 read error under the accidental Python
+  3.14 virtual environment; restoring the documented Python 3.12 runtime passed its exact
+  failed command 20/20, including concurrent decisions, with fictional cleanup. TypeScript,
+  lint (zero errors, four existing warnings), Expo export, backend compile, contract/tracker/RLS
+  regressions and diff hygiene passed. Founder browser/native walkthrough remains LIMITED.
+  Workplan 11.6 remains the separate manual parser-to-tracker gate; scheduled exclusivity
+  alerts remain Phase 12.
+
+- **Issue #83 / Workplan 11.4-F2 canonical whitelisting tracker (merged PR #84, 2026-10-07):** additive
   development migration `056_whitelisting_tracker.sql` preserves source-null legacy rows, adds strict
   source/sequence-bound enabled and disabled shapes, removes participant raw-table authority, and
   exposes service-role select plus one fixed-search-path, deal-locked materializer. Exact executed v3
@@ -358,11 +380,12 @@ up exactly where the last one left off, with zero context lost.
 - **Development Discovery imagery (2026-09-18):** isolated branch `codex/demo-photography` adds 15 reviewed, locally stored Pexels photos plus source/license/photographer/checksum manifest and a separately opt-in enrichment script. It refuses any environment other than explicit `APP_ENV=development`, verifies exactly the 15 expected `@seed.inflo.test` creator accounts before touching data, uses deterministic profile-scoped Storage upserts, and never calls the destructive discovery seed. With the approved ignored development environment present, its dry run and two identical apply runs succeeded against only those sample accounts. The ten fictional brands receive code-native marks in `LogoTile`; other brands retain initials and no brand schema/photo field was added.
 
 - **Phase 9 reconciliation (2026-09-16):** PR #47 for B3-007 is merged. Workplan
-  9.1–9.19 is complete **for sequencing** by founder decision. The Bucket 3 RTM is
-  29/32 Built; B3-037, B3-041 and B3-042 remain explicitly deferred to later phases.
+  9.1–9.19 was completed **for sequencing** by founder decision. At that gate the Bucket 3 RTM
+  was 29/32 Built, with B3-037, B3-041 and B3-042 deferred to later phases; B3-041 is now
+  in review under Workplan 11.5 and B3-042 has since been built.
   The hands-on two-persona/device lifecycle test in 9.18 has **not been run or passed**;
   the founder will revisit it. The 9.19 gate records this limitation rather than
-  claiming a clean manual pass or 32/32 feature completion. Phase 11 is ready to start.
+  claiming a clean manual pass or 32/32 feature completion.
 
 - **Issue #45 / B3-007 secure chat attachments (merged PR #47):** additive migration 047 creates the
   private 50 MiB `deal-files` bucket and auth-derived upload reservations. Participant-scoped
@@ -1222,26 +1245,24 @@ health`, `from core.config import settings`) that only resolve with `backend/` a
 
 ## NEXT UP _(ordered)_
 
-1. **Issue #81 / Workplan 11.4-F1:** review the draft PR; optionally inspect Terms Review and PDF
-   for disabled, one and multiple fictional arrangements before deciding whether to merge.
-2. **Issue #79 / Workplan 11.4-E2:** review the draft PR; optionally complete the creator-and-brand
-   browser/native Disclosures walkthrough before deciding whether to merge.
-3. **Issue #69 / Workplan 11.4-A:** review the deliverable-detail draft PR; optionally perform the
-   creator-and-brand browser/native and external-link walkthrough before deciding whether to merge.
-4. **Issues #61 and #63 / Workplan 11.1:** review the pending draft PRs; optionally perform the
-   creator-and-brand Track and monthly-summary visual walkthroughs, then decide whether to merge.
-5. **Phase 11:** after the relevant draft PRs are merged, prepare or release the next tracking ticket
-   when the founder requests it.
-6. **Founder manual follow-up:** revisit the deferred 9.18 two-persona/device lifecycle
-   walkthrough, plus the previously deferred Phase 10 manual gate; record actual outcomes.
-7. **Later phases:** implement deferred B3-037/041/042 in their mapped Phase 11/12 work;
-   retain the documented B3-016 and B3-017 limitations until their later work lands.
+1. **Issue #85 / Workplan 11.5:** review the draft PR, optionally complete the creator-and-brand
+   browser/native warning walkthrough, and decide whether to merge.
+2. **Workplan 11.6:** run the separate founder/manual parser-to-tracker population gate after
+   the 11.5 merge; record observed results without inferring a pass.
+3. **Workplan 11.7:** reconcile Phase 11 RTM evidence after the manual gate. Review other
+   outstanding draft PRs and deferred 9.18/Phase 10 walkthroughs separately.
 
 ## NEEDS MY INPUT _(blockers + anything Claude flagged per the CLAUDE.md STOP list)_
 
 _Claude: when you hit a STOP-and-flag situation (destructive ops, anything paid, live/prod,
 real secrets, big architectural change, irreversible + low confidence), describe it here and
 do not proceed. I'll resolve these at the start of my next session._
+
+- **2026-10-07 — OPTIONAL founder review for Issue #85:** as creator, initiate a conflicting
+  category and explicitly continue after reading every listed brand/category/expiry; as brand,
+  initiate a deal and confirm no cross-deal details appear, then switch to the creator to accept
+  after the warning. Check a nonmatching category and an older null-category Pending deal.
+  Browser/native presentation remains `LIMITED`; automated privacy and atomicity passed.
 
 - **2026-09-29 — OPTIONAL founder review for Issue #81:** inspect Terms Review and generated PDF
   for disabled, one and multiple fictional whitelisting arrangements; confirm account, platform,
@@ -1624,6 +1645,18 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-10-07 — Issue #85: Workplan 11.5 exclusivity conflict warning
+
+- Added explicit immutable Connect category, exact canonical clause matching, creator-only
+  structured warn/confirm flows, digest freshness and atomic metadata-only override audits;
+  legacy null-category Pending deals retain a generic warning. Migration 057 applied only to
+  development. QA and security passed after one Connect session-fence repair.
+- The 35-command post-review regression passed at unchanged source fingerprint
+  `b6ed60e06b26e37f74a79e40c251ca3e9d52a9738a28d1d72b1c9178fa54229d`.
+  An HTTP/2 read error in content approval repeated under an accidental Python 3.14 venv;
+  restoring documented Python 3.12 passed the exact failed test 20/20, including concurrent
+  decisions and fictional cleanup. Founder browser/native walkthrough remains LIMITED.
 
 ### 2026-10-07 — Issue #83: Workplan 11.4-F2 canonical whitelisting tracker candidate
 
