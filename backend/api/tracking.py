@@ -10,6 +10,7 @@ from services.disclosure_service import get_disclosure_snapshot
 from services.exclusivity_service import get_exclusivity_snapshot
 from services.stage_engine import DealError
 from services.usage_rights_service import get_usage_rights_snapshot
+from services.whitelisting_service import get_whitelisting_snapshot
 
 router = APIRouter(prefix="/tracking", tags=["tracking"])
 
@@ -42,5 +43,13 @@ def blackouts(user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
 def disclosures(user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
     try:
         return get_disclosure_snapshot(user_id)
+    except DealError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@router.get("/whitelisting")
+def whitelisting(user_id: str = Depends(get_current_user_id)) -> dict[str, Any]:
+    try:
+        return get_whitelisting_snapshot(user_id)
     except DealError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc

@@ -497,9 +497,9 @@ def main() -> None:
         v3_blackout = admin.table("blackout_windows").select("source_summary_id").eq("deal_id", v3_deal).execute().data
         v3_exclusivity = admin.table("exclusivity_clauses").select("source_summary_id").eq("deal_id", v3_deal).execute().data
         v3_disclosures = admin.table("disclosure_requirements").select("source_summary_id").eq("deal_id", v3_deal).execute().data
-        v3_whitelisting = admin.table("whitelisting_arrangements").select("id").eq("deal_id", v3_deal).execute().data
+        v3_whitelisting = admin.table("whitelisting_arrangements").select("source_summary_id,arrangement_sequence,has_whitelisting").eq("deal_id", v3_deal).order("arrangement_sequence").execute().data
         check(
-            "valid v3 signing preserves every existing Creating materializer and creates no whitelisting rows",
+            "valid v3 signing preserves every Creating materializer and creates the exact whitelisting set",
             v3_generated.status_code == 200
             and v3_creator_sign.status_code == 200
             and v3_brand_sign.status_code == 200
@@ -510,7 +510,9 @@ def main() -> None:
             and len(v3_exclusivity) == 1
             and len(v3_disclosures) == 2
             and all(row["source_summary_id"] == v3_source for row in v3_deliverables + v3_usage + v3_blackout + v3_exclusivity + v3_disclosures)
-            and v3_whitelisting == [],
+            and len(v3_whitelisting) == 2
+            and [row["arrangement_sequence"] for row in v3_whitelisting] == [1, 2]
+            and all(row["source_summary_id"] == v3_source and row["has_whitelisting"] for row in v3_whitelisting),
         )
 
         # Print bypass: fake uploaded bytes rejected, real private PDF accepted and appended.
