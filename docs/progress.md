@@ -16,6 +16,30 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #83 / Workplan 11.4-F2 canonical whitelisting tracker candidate (2026-10-07):** additive
+  development migration `056_whitelisting_tracker.sql` preserves source-null legacy rows, adds strict
+  source/sequence-bound enabled and disabled shapes, removes participant raw-table authority, and
+  exposes service-role select plus one fixed-search-path, deal-locked materializer. Exact executed v3
+  contracts atomically create the complete arrangement set and one metadata-only audit before Creating;
+  v1/v2 return an explicit legacy-unmapped no-op. A bearer-authenticated projection revalidates the
+  executed source, complete canonical set and audit on every read, or uses a strict read-only historical
+  v3 fallback after real execution/transition evidence. It returns exact decimal-string budgets and
+  inclusive server-UTC Active/Upcoming/Expired status; invalid or legacy evidence is Needs review and
+  explicit v3 false is Not enabled. Track now links to an account/request/unmount-fenced Whitelisting
+  screen with accessible textual states, expired history and source-deal links. The pre-review union
+  passed 23/23 commands, 330 backend checks and 23 frontend state tests; a Unicode-edge constraint
+  hardening then passed its focused 15/15 repair set. Security repair revision 1 now projects source
+  and canonical budgets as database-generated canonical decimal text, so neither canonical nor
+  historical API paths decode exact money through a Python float, and materialization/projection share
+  the v3 identity tuple's decimal-text ordering (including same-key budgets 10 before 2). Its narrowed
+  repair evidence passed tracker 15/15, contract flow 34/34, RLS 4/4, backend compilation and diff
+  hygiene at code fingerprint `ca7e028acbe576d735c225459b5a51849c347b09`. Migration 056 is applied
+  to development. Independent
+  QA and security review passed, and the post-review full regression passed 28/28 commands with
+  523 backend checks and 68 frontend state tests at the unchanged fingerprint
+  `ca7e028acbe576d735c225459b5a51849c347b09`; founder browser/native walkthrough is LIMITED.
+  No ad-account access, ad execution, notification or money movement exists.
+
 - **Issue #81 / Workplan 11.4-F1 truthful whitelisting source foundation (2026-09-28):** fresh
   chat and contract extraction use exact v3 provenance while immutable v1/v2 readers retain their
   historical boolean meaning. V3 records complete bounded platform/account/inclusive-date
@@ -1600,6 +1624,20 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-10-07 — Issue #83: Workplan 11.4-F2 canonical whitelisting tracker candidate
+
+- Added source-bound v3 whitelisting materialization, raw-authority revocation, complete-set/audit
+  validation, strict historical fallback, participant-safe exact-money projection, and the Track →
+  Whitelisting client experience. V1/v2 remains Needs review; explicit v3 false is Not enabled.
+- The pre-review affected/ticket union passed 23/23 commands, 330 backend checks and 23 frontend
+  state tests. Security repair revision 1 removed Python-float handling from exact canonical and
+  historical budget projection and made database materialization/projection reuse the v3 identity
+  tuple's decimal-text order, with high-precision fractional and 10-before-2 checks. The narrowed
+  repair set passed tracker 15/15, contract flow 34/34, RLS 4/4, compile and diff hygiene at
+  `ca7e028acbe576d735c225459b5a51849c347b09`. Migration 056 is development-only and applied;
+  QA/security passed and the 28-command post-review full regression passed (523 backend checks and
+  68 frontend state tests); optional founder presentation walkthrough remains LIMITED.
 
 ### 2026-09-29 — Issue #81: Workplan 11.4-F1 whitelisting source candidate
 

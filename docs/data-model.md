@@ -514,10 +514,15 @@ Revision rounds per deliverable (Round X of Y).
 | end_date | date | nullable |
 
 The v3 chat/contract source may contain multiple complete arrangements. Migration 055 validates
-that evidence for the existing post-signing lifecycle but intentionally writes zero rows here.
-V1/v2 booleans remain valid historical evidence and are never expanded. Canonical insertion,
-participant-safe reads, derived status, and replacement of the table's legacy client authority are
-owned by 11.4-F2/B5-015.
+that evidence; migration 056 adds source provenance and a stable one-based sequence, with a
+sequence-zero null-detail sentinel for explicit disabled terms. V1/v2 booleans and source-null legacy
+rows remain preserved but are never expanded or exposed as canonical detail. Raw client authority is
+revoked: one backend-only, deal-locked function inserts the exact set and the participant-safe API
+revalidates it against the executed v3 source on every read. The materializer and a service-role-only
+projection share the v3 identity tuple's decimal-text ordering; that projection emits source and
+canonical `numeric` values as canonical decimal strings so exact budgets never pass through a Python
+float on either canonical or historical fallback reads. Status is derived from one server UTC date,
+and budget currency is returned only from the matching validated source rather than duplicated here.
 
 ### `blackout_windows`
 | Column | Type | Notes |

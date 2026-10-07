@@ -761,11 +761,13 @@ def _finalize_if_ready(
         from services.deliverable_service import materialize_for_creating_entry
         from services.disclosure_service import materialize_for_creating_entry as materialize_disclosures
         from services.exclusivity_service import materialize_for_creating_entry as materialize_exclusivity
+        from services.whitelisting_service import materialize_for_creating_entry as materialize_whitelisting
 
         materialize_for_creating_entry(client, deal["id"], actor_id, ip_address)
         materialize_disclosures(client, deal["id"], actor_id, ip_address)
         materialize_calendar_terms(client, deal["id"], actor_id, ip_address)
         materialize_exclusivity(client, deal["id"], actor_id, ip_address)
+        materialize_whitelisting(client, deal["id"], actor_id, ip_address)
         try:
             request_transition(deal["id"], actor_id, "creating", ip_address, system=True)
         except DealError:
