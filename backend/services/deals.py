@@ -10,12 +10,12 @@ this module enforces every rule itself and never trusts the caller's identity,
 which is verified upstream by core.auth.get_current_user_id.
 """
 
-from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
 from supabase import Client
 
 from core.supabase_client import get_supabase
+from services.exclusivity_conflicts import project_conflicts, valid_category
 
 # DealError + the shared transition primitives live in the engine now; connect and
 # the accept/decline wrappers below route through it (no parallel transition path).
@@ -63,8 +63,14 @@ def connect_deal(
     target_type: Literal["creator", "brand"],
     target_id: str,
     ip_address: str,
+    category: str,
+    acknowledgement_digest: str | None = None,
 ) -> dict[str, Any]:
     client = get_supabase()
+    try:
+        category = valid_category(category, trim=False)
+    except ValueError as exc:
+        raise DealError(422, str(exc)) from exc
 
     caller_type = _account_type(client, user_id)
     if caller_type is None:
@@ -97,72 +103,30 @@ def connect_deal(
     if existing is not None:
         return {"deal_id": existing["id"], "stage": existing["stage"], "created": False}
 
-    # Names for a sensible default deal_name.
-    brand_row = client.table("brands").select("company_name").eq("id", brand_id).execute()
-    creator_row = client.table("profiles").select("display_name").eq("id", creator_id).execute()
-    company_name = brand_row.data[0]["company_name"] if brand_row.data else "Brand"
-    creator_name = creator_row.data[0]["display_name"] if creator_row.data else "Creator"
-
-    # ── 3. Create the deal (Pending) ───────────────────────────────────────────
-    expires_at = (datetime.now(timezone.utc) + timedelta(hours=PENDING_WINDOW_HOURS)).isoformat()
-    deal = (
-        client.table("deals")
-        .insert(
-            {
-                "creator_id": creator_id,
-                "brand_id": brand_id,
-                "deal_name": f"{company_name} × {creator_name}",
-                "deal_type": "campaign",
-                "stage": "pending",
-                "direction": direction,
-                "currency": "INR",
-                "created_by": user_id,
-                "expires_at": expires_at,
-            }
-        )
-        .execute()
-    )
-    deal_id = deal.data[0]["id"]
-
-    # ── 4. Participants: creator + the initiating brand admin ──────────────────
-    # The initiating brand member holds the brand_admin hat for this deal; per-deal
-    # maker/checker assignment is Phase 9. We need a brand profile_id for the
-    # brand side: the caller when brand-initiated, else the brand's admin member.
-    brand_participant_id = user_id if caller_type == "brand" else _brand_admin_profile(client, brand_id)
-    participants = [{"deal_id": deal_id, "profile_id": creator_id, "participant_role": "creator"}]
-    if brand_participant_id is not None:
-        participants.append(
-            {"deal_id": deal_id, "profile_id": brand_participant_id, "participant_role": "brand_admin"}
-        )
-    client.table("deal_participants").insert(participants).execute()
-
-    # ── 5. Log the initial Pending transition (NULL → pending) ─────────────────
-    client.table("deal_stage_transitions").insert(
-        {
-            "deal_id": deal_id,
-            "from_stage": None,
-            "to_stage": "pending",
-            "transition_type": "auto",
-            "triggered_by": user_id,
-        }
-    ).execute()
-
-    # ── 6. Chat-thread stub — the thread IS the deal (no chat UI this task) ─────
-    client.table("messages").insert(
-        {
-            "deal_id": deal_id,
-            "sender_id": user_id,
-            "body": "Started a connection — this is the beginning of your deal thread.",
-        }
-    ).execute()
-
-    # ── 7. Non-blocking exclusivity warning ────────────────────────────────────
-    warning = _exclusivity_warning(client, creator_id)
-
-    result: dict[str, Any] = {"deal_id": deal_id, "stage": "pending", "created": True}
-    if warning:
-        result["exclusivity_warning"] = warning
-    return result
+    projection = project_conflicts(client, creator_id, category) if direction == "outbound" else None
+    conflicts = projection["warning"]["conflicts"] if projection else []
+    if conflicts and acknowledgement_digest != projection["digest"]:
+        return {"requires_acknowledgement": True, "exclusivity_conflicts": projection["warning"]}
+    if not conflicts and acknowledgement_digest is not None:
+        raise DealError(409, "The conflict warning changed. Refresh and try again.")
+    try:
+        response = client.rpc("connect_with_category", {
+            "p_actor_id": user_id, "p_target_type": target_type, "p_target_id": target_id,
+            "p_category": category,
+            "p_expected_snapshot": projection["snapshot"] if projection else None,
+            "p_override_metadata": projection["audit"] if conflicts else None,
+            "p_ip_address": ip_address,
+        }).execute().data
+        return response[0] if isinstance(response, list) else response
+    except Exception as exc:
+        message = getattr(exc, "message", "") or str(exc)
+        if "CONNECT_STALE" in message:
+            raise DealError(409, "The conflict information changed. Refresh and try again.") from exc
+        if "CONNECT_MEMBERSHIP" in message:
+            raise DealError(403, "You aren't an active member of a brand.") from exc
+        if "CONNECT_TARGET" in message:
+            raise DealError(404, "This profile could not be found.") from exc
+        raise DealError(409, "This connection could not be started safely. Refresh and try again.") from exc
 
 
 def _brand_admin_profile(client: Client, brand_id: str) -> str | None:
@@ -194,6 +158,7 @@ def accept_deal(
     deal_id: str,
     ip_address: str,
     acknowledge_exclusivity: bool = False,
+    acknowledgement_digest: str | None = None,
 ) -> dict[str, Any]:
     """Recipient accepts a Pending connection → CHATTING (via the engine)."""
     return request_transition(
@@ -201,7 +166,8 @@ def accept_deal(
         user_id,
         "chatting",
         ip_address,
-        params={"acknowledge_exclusivity": acknowledge_exclusivity},
+        params={"acknowledge_exclusivity": acknowledge_exclusivity,
+                "acknowledgement_digest": acknowledgement_digest},
     )
 
 

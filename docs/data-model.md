@@ -248,6 +248,7 @@ The central entity. Created when someone taps Connect.
 | creator_id | uuid (FK → profiles) | the one creator on the deal |
 | brand_id | uuid (FK → brands) | |
 | deal_name | text | editable by any participant |
+| category | text, nullable | Explicit Connect campaign category, 1–200 safe display characters; immutable after creation. Null only for older deals; comparison uses server NFKC plus full casefold. |
 | deal_type | enum | `campaign` \| `product` \| `experience` (default campaign for MVP) |
 | stage | enum | pending, chatting, approval, creating, posted, payment, closed, **declined**, **cancelled** |
 | is_disputed | bool | overlay on Payment stage (not a stage) |
