@@ -16,6 +16,28 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #93 / Workplan 12.1-D atomic Connect request notice (2026-10-08):**
+  Additive migration 059 writes one generic Important in-app row for the actual
+  Pending Connect recipient in the same transaction as the deal graph. Creator
+  Connect to a brand without an active selected admin now fails before deal
+  creation with a friendly error. Duplicate, warning, stale, invalid and failed
+  calls do not add a notice. Migration 059 was applied to development only.
+  The focused/affected union passed 13/13 commands (261 backend checks, 5
+  frontend warning checks); direct development RPC authority inspection passed
+  8/8 assertions at changed-code SHA-256
+  `9c7ce014b5194b9465076ec3ac076e6533eb88ce867c51ef892206887e512afb`.
+  QA found no actionable issue and security review passed. The one complete
+  final regression passed 22/22 commands (393 backend checks, 17 frontend
+  state checks, typecheck, lint with 0 errors/4 existing warnings, web export,
+  compile and diff hygiene) on the unchanged reviewed code. Deal close had one
+  development HTTP transport reset; its unchanged-source retry passed 27/27
+  with fictional cleanup. Workplan 12.1 and CC-N001/CC-N002 remain Partial:
+  email/preferences, other event
+  coverage, 90-day cleanup and unsupported action links remain open. B2-004
+  stays Built; B3-016 expiry/outcome notices remain deferred. Browser/native
+  presentation and live websocket timing remain LIMITED; the 11.6 manual
+  parser-to-tracker walkthrough is still unrun.
+
 - **Issue #91 / Workplan 12.1-C shared FastAPI in-app dispatch (2026-10-08):**
   `backend/services/notification_dispatch.py` now writes one in-app row per
   distinct server-selected recipient for the three existing tiers. Stage and
@@ -1708,6 +1730,18 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-10-08 — Issue #93 atomic Connect request notice
+
+- Added migration 059's service-role-only Connect replacement with one generic
+  recipient notice committed with each newly created Pending graph, and a
+  pre-write missing-admin error mapped to a friendly API response.
+- Fictional development tests passed the 13-command affected/focused union;
+  migration applied to development only. Recipient RLS, denied direct writes,
+  read acknowledgement, duplicate/concurrent idempotency and late rollback
+  passed. QA found no actionable issue, security review passed, and final full
+  regression passed 22/22 commands on unchanged code. Workplan 12.1,
+  CC-N001 and CC-N002 stay Partial; 11.6 manual validation is unrun.
 
 ### 2026-10-08 — Issue #91 shared in-app notice dispatch
 

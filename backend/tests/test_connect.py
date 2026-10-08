@@ -49,6 +49,7 @@ TEST_PASSWORD = "Monsoon2026!Inflo"
 USERS = {
     "B": {"email": "brandadmin@connect-inflo.test", "display_name": "Bela Admin", "account_type": "brand"},
     "B2": {"email": "brandtwo@connect-inflo.test", "display_name": "Bina Admin", "account_type": "brand"},
+    "BM": {"email": "brandmember@connect-inflo.test", "display_name": "Bimal Member", "account_type": "brand"},
     "C": {"email": "creator@connect-inflo.test", "display_name": "Chandni Roy", "account_type": "creator"},
     "NOBRAND": {"email": "nobrand@connect-inflo.test", "display_name": "Nikhil NoBrand", "account_type": "brand"},
     "U": {"email": "unrelated@connect-inflo.test", "display_name": "Uma Unrelated", "account_type": "creator"},
@@ -117,6 +118,14 @@ def connect(token: str, target_type: str, target_id: str, category: str = "beaut
     )
 
 
+def notices(admin: Client, deal_id: str) -> list[dict]:
+    return admin.table("notifications").select("id,profile_id,tier,title,body,deal_id,read,created_at").eq("deal_id", deal_id).execute().data
+
+
+def notice_count(admin: Client, ids: dict[str, str]) -> int:
+    return len(admin.table("notifications").select("id").in_("profile_id", list(ids.values())).execute().data)
+
+
 def seed_canonical_clause(admin: Client, creator_id: str, brand_id: str, category: str) -> str:
     prior = admin.table("deals").insert(
         {"creator_id": creator_id, "brand_id": brand_id, "deal_name": "Fictional prior agreement",
@@ -162,6 +171,7 @@ def main() -> None:
     brand_b2_id = None
     brand_b3_id = None
     brand_b4_id = None
+    brand_no_admin_id = None
 
     try:
         for key, info in USERS.items():
@@ -187,8 +197,12 @@ def main() -> None:
         # duplicate guard (different brand).
         brand_b2_id = admin.table("brands").insert({"company_name": "Rival Co", "industry": "Beauty"}).execute().data[0]["id"]
         brand_b3_id = admin.table("brands").insert({"company_name": "Fictional Three", "industry": "Beauty"}).execute().data[0]["id"]
+        brand_no_admin_id = admin.table("brands").insert({"company_name": "Fictional Unstaffed", "industry": "Beauty"}).execute().data[0]["id"]
         admin.table("brand_members").insert(
-            {"brand_id": brand_b3_id, "profile_id": ids["B2"], "brand_role": "admin", "status": "active"}
+            [
+                {"brand_id": brand_b3_id, "profile_id": ids["B2"], "brand_role": "admin", "status": "active"},
+                {"brand_id": brand_b3_id, "profile_id": ids["BM"], "brand_role": "member", "status": "active"},
+            ]
         ).execute()
         prior = seed_canonical_clause(admin, ids["C"], brand_b2_id, "skincare")
         mgmt_sql(
@@ -225,6 +239,14 @@ def main() -> None:
 
         msgs = admin.table("messages").select("id").eq("deal_id", deal_id).execute().data
         check("chat-thread stub seeded (1 message)", len(msgs) == 1)
+        inbound_notices = notices(admin, deal_id)
+        check("brand Connect writes one generic Important notice for creator only",
+              len(inbound_notices) == 1 and inbound_notices[0]["profile_id"] == ids["C"] and
+              inbound_notices[0]["tier"] == "important" and
+              inbound_notices[0]["title"] == "Connection request received" and
+              inbound_notices[0]["body"] == "You have a new connection request to review." and
+              inbound_notices[0]["deal_id"] == deal_id and
+              inbound_notices[0]["read"] is False and bool(inbound_notices[0]["created_at"]))
 
         # ── Exclusivity warning ──────────────────────────────────────────────────
         check("brand Connect reveals no cross-deal conflict", "exclusivity_warning" not in body1 and "exclusivity_conflicts" not in body1)
@@ -235,6 +257,17 @@ def main() -> None:
         check("second connect returns the SAME deal (created=false)", body2.get("created") is False and body2.get("deal_id") == deal_id)
         dup_count = len(admin.table("deals").select("id").eq("creator_id", ids["C"]).eq("brand_id", brand_b_id).execute().data)
         check("no duplicate deal row created", dup_count == 1)
+        check("brand duplicate leaves exactly one request notice", len(notices(admin, deal_id)) == 1)
+
+        # A creator cannot create a Pending request that no active admin can answer.
+        before_unstaffed = notice_count(admin, ids)
+        unstaffed = connect(token_c, "brand", brand_no_admin_id)
+        check("brand without active admin returns stable friendly error",
+              unstaffed.status_code == 409 and
+              unstaffed.json().get("detail") == "This brand can't receive connection requests right now. Try again later.")
+        check("unstaffed brand writes no deal graph or notice",
+              not admin.table("deals").select("id").eq("creator_id", ids["C"]).eq("brand_id", brand_no_admin_id).execute().data and
+              notice_count(admin, ids) == before_unstaffed)
 
         # Creator Connect compares exact Unicode identity before creating anything.
         before = admin.table("deals").select("id").eq("creator_id", ids["C"]).eq("brand_id", brand_b3_id).execute().data
@@ -246,25 +279,41 @@ def main() -> None:
               conflict_rows[0].get("brand") == "Rival Co" and conflict_rows[0].get("category") == "skincare")
         check("source-null legacy row is excluded", len(conflict_rows) == 1)
         check("warning performs zero deal writes", before == admin.table("deals").select("id").eq("creator_id", ids["C"]).eq("brand_id", brand_b3_id).execute().data)
+        check("warning performs zero notice writes", notice_count(admin, ids) == before_unstaffed)
         forged = connect(token_c, "brand", brand_b3_id, "ＳＫＩＮＣＡＲＥ", "0" * 64)
         check("forged digest cannot create", forged.json().get("requires_acknowledgement") is True)
+        check("forged digest performs zero notice writes", notice_count(admin, ids) == before_unstaffed)
         brand_b4_id = admin.table("brands").insert({"company_name": "Another Rival", "industry": "Beauty"}).execute().data[0]["id"]
+        admin.table("brand_members").insert(
+            {"brand_id": brand_b4_id, "profile_id": ids["B2"], "brand_role": "admin", "status": "active"}
+        ).execute()
         seed_canonical_clause(admin, ids["C"], brand_b4_id, "Ｓｋｉｎｃａｒｅ")
         stale = connect(token_c, "brand", brand_b3_id, "ＳＫＩＮＣＡＲＥ", warning["digest"])
         fresh_warning = stale.json().get("exclusivity_conflicts", {})
         check("new canonical clause invalidates old digest without creating", stale.json().get("requires_acknowledgement") is True and
               fresh_warning.get("digest") != warning["digest"] and len(fresh_warning.get("conflicts", [])) == 2 and
-              not admin.table("deals").select("id").eq("creator_id", ids["C"]).eq("brand_id", brand_b3_id).execute().data)
+              not admin.table("deals").select("id").eq("creator_id", ids["C"]).eq("brand_id", brand_b3_id).execute().data and
+              notice_count(admin, ids) == before_unstaffed)
         check("multiple conflicts sorted by normalized brand identity",
               [item["brand"] for item in fresh_warning["conflicts"]] == ["Another Rival", "Rival Co"])
         confirmed = connect(token_c, "brand", brand_b3_id, "ＳＫＩＮＣＡＲＥ", fresh_warning["digest"])
         confirmed_id = confirmed.json().get("deal_id")
         check("confirmed creator Connect creates one Pending deal", confirmed.status_code == 200 and confirmed.json().get("created") is True)
+        outbound_parts = admin.table("deal_participants").select("profile_id,participant_role").eq("deal_id", confirmed_id).execute().data
+        outbound_notices = notices(admin, confirmed_id)
+        check("creator Connect selects the active brand admin as sole recipient",
+              {part["profile_id"] for part in outbound_parts} == {ids["C"], ids["B2"]} and
+              len(outbound_notices) == 1 and outbound_notices[0]["profile_id"] == ids["B2"] and
+              outbound_notices[0]["tier"] == "important" and
+              outbound_notices[0]["title"] == "Connection request received" and
+              outbound_notices[0]["body"] == "You have a new connection request to review." and
+              outbound_notices[0]["read"] is False and bool(outbound_notices[0]["created_at"]))
         override = admin.table("audit_log").select("metadata").eq("entity_id", confirmed_id).eq("action", "exclusivity_conflict_override").execute().data
         check("override audit binds digest and canonical clauses", len(override) == 1 and override[0]["metadata"]["digest"] == fresh_warning["digest"] and override[0]["metadata"]["conflict_count"] == 2)
         retry = connect(token_c, "brand", brand_b3_id, "another category", fresh_warning["digest"])
         check("duplicate retry reuses deal without conflict leak", retry.json().get("deal_id") == confirmed_id and retry.json().get("created") is False and "exclusivity_conflicts" not in retry.json())
         check("duplicate retry leaves one override audit", len(admin.table("audit_log").select("id").eq("entity_id", confirmed_id).eq("action", "exclusivity_conflict_override").execute().data) == 1)
+        check("creator duplicate leaves exactly one request notice", len(notices(admin, confirmed_id)) == 1)
 
         try:
             admin.table("deals").update({"category": "beauty"}).eq("id", confirmed_id).execute()
@@ -284,6 +333,7 @@ def main() -> None:
         except Exception:
             rolled_back = not admin.table("deals").select("id").eq("creator_id", ids["C"]).eq("brand_id", brand_b4_id).neq("stage", "closed").execute().data
         check("late audit failure rolls back the whole Connect graph", rolled_back)
+        check("late audit failure rolls back request notice", notice_count(admin, ids) == before_unstaffed + 1)
 
         concurrent_projection = project_conflicts(admin, ids["C"], "skincare")
         def confirmed_rpc(_index: int):
@@ -302,10 +352,14 @@ def main() -> None:
         concurrent_id = bodies[0].get("deal_id")
         check("concurrent confirmation writes one override audit", concurrent_id is not None and
               len(admin.table("audit_log").select("id").eq("entity_id", concurrent_id).eq("action", "exclusivity_conflict_override").execute().data) == 1)
+        check("concurrent confirmation writes one recipient notice",
+              len(notices(admin, concurrent_id)) == 1 and notices(admin, concurrent_id)[0]["profile_id"] == ids["B2"])
 
         for invalid in ("", "   ", " skincare ", "x" * 201, "skin\ncare", "skin\u202ecare"):
+            before_invalid = notice_count(admin, ids)
             response = connect(token_c, "brand", brand_b3_id, invalid)
             check(f"invalid category rejected: {invalid[:12]!r}", response.status_code == 422)
+            check(f"invalid category writes no notice: {invalid[:12]!r}", notice_count(admin, ids) == before_invalid)
 
         anon_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
         anon_client.auth.sign_in_with_password({"email": USERS["U"]["email"], "password": TEST_PASSWORD})
@@ -326,11 +380,15 @@ def main() -> None:
         # ── 3. RBAC: brand user with NO membership → 403 ─────────────────────────
         r3 = connect(token_nobrand, "creator", ids["C"])
         check("brand user with no active membership is blocked (403)", r3.status_code == 403)
+        check("unauthorized brand caller writes no notice", notice_count(admin, ids) == before_unstaffed + 2)
 
         # ── 4. RLS sanity: participant reads, non-participant doesn't ────────────
         c_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
         c_client.auth.sign_in_with_password({"email": USERS["C"]["email"], "password": TEST_PASSWORD})
         check("participant (creator) CAN read the deal", len(c_client.table("deals").select("id").eq("id", deal_id).execute().data) == 1)
+        check("inbound recipient sees own notice but not outbound actor notice",
+              {n["id"] for n in c_client.table("notifications").select("id").execute().data} ==
+              {inbound_notices[0]["id"]})
         try:
             c_client.table("deals").update({"category": "changed"}).eq("id", deal_id).execute()
             participant_category_denied = False
@@ -352,6 +410,32 @@ def main() -> None:
         u_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
         u_client.auth.sign_in_with_password({"email": USERS["U"]["email"], "password": TEST_PASSWORD})
         check("non-participant CANNOT read the deal (0 rows)", len(u_client.table("deals").select("id").eq("id", deal_id).execute().data) == 0)
+        check("outsider sees no request notices", not u_client.table("notifications").select("id").in_("id", [inbound_notices[0]["id"], outbound_notices[0]["id"]]).execute().data)
+        b_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        b_client.auth.sign_in_with_password({"email": USERS["B"]["email"], "password": TEST_PASSWORD})
+        check("brand initiator sees no inbound request notice",
+              not b_client.table("notifications").select("id").eq("id", inbound_notices[0]["id"]).execute().data)
+        b2_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        b2_client.auth.sign_in_with_password({"email": USERS["B2"]["email"], "password": TEST_PASSWORD})
+        check("selected admin sees deal-linked centre row and deal",
+              b2_client.table("notifications").select("id,profile_id,deal_id,tier,title,body,read,created_at").eq("id", outbound_notices[0]["id"]).execute().data == outbound_notices and
+              len(b2_client.table("deals").select("id").eq("id", confirmed_id).execute().data) == 1)
+        member_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        member_client.auth.sign_in_with_password({"email": USERS["BM"]["email"], "password": TEST_PASSWORD})
+        check("other brand member cannot read selected-admin notice",
+              not member_client.table("notifications").select("id").eq("id", outbound_notices[0]["id"]).execute().data)
+        for label, operation in (
+            ("direct insert", lambda: b2_client.table("notifications").insert({"profile_id": ids["B2"], "tier": "important", "title": "forged", "body": "forged"}).execute()),
+            ("direct update", lambda: b2_client.table("notifications").update({"read": True}).eq("id", outbound_notices[0]["id"]).execute()),
+        ):
+            try:
+                operation()
+                denied = False
+            except Exception:
+                denied = True
+            check(f"authenticated notification {label} denied", denied)
+        marked = b2_client.rpc("mark_notification_read", {"p_notification_id": outbound_notices[0]["id"]}).execute().data
+        check("recipient mark-read RPC owns new request row", marked is True and notices(admin, confirmed_id)[0]["read"] is True)
 
     finally:
         print()
