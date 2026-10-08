@@ -87,6 +87,7 @@ export default function RootLayout() {
           >
             <Stack.Protected guard={!!session && onboarded === true}>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="notifications" options={{ headerShown: false }} />
               {/* Discovery detail routes — siblings above the tabs, so Discover stays
                   mounted underneath and its filters survive the round trip. */}
               <Stack.Screen name="creator/[id]" options={{ headerShown: false }} />
