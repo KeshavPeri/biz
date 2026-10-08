@@ -206,11 +206,27 @@ def main() -> None:
         check("legal: pending→chatting 'gated' transition logged by caller", len(trans) == 1 and trans[0]["from_stage"] == "pending" and trans[0]["transition_type"] == "gated" and trans[0]["triggered_by"] == ids["C"])
         audit = admin.table("audit_log").select("action").eq("entity_id", d_ok).eq("action", "deal_accept").execute().data
         check("legal: audit_log 'deal_accept' row written", len(audit) == 1)
+        notices = admin.table("notifications").select("profile_id,tier,title,body,deal_id,read,created_at").eq("deal_id", d_ok).execute().data
+        check("legal: only the other participant receives the persisted Important stage notice",
+              len(notices) == 1 and notices[0]["profile_id"] == ids["B"]
+              and notices[0]["tier"] == "important" and notices[0]["title"] == "Deal updated"
+              and notices[0]["body"] == "This deal moved to Chatting."
+              and notices[0]["deal_id"] == d_ok and notices[0]["read"] is False
+              and bool(notices[0]["created_at"]))
+        recipient = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        recipient.auth.sign_in_with_password({"email": USERS["B"]["email"], "password": TEST_PASSWORD})
+        outsider = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        outsider.auth.sign_in_with_password({"email": USERS["X"]["email"], "password": TEST_PASSWORD})
+        check("stage notice is readable by recipient only",
+              len(recipient.table("notifications").select("id").eq("deal_id", d_ok).execute().data) == 1
+              and outsider.table("notifications").select("id").eq("deal_id", d_ok).execute().data == [])
 
         # ── Illegal, each independently ──────────────────────────────────────────
         # wrong current stage: accept (from pending) on a deal that's already chatting
         d_chatting = make_deal("chatting", both)
         expect_status("wrong current stage: accept a non-pending deal", lambda: request_transition(d_chatting, ids["C"], "chatting", IP), 409)
+        check("denied same-stage request adds no notice",
+              len(admin.table("notifications").select("id").eq("deal_id", d_chatting).execute().data) == 0)
 
         # backward move: creating → chatting
         d_creating = make_deal("creating", both)
@@ -256,7 +272,10 @@ def main() -> None:
         # and the engine maps that false → 409 for a raced caller
         d_atom2 = make_deal("pending", both, expires_hours=72)
         admin.rpc("apply_stage_transition", {**rpc_args, "p_deal_id": d_atom2}).execute()  # move it out from under us
+        notice_count_before_race = len(admin.table("notifications").select("id").eq("deal_id", d_atom2).execute().data)
         expect_status("atomicity: engine maps a raced/already-moved apply to 409", lambda: request_transition(d_atom2, ids["C"], "chatting", IP), 409)
+        check("atomicity: rejected raced request adds no FastAPI notice",
+              len(admin.table("notifications").select("id").eq("deal_id", d_atom2).execute().data) == notice_count_before_race == 0)
 
         # ── Regression: accept/decline still route through the engine (HTTP) ──────
         token_c = token_for(USERS["C"]["email"])

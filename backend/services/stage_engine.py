@@ -22,11 +22,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
+import logging
 from typing import Any, Callable
 
 from supabase import Client
 
 from core.supabase_client import get_supabase
+from services.notification_dispatch import DispatchResult, DispatchStatus, dispatch_in_app
 
 
 class DealError(Exception):
@@ -517,7 +519,7 @@ def _apply_transition(
 
 def _emit_transition_notification(
     client: Client, deal: dict[str, Any], transition: Transition, actor_id: str
-) -> None:
+) -> DispatchResult:
     """Minimal in-app notification for the OTHER participants — the clear seam for
     the Phase-12 notification system (docs/notifications.md). Best-effort: a
     failure here must never roll back a committed transition."""
@@ -529,18 +531,12 @@ def _emit_transition_notification(
             .neq("profile_id", actor_id)
             .execute()
         )
-        rows = [
-            {
-                "profile_id": p["profile_id"],
-                "tier": "important",
-                "title": "Deal updated",
-                "body": f"This deal moved to {_label(transition.to_stage)}.",
-                "deal_id": deal["id"],
-            }
-            for p in others.data
-        ]
-        if rows:
-            client.table("notifications").insert(rows).execute()
+        return dispatch_in_app(
+            client, (row["profile_id"] for row in others.data), tier="important",
+            title="Deal updated", body=f"This deal moved to {_label(transition.to_stage)}.",
+            deal_id=deal["id"],
+        )
     except Exception:
-        # Seam only — the transition already committed; never surface this.
-        pass
+        # No ordinary post-commit notice error should invite a business retry.
+        logging.getLogger(__name__).warning("in_app_notification_post_commit_failed")
+        return DispatchResult(DispatchStatus.FAILED)

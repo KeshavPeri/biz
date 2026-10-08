@@ -7,11 +7,13 @@ HTTP errors, and emits best-effort generic notifications after commit.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from postgrest.exceptions import APIError
 
 from core.supabase_client import get_supabase
+from services.notification_dispatch import DispatchResult, DispatchStatus, dispatch_in_app
 from services.stage_engine import DealError
 
 
@@ -197,17 +199,8 @@ def get_participant_management(deal_id: str, user_id: str) -> dict[str, Any]:
     }
 
 
-def _notify(client: Any, profile_ids: list[str], deal_id: str, title: str, body: str) -> None:
-    if not profile_ids:
-        return
-    try:
-        client.table("notifications").insert([
-            {"profile_id": profile_id, "tier": "important", "title": title, "body": body, "deal_id": deal_id}
-            for profile_id in sorted(set(profile_ids))
-        ]).execute()
-    except Exception:
-        # Authorization is already committed; notification delivery is explicitly best-effort.
-        return
+def _notify(client: Any, profile_ids: list[str], deal_id: str, title: str, body: str) -> DispatchResult:
+    return dispatch_in_app(client, profile_ids, tier="important", title=title, body=body, deal_id=deal_id)
 
 
 def create_participant_request(
@@ -234,16 +227,20 @@ def create_participant_request(
     except APIError as exc:
         raise _rpc_error(exc) from exc
     if not result.get("idempotent"):
-        rows = (
-            client.table("participant_add_decisions")
-            .select("approver_profile_id")
-            .eq("request_id", request_id)
-            .neq("approver_profile_id", user_id)
-            .execute()
-            .data
-        )
-        _notify(client, [row["approver_profile_id"] for row in rows], deal_id,
-                "Participant request needs review", "A deal participant has requested a teammate addition.")
+        try:
+            rows = (
+                client.table("participant_add_decisions")
+                .select("approver_profile_id")
+                .eq("request_id", request_id)
+                .neq("approver_profile_id", user_id)
+                .execute()
+                .data
+            )
+            _notify(client, [row["approver_profile_id"] for row in rows], deal_id,
+                    "Participant request needs review", "A deal participant has requested a teammate addition.")
+        except Exception:
+            # The request has committed; no notice error should invite a retry.
+            logging.getLogger(__name__).warning("in_app_notification_post_commit_failed")
     return get_participant_management(deal_id, user_id)
 
 def decide_participant_request(
@@ -277,5 +274,8 @@ def decide_participant_request(
     if requester and not result.get("idempotent") and result.get("status") in {"approved", "rejected"}:
         title = "Teammate added" if result["status"] == "approved" else "Participant request declined"
         body = "Your participant request has been completed." if result["status"] == "approved" else "Your participant request was declined."
-        _notify(client, [requester[0]["requested_by"]], deal_id, title, body)
+        try:
+            _notify(client, [requester[0]["requested_by"]], deal_id, title, body)
+        except Exception:
+            logging.getLogger(__name__).warning("in_app_notification_post_commit_failed")
     return get_participant_management(deal_id, user_id)

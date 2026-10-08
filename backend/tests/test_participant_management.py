@@ -263,7 +263,16 @@ def main() -> None:
 
         first_body = request_body(ids["N"], "brand_maker")
         created = call("POST", f"/deals/{deal_id}/participant-requests", tokens["M"], first_body)
+        first_notices = admin.table("notifications").select("profile_id,tier,title,body,read,created_at").eq("deal_id", deal_id).execute().data
+        check("request notice reaches each eligible approver once with database defaults",
+              len(first_notices) == 3
+              and {row["profile_id"] for row in first_notices} == {ids["C"], ids["B"], ids["K"]}
+              and all(row["tier"] == "important" and row["title"] == "Participant request needs review"
+                      and row["body"] == "A deal participant has requested a teammate addition."
+                      and row["read"] is False and row["created_at"] for row in first_notices))
         retried = call("POST", f"/deals/{deal_id}/participant-requests", tokens["M"], first_body)
+        check("request retry creates no duplicate notice",
+              len(admin.table("notifications").select("id").eq("deal_id", deal_id).execute().data) == len(first_notices))
         changed = call("POST", f"/deals/{deal_id}/participant-requests", tokens["M"], {**first_body, "reason": "Changed fictional reason"})
         second = call("POST", f"/deals/{deal_id}/participant-requests", tokens["C"], request_body(ids["A"], "brand_admin"))
         decisions = admin.table("participant_add_decisions").select("approver_profile_id,decision").eq("request_id", first_body["request_id"]).execute().data
@@ -329,10 +338,13 @@ def main() -> None:
         )
         check("creator approval is recorded", call("POST", f"/deals/{deal_id}/participant-requests/{first_body['request_id']}/decision", tokens["C"], {"decision": "approved"}).status_code == 200)
         rejection = call("POST", f"/deals/{deal_id}/participant-requests/{first_body['request_id']}/decision", tokens["K"], {"decision": "rejected"})
+        notice_count_after_rejection = len(admin.table("notifications").select("id").eq("deal_id", deal_id).execute().data)
         retry_rejection = call("POST", f"/deals/{deal_id}/participant-requests/{first_body['request_id']}/decision", tokens["K"], {"decision": "rejected"})
         opposite = call("POST", f"/deals/{deal_id}/participant-requests/{first_body['request_id']}/decision", tokens["K"], {"decision": "approved"})
         late = call("POST", f"/deals/{deal_id}/participant-requests/{first_body['request_id']}/decision", tokens["B"], {"decision": "approved"})
         check("rejection is final, exact retry idempotent and conflicting or late decisions fail", rejection.status_code == 200 and retry_rejection.status_code == 200 and opposite.status_code == 409 and late.status_code == 409)
+        check("decision retry and failed votes add no notice",
+              len(admin.table("notifications").select("id").eq("deal_id", deal_id).execute().data) == notice_count_after_rejection)
         check("rejected candidate receives no participant access", not admin.table("deal_participants").select("id").eq("deal_id", deal_id).eq("profile_id", ids["N"]).execute().data)
 
         final_body = request_body(ids["A"], "brand_admin", "Admin support for fictional approvals")
@@ -400,9 +412,17 @@ def main() -> None:
         audits = admin.table("audit_log").select("action,metadata,ip_address").in_("entity_id", [first_body["request_id"], final_body["request_id"]]).execute().data
         audit_blob = json.dumps(audits).lower()
         check("creation, decisions, rejection and admission produce immutable metadata-only audits", {"participant_add_requested", "participant_add_decided", "participant_add_rejected", "participant_added"}.issubset({row["action"] for row in audits}) and "fictional campaign" not in audit_blob and "@inflo.test" not in audit_blob)
-        notifications = admin.table("notifications").select("title,body").in_("profile_id", list(ids.values())).eq("deal_id", deal_id).execute().data
+        notifications = admin.table("notifications").select("profile_id,tier,title,body").in_("profile_id", list(ids.values())).eq("deal_id", deal_id).execute().data
         notification_blob = json.dumps(notifications).lower()
         check("generic post-commit notifications contain no candidate or reason details", len(notifications) >= 5 and all(value not in notification_blob for value in ["fictional new", "campaign", "@inflo.test"]))
+        check("completed participant decisions notify only the requester",
+              all(row["profile_id"] == ids["M"] for row in notifications
+                  if row["title"] in {"Teammate added", "Participant request declined"}))
+        participant_reader = auth_client(USERS["C"][0])
+        outsider_reader = auth_client(USERS["U"][0])
+        check("participant notice ledger is recipient-scoped",
+              all(row["profile_id"] == ids["C"] for row in participant_reader.table("notifications").select("profile_id").eq("deal_id", deal_id).execute().data)
+              and outsider_reader.table("notifications").select("id").eq("deal_id", deal_id).execute().data == [])
 
     finally:
         cleanup()
