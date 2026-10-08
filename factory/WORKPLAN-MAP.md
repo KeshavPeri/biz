@@ -169,7 +169,7 @@ The normal G4 device check remains for the Approval contract card, drawn-signatu
 
 | ID | Task | Effective dependency | Status | RTM feature(s) |
 |---|---|---|---|---|
-| 12.1 | In-app notification engine | 11.7, 3.9 | Ready | CC-N001 and CC-N002; split into bounded tickets if the migration/backend/UI/scheduler scope exceeds one reviewable block. |
+| 12.1 | In-app notification engine | 11.7, 3.9 | Partial — 12.1-A ledger foundation | CC-N001 and CC-N002 remain Partial. Issue #87 adds recipient-only reads, idempotent mark-read RPC, Realtime publication and stable cursor index; dispatcher, centre UI, email rules and scheduler are later tickets. The 11.6 manual gate remains unrun. |
 | 12.2 | Resend email notifications | 12.1, 0.8 | Waiting | CC-N003. |
 | 12.3 | Stage-gate blocked alerts | 12.1, 9.8 | Waiting | CC-N004. |
 | 12.4 | Consolidate immutable audit logging | 11.7, 3.10 | Waiting | CC-S003; partial audit writes already exist and require a full coverage review. |

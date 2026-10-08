@@ -16,6 +16,18 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #87 / Workplan 12.1-A notification ledger (2026-10-08):** migration 058
+  narrows client table authority to recipient RLS SELECT, adds one authenticated
+  idempotent mark-read RPC, a stable newest-first cursor index, and Realtime
+  publication membership. The fictional ledger check passed 25/25 and cleaned
+  up its fixtures. The 14-command affected/focused union (including migration)
+  passed with 259 backend checks, compile and diff hygiene. QA was LIMITED to
+  unobserved live websocket delivery, security review passed, and the final
+  full regression passed at the unchanged source fingerprint. The post-close
+  check passed on one retry after a local HTTP transport error. CC-N001/CC-N002
+  and Workplan 12.1 remain Partial. No centre,
+  dispatcher, email rules, preferences or cleanup worker is claimed.
+
 - **Phase 11 sequencing decision (2026-10-07):** all planned implementation through Workplan 11.5
   is merged. Workplan 11.6's hands-on parser-to-tracker population test was **not run** because
   the tester is unavailable; the founder deferred that gate so later builds may proceed. This
@@ -1649,6 +1661,17 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-10-08 — Issue #87 notification ledger foundation
+
+- Added migration 058 and fictional grant/RLS/RPC/publication/keyset acceptance
+  checks. The pre-migration row survived byte-for-byte; 25/25 focused checks
+  passed and fixtures were removed. The affected/focused union passed 14/14
+  commands, including migration 058 once, 259 backend checks, compilation and
+  diff hygiene. Separate QA and security review found no actionable defect;
+  final full regression passed 13/13 commands and 259 backend assertions on
+  the unchanged code. Live websocket observation remains limited. Follow-on notification centre and dispatch
+  remain outside this bounded 12.1-A slice; 11.6 manual testing is still unrun.
 
 ### 2026-10-08 — Workplan 11.7 documentation closeout
 
