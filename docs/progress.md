@@ -16,6 +16,20 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #89 / Workplan 12.1-B recipient notification UI (2026-10-08):**
+  The signed-in tab shell now shows one accessible live bell and a protected
+  notification centre. The frontend reads bounded recipient-scoped keyset pages,
+  offers newest history and oldest-unread traversal, groups only RLS-readable
+  deal names, resolves deal access again before navigation, and marks only
+  viewport-visible notices through `mark_notification_read`. Realtime is a
+  recipient-filtered refetch hint with focus/manual refresh fallback; account,
+  token, order and request generations fence late results. Focused state tests
+  cover parsing, tied cursors, 103 unread rows, grouping, badge, visibility,
+  context, live cleanup and hints. Browser/native and live websocket walkthrough remain
+  LIMITED pending founder QA. CC-N001/CC-N002 and Workplan 12.1 remain Partial:
+  shared dispatch, email/preferences, unsupported action links and 90-day
+  cleanup are open; the 11.6 manual gate remains unrun.
+
 - **Issue #87 / Workplan 12.1-A notification ledger (2026-10-08):** migration 058
   narrows client table authority to recipient RLS SELECT, adds one authenticated
   idempotent mark-read RPC, a stable newest-first cursor index, and Realtime
@@ -1263,7 +1277,8 @@ health`, `from core.config import settings`) that only resolve with `backend/` a
 
 ## NEXT UP _(ordered)_
 
-1. **Phase 12 / Workplan 12.1:** prepare the next approved in-app notification build block;
+1. **Phase 12 / Workplan 12.1:** review issue #89's draft notification-centre PR, then
+   prepare a separate approved block for dispatch, email/preferences, or 90-day cleanup;
    retain B5-004 scheduled rights alerts as separate Phase 12 work.
 2. **Workplan 11.6:** run the parser-to-tracker population walkthrough when a tester is
    available and record actual observations, failures or a pass.
@@ -1312,6 +1327,11 @@ do not proceed. I'll resolve these at the start of my next session._
 
 _Claude: when a detail is ambiguous and you make a reasonable call to keep moving, log it
 here in one line so I can review or reverse it later._
+
+- 2026-10-08 — **Notification source links require a current, non-deleted deal.**
+  A soft-deleted deal may remain RLS-readable to a participant, so the centre filters
+  `deleted_at` before naming its group or offering navigation. Realtime remains a
+  refresh hint and cannot replace an authoritative recipient count.
 
 - 2026-09-24 — **Deal tracker health is a bounded, server-time snapshot.** RAG is derived only
   in the participant-safe RPC (never stored), uses Red-over-Amber precedence, and returns safe
@@ -1661,6 +1681,16 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-10-08 — Issue #89 notification centre and bell
+
+- Added the recipient bell and protected notification centre with bounded keyset pages,
+  oldest-unread traversal, visible-row read RPCs, safe deal links, and account-fenced
+  Realtime refresh. The affected backend set passed 10/10 commands; the final focused
+  frontend run passed 36/36 tests, typecheck, lint and web export. The combined verifier
+  passed after fixes for deleted-deal links and stale badge responses. Browser/native
+  layout and live websocket delivery remain limited pending founder walkthrough;
+  Workplan 12.1 and CC-N001/CC-N002 remain Partial, and 11.6 manual testing is unrun.
 
 ### 2026-10-08 — Issue #87 notification ledger foundation
 

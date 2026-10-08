@@ -5,6 +5,8 @@ import { Easing, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 
 import { BottomNav } from '@/components/bottom-nav';
+import { NotificationBell } from '@/components/notifications/notification-bell';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AmbientBackdrop } from '@/components/ui/ambient-backdrop';
 
 // Tab change = a short cross-fade plus a 14pt drift in the direction of travel.
@@ -29,6 +31,7 @@ const sceneShift: BottomTabNavigationOptions['sceneStyleInterpolator'] = ({ curr
 // are transparent so every tab scrolls over the one fixed AmbientBackdrop.
 export default function TabLayout() {
   const reduceMotion = useReducedMotion();
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={{ flex: 1 }}>
@@ -56,6 +59,9 @@ export default function TabLayout() {
         <Tabs.Screen name="you" options={{ title: 'You' }} />
         <Tabs.Screen name="account" options={{ title: 'Account' }} />
       </Tabs>
+      <View pointerEvents="box-none" style={{ position: 'absolute', top: insets.top + 4, right: 12, zIndex: 20 }}>
+        <NotificationBell />
+      </View>
     </View>
   );
 }

@@ -183,12 +183,12 @@ export function MediaKitScreen() {
       >
         <ScrollEdgeScrim progress={headerEdge} />
         {/* Top bar — Preview-as-brand toggle. */}
-        <View className="flex-row items-center justify-between gap-3 px-4 py-2">
+        <View className="gap-1 px-4 py-2 pr-16">
           <Text numberOfLines={1} className="flex-shrink font-geist-bold text-title text-ink">
             Your media kit
           </Text>
           {/* Never shrinks: the switch and its label stay on one line, aligned, at 320pt. */}
-          <View className="flex-shrink-0 flex-row items-center gap-2">
+          <View className="flex-row items-center gap-2">
             <Text numberOfLines={1} className="font-geist-medium text-secondary text-ink-2">
               Preview as brand
             </Text>
