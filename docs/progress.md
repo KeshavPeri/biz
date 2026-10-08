@@ -16,6 +16,33 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #91 / Workplan 12.1-C shared FastAPI in-app dispatch (2026-10-08):**
+  `backend/services/notification_dispatch.py` now writes one in-app row per
+  distinct server-selected recipient for the three existing tiers. Stage and
+  participant services retain their recipient, authorization, and idempotency
+  boundaries and call the shared writer after commit. Failed inserts yield an
+  internal failed result and a redacted diagnostic without failing the business
+  action; no schema, SQL-atomic writer, email, or frontend path changed.
+  Fictional development-Supabase stage/participant/ledger assertions and the
+  de-duplicated affected/focused set passed 12/12 commands at backend source
+  SHA-256 `1484f9cfb3b71c45a2ffd71769631f3094632be6626ff130d2ecc4c9106ffb16`.
+  An assertion-only test addition then passed 3/3 affected commands at backend
+  source SHA-256 `f15524023f2d4c1feacd368d363a30cc62d794cc85005a3fc34b18c91df6be2d`.
+  Security review found an ordinary post-commit exception escape; a containment
+  repair now catches such failures with a fixed redacted signal and passed
+  11/11 invalidated affected/focused commands at current backend source SHA-256
+  `c4b47d688259372e784af2ffda9a830ca73228210d6e16b532ec3cb378f0f4c3`.
+  Unit checks passed 12/12; participant 34/34, stage 27/27, ledger 25/25,
+  accept/decline 28/28, and the remaining affected checks passed. Independent
+  QA and security re-reviews passed at the unchanged source fingerprint. The
+  one post-review full regression passed 23/23 commands: 437 backend checks,
+  12 frontend notification-state cases, typecheck, lint (0 errors, 4 existing
+  warnings), web export, backend compile, and diff hygiene. Browser/native and
+  live websocket observation remain LIMITED for the founder walkthrough.
+  Workplan 12.1 and CC-N001/CC-N002 remain Partial: new event coverage,
+  email/preferences, 90-day cleanup, and unsupported action links remain open;
+  the 11.6 founder walkthrough is unrun.
+
 - **Issue #89 / Workplan 12.1-B recipient notification UI (2026-10-08):**
   The signed-in tab shell now shows one accessible live bell and a protected
   notification centre. The frontend reads bounded recipient-scoped keyset pages,
@@ -1277,9 +1304,9 @@ health`, `from core.config import settings`) that only resolve with `backend/` a
 
 ## NEXT UP _(ordered)_
 
-1. **Phase 12 / Workplan 12.1:** review issue #89's draft notification-centre PR, then
-   prepare a separate approved block for dispatch, email/preferences, or 90-day cleanup;
-   retain B5-004 scheduled rights alerts as separate Phase 12 work.
+1. **Phase 12 / Workplan 12.1:** review issue #91's bounded dispatch slice,
+   then plan the remaining event coverage, email/preferences, or 90-day cleanup
+   separately; retain B5-004 scheduled rights alerts as separate Phase 12 work.
 2. **Workplan 11.6:** run the parser-to-tracker population walkthrough when a tester is
    available and record actual observations, failures or a pass.
 
@@ -1681,6 +1708,14 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-10-08 — Issue #91 shared in-app notice dispatch
+
+- Centralized the existing FastAPI stage and participant notices with explicit
+  tiers, unique server-selected recipients, and redacted post-commit failure
+  handling. QA and security passed after one containment repair; the final full
+  regression passed 23/23 commands at the reviewed source fingerprint. The
+  founder UI/Realtime walkthrough remains open, and Workplan 12.1 stays Partial.
 
 ### 2026-10-08 — Issue #89 notification centre and bell
 
