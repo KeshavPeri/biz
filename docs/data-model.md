@@ -705,6 +705,16 @@ RLS: a user only ever sees their own rows.
 | read | bool | |
 | created_at | timestamptz | 90-day auto-clear |
 
+Workplan 12.1-A keeps existing rows unchanged. Authenticated recipients have
+`SELECT` on their own rows through RLS; direct client table writes are revoked.
+`mark_notification_read(uuid)` is the only client mutation: it derives the
+recipient from `auth.uid()`, changes unread to read once, returns true for an
+owned already-read row, and returns false for unknown or other-recipient IDs.
+The `(profile_id, created_at DESC, id DESC)` index supports stable newest-first
+keyset reads. `notifications` is in the Realtime publication; clients must
+refetch their RLS-scoped list/count after an event hint. Email dispatch, the
+centre UI, and 90-day cleanup remain later Phase 12 work.
+
 ### `notification_preferences`
 | Column | Type | Notes |
 |---|---|---|
