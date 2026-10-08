@@ -16,7 +16,14 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
-- **Issue #85 / Workplan 11.5 category-specific exclusivity warning verified candidate (2026-10-07):**
+- **Phase 11 sequencing decision (2026-10-07):** all planned implementation through Workplan 11.5
+  is merged. Workplan 11.6's hands-on parser-to-tracker population test was **not run** because
+  the tester is unavailable; the founder deferred that gate so later builds may proceed. This
+  is not a manual pass. The RTM records 14/15 Bucket 5 features Built and B5-004 Partial because
+  scheduled rights alerts remain Phase 12. The 11.6 result must be recorded when a tester is
+  available. Workplan 11.7's RTM and workplan reconciliation is complete for sequencing.
+
+- **Issue #85 / Workplan 11.5 category-specific exclusivity warning (merged PR #86, 2026-10-07):**
   additive development migration 057 adds an immutable nullable deal category and backend-only
   inventory, atomic Connect and Pending accept boundaries. Connect now requires an explicit safe
   category. Creator initiation and creator acceptance of a brand request use one source-validated
@@ -35,8 +42,7 @@ up exactly where the last one left off, with zero context lost.
   failed command 20/20, including concurrent decisions, with fictional cleanup. TypeScript,
   lint (zero errors, four existing warnings), Expo export, backend compile, contract/tracker/RLS
   regressions and diff hygiene passed. Founder browser/native walkthrough remains LIMITED.
-  Workplan 11.6 remains the separate manual parser-to-tracker gate; scheduled exclusivity
-  alerts remain Phase 12.
+  Workplan 11.6 remains an unrun manual gate; scheduled exclusivity alerts remain Phase 12.
 
 - **Issue #83 / Workplan 11.4-F2 canonical whitelisting tracker (merged PR #84, 2026-10-07):** additive
   development migration `056_whitelisting_tracker.sql` preserves source-null legacy rows, adds strict
@@ -1245,12 +1251,10 @@ health`, `from core.config import settings`) that only resolve with `backend/` a
 
 ## NEXT UP _(ordered)_
 
-1. **Issue #85 / Workplan 11.5:** review the draft PR, optionally complete the creator-and-brand
-   browser/native warning walkthrough, and decide whether to merge.
-2. **Workplan 11.6:** run the separate founder/manual parser-to-tracker population gate after
-   the 11.5 merge; record observed results without inferring a pass.
-3. **Workplan 11.7:** reconcile Phase 11 RTM evidence after the manual gate. Review other
-   outstanding draft PRs and deferred 9.18/Phase 10 walkthroughs separately.
+1. **Phase 12 / Workplan 12.1:** prepare the next approved in-app notification build block;
+   retain B5-004 scheduled rights alerts as separate Phase 12 work.
+2. **Workplan 11.6:** run the parser-to-tracker population walkthrough when a tester is
+   available and record actual observations, failures or a pass.
 
 ## NEEDS MY INPUT _(blockers + anything Claude flagged per the CLAUDE.md STOP list)_
 
@@ -1645,6 +1649,19 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-10-08 — Workplan 11.7 documentation closeout
+
+- Reconciled all 15 Bucket 5 rows against merged Phase 11 implementation: 14 Built, B5-004
+  Partial for scheduled rights alerts. Bucket 3 is 31/32 Built, with B3-037 reminders deferred.
+  Workplan 11.7 is complete for sequencing; the 11.6 manual result remains unrun and open.
+
+### 2026-10-07 — Phase 11 manual gate deferred for sequencing
+
+- PR #86 merged and issue #85 closed. The founder reported that the 11.6 parser-to-tracker
+  tester is unavailable and directed that later builds proceed. No manual test or pass is
+  claimed. RTM implementation evidence is reconciled to B3 31/32 and B5 14/15 Built; B5-004
+  remains Partial for Phase 12 alerts. The manual 11.6 outcome stays open.
 
 ### 2026-10-07 — Issue #85: Workplan 11.5 exclusivity conflict warning
 
