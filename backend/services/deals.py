@@ -124,6 +124,8 @@ def connect_deal(
             raise DealError(409, "The conflict information changed. Refresh and try again.") from exc
         if "CONNECT_MEMBERSHIP" in message:
             raise DealError(403, "You aren't an active member of a brand.") from exc
+        if "CONNECT_RECIPIENT_UNAVAILABLE" in message:
+            raise DealError(409, "This brand can't receive connection requests right now. Try again later.") from exc
         if "CONNECT_TARGET" in message:
             raise DealError(404, "This profile could not be found.") from exc
         raise DealError(409, "This connection could not be started safely. Refresh and try again.") from exc
