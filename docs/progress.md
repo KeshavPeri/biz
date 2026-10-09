@@ -16,6 +16,26 @@ up exactly where the last one left off, with zero context lost.
 
 ## CURRENT STATE _(always keep this accurate — it's the snapshot)_
 
+- **Issue #95 / Workplan 12.1-E deal rename notice (2026-10-09):**
+  Additive migration 060 keeps the service-role, version-locked rename RPC and
+  writes one generic Informational in-app notice for each distinct other current
+  participant in the same transaction as the name/version/timestamp and metadata-only
+  audit. Identical retries, stale or forbidden edits, and audit/notice failures
+  write no event rows. The development rename fixture reapplies 060 after historical
+  045 in one explicit management transaction so a failure cannot leave the older
+  function installed; a forced between-migration failure proved rollback. CC-N001/CC-N002
+  and Workplan 12.1 remain Partial; email, other events, retention, and live-device
+  observation are outside this slice. The de-duplicated affected/focused union passed
+  10/10 commands: rename 43/43 after review repair, chat archive 9/9, RLS 4/4, stage 27/27, term
+  approvals 36/36, maker-checker 10/10, contract flow 34/34, the frontend
+  context-fence test, backend compile and diff hygiene. Independent QA and
+  security reviews passed after the rollback repair. The one final full regression
+  passed 17/17 commands at unchanged code SHA-256
+  `ad749c4bacc9f06d44b07218d3f571250534bcaf40b4be353a5b339613e043c1`:
+  268 backend checks, 13 frontend state tests, typecheck, web export, backend
+  compile and diff hygiene. Lint had 0 errors and 4 existing warnings. Live
+  device/websocket observation remains LIMITED.
+
 - **Issue #93 / Workplan 12.1-D atomic Connect request notice (2026-10-08):**
   Additive migration 059 writes one generic Important in-app row for the actual
   Pending Connect recipient in the same transaction as the deal graph. Creator
@@ -1326,9 +1346,9 @@ health`, `from core.config import settings`) that only resolve with `backend/` a
 
 ## NEXT UP _(ordered)_
 
-1. **Phase 12 / Workplan 12.1:** review issue #91's bounded dispatch slice,
-   then plan the remaining event coverage, email/preferences, or 90-day cleanup
-   separately; retain B5-004 scheduled rights alerts as separate Phase 12 work.
+1. **Phase 12 / Workplan 12.1:** review and merge issue #95's draft deal-rename
+   notice PR, then plan remaining event coverage, email/preferences, or 90-day
+   cleanup separately; retain B5-004 scheduled rights alerts as separate work.
 2. **Workplan 11.6:** run the parser-to-tracker population walkthrough when a tester is
    available and record actual observations, failures or a pass.
 
@@ -1730,6 +1750,19 @@ expo@latest` if Expo Go compatibility ever requires a different SDK.
 ---
 
 ## SESSION HISTORY _(append-only — newest at top, keep each entry brief)_
+
+### 2026-10-09 — Issue #95 atomic deal-rename notice
+
+- Added development migration 060 so a committed rename creates one generic
+  Informational row for each other current participant in the same transaction.
+  Reapplication of historical 045 and 060 now shares one transaction; an
+  injected failure proved the shared development RPC cannot be downgraded.
+- Fictional development checks passed the 10-command affected/focused union,
+  including rename 43/43 after repair. QA and security passed; the one full
+  regression passed 17/17 commands at code SHA-256
+  `ad749c4bacc9f06d44b07218d3f571250534bcaf40b4be353a5b339613e043c1`.
+  CC-N001/CC-N002 and Workplan 12.1 remain Partial. Device and live websocket
+  observations remain founder review; the 11.6 manual gate remains unrun.
 
 ### 2026-10-08 — Issue #93 atomic Connect request notice
 
